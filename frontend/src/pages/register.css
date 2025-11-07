@@ -1,0 +1,111 @@
+body {
+  font-family: 'Open Sans', sans-serif;
+  background-color: #d9edff;
+  margin: 0;
+  padding: 0;
+}
+
+/* CENTRAR TODO */
+.register-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 20px;
+}
+
+/* CAJA CENTRAL */
+.register-box {
+  background-color: white;
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  max-width: 800px;
+  width: 100%;
+  display: flex;
+  overflow: hidden;
+  flex-direction: row-reverse;
+}
+
+/* IMAGEN */
+.illustration-wrapper {
+  flex: 1;
+  background-color: #fffdf2;
+}
+.illustration-wrapper img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* FORMULARIO */
+#register-form {
+  flex: 1;
+  max-width: 400px;
+  padding: 60px;
+  box-sizing: border-box;
+}
+
+#register-form p.form-title {
+  color: #333;
+  font-size: 32px;
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+
+#register-form p {
+  margin-bottom: 30px;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+#register-form input[type="email"],
+#register-form input[type="password"],
+#register-form input[type="DNI"] {
+  width: 100%;
+  padding: 12px 15px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 16px;
+  box-sizing: border-box;
+}
+
+.checkbox-group {
+  text-align: left;
+  margin-bottom: 20px;
+  font-size: 14px;
+}
+
+/* BOTÓN */
+.register-form-button {
+  width: 100%;
+  background-color: #335ddc;
+  color: white;
+  padding: 12px;
+  border: none;
+  border-radius: 6px;
+  font-weight: bold;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+.register-form-button:hover {
+  background-color: #234cc0;
+}
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+  .register-box {
+    flex-direction: column;
+  }
+
+  #register-form {
+    padding: 40px 30px;
+    max-width: 100%;
+  }
+
+  .illustration-wrapper {
+    height: 200px;
+  }
+}

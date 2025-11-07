@@ -1,0 +1,17 @@
+services:
+  # --- Backend (Node/Express) ---
+  - type: web
+    name: cv-backend
+    runtime: node
+    plan: free
+    branch: master          # cambia a main si tu rama principal es main
+    rootDir: backend
+    buildCommand: npm ci
+    startCommand: npm start  # asegúrate de tener "start": "node src/app.js" en backend/package.json
+    envVars:
+      - key: NODE_VERSION
+        value: 18
+      # - key: MONGODB_URI
+      #   sync: false
+      # - key: JWT_SECRET
+      #   sync: false

@@ -1,0 +1,45 @@
+{
+  "name": "backend-rrhh",
+  "version": "1.0.0",
+  "main": "src/app.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/app.js",
+    "dev": "nodemon src/app.js",
+    "db:clean": "node scripts/seeder.js --clean",
+    "db:seed": "node scripts/seeder.js --seed",
+    "db:reset": "node scripts/seeder.js --clean --seed",
+    "repair:users": "node scripts/repairUsers.js",
+    "seed:searches": "node -r dotenv/config seeds/seed.searches.js",
+    "seed": "node -r dotenv/config seeds/seed.js",
+    "seed:clear": "cross-env SEED_CLEAR=true node -r dotenv/config seeds/seed.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@azure/identity": "^4.13.0",
+    "@microsoft/microsoft-graph-client": "^3.0.7",
+    "bcryptjs": "^2.4.3",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "express": "^4.21.2",
+    "express-session": "^1.18.2",
+    "express-validator": "^7.2.1",
+    "isomorphic-fetch": "^3.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.18.0",
+    "multer": "^2.0.2",
+    "nodemon": "^3.1.10",
+    "passport": "^0.7.0",
+    "passport-google-oauth20": "^2.0.0",
+    "resend": "^6.2.0",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@faker-js/faker": "^9.9.0",
+    "cross-env": "^10.0.0"
+  }
+}
