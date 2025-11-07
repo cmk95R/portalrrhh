@@ -1,7 +1,7 @@
 services:
   # --- Backend (Node/Express) ---
   - type: web
-    name: cv-backend
+    name: portalrrhh-backend
     runtime: node
     plan: free
     branch: master          # cambia a main si tu rama principal es main

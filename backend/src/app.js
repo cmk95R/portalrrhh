@@ -32,14 +32,13 @@ app.use(cookieParser());
 // Por ahora la dejamos como estaba, pero RECUERDA que necesitarás
 // permitir tu FRONTEND_URL en producción aquí.
 const allowedOrigins = [];
+const FRONTEND_URL_PROD = "https://portalrrhh.vercel.app";
+
 if (IS_PROD) {
-    if (process.env.FRONTEND_URL) {
-        allowedOrigins.push(process.env.FRONTEND_URL);
-    } else {
-        console.warn("⚠️ Advertencia: FRONTEND_URL no definida para producción.");
-    }
+    // En producción, solo permitimos el frontend de Vercel.
+    allowedOrigins.push(FRONTEND_URL_PROD);
 } else {
-    allowedOrigins.push("http://localhost:5173"); // Tu frontend de desarrollo
+    allowedOrigins.push("http://localhost:5173"); // En desarrollo, solo el local.
 }
 
 const corsOptions = {
