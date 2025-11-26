@@ -51,11 +51,11 @@ export default function DireccionAR({ value, onChange, required }) {
     };
 
     return (
-        <Grid container spacing={2}>
+        <Grid container spacing={2.5}>
             {/* --- Autocomplete de Provincia (ahora usa el estado) --- */}
-            <Grid item xs={12} sm={6} width={150}>
+            <Grid item xs={12} sm={6} width={225}>
                 <Autocomplete
-                    width={150}
+                    
                     options={provincias} // <-- 5. Usa el estado 'provincias'
                     value={value?.provincia || null}
                     getOptionLabel={(o) => o?.nombre || ""}
@@ -86,7 +86,7 @@ export default function DireccionAR({ value, onChange, required }) {
             <Grid item xs={12} sm={6}>
                 <TextField
                     width={150}
-                    label="Ingresa tu localidad"
+                    label="Localidad"
                     required={required}
                     value={
                         value?.localidad?.nombre ?? // Si es un objeto, usa su propiedad 'nombre'

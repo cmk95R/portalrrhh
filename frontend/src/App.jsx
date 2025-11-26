@@ -13,13 +13,16 @@ import PublicSearches from "./pages/PublicSearches";
 import MyApplications from "./pages/myapplicaction"; 
 import AdminApplicationsPage from './pages/AdminApplicationsPage'; 
 import LoginSso from "./pages/LoginSso";
+import AttendancePage from './pages/AttendancePage'; // <-- 1. Importa la nueva página
 import GoogleAuthCallback from './pages/GoogleAuthCallback';
+import AdminAttendancePage from './pages/AdminAttendancePage';
+import ColorModeProvider from './context/ColorModeProvider'; 
 
-
-<Route path="/admin/users" element={<AdminUsersGrid />} />
 function App() {
   return (
+    <ColorModeProvider> 
     <Routes>
+      
       {/* Layout con sidebar para páginas internas */}
       <Route element={<DashboardLayout />}>
         <Route path="/" element={<Home />} />
@@ -35,13 +38,16 @@ function App() {
         <Route path="/searches" element={<PublicSearches />} />
         <Route path="/applications/me" element={<MyApplications />} />
         <Route path="/admin/applications" element={< AdminApplicationsPage />} />
+        <Route path="/admin/attendance" element={<AdminAttendancePage />} />
+        <Route path="/my-attendance" element={<AttendancePage />} /> {/* <-- 2. Añade la ruta */}
         <Route path="/login/sso" element={<LoginSso />} />
         
       </Route>
 
       {/* Sin layout (login aparte) */}
-      
+     
     </Routes>
+     </ColorModeProvider>
   );
 }
 

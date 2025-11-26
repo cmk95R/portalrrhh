@@ -33,6 +33,9 @@ import {
 
 import { getDashboardData } from "../controllers/dashboard.controller.js";
 
+// --- Importa las nuevas rutas de admin para asistencia ---
+import adminAttendanceRoutes from "./adminAttendance.routes.js";
+
 const router = Router();
 
 // --- Middleware Global para Rutas de Admin ---
@@ -75,5 +78,8 @@ applicationRouter.get("/", listApplications);   // GET /api/admin/applications
 applicationRouter.patch("/:id", updateApplication); // PATCH /api/admin/applications/:id
 applicationRouter.get("/:id/cv/download", downloadCvByApplication); // GET /api/admin/applications/:id/cv/download
 router.use("/applications", applicationRouter); // Monta las rutas de postulación bajo /api/admin/applications
+
+// --- Gestión de Asistencia --- (/api/admin/attendance)
+router.use("/attendance", adminAttendanceRoutes); // Monta las rutas de asistencia bajo /api/admin/attendance
 
 export default router;

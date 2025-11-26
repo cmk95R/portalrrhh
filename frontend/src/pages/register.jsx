@@ -14,11 +14,14 @@ import {
   Typography,
   Paper,
   Alert,
+  Grid,
+  Box,
 } from "@mui/material";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import SocialLogin from "../components/socialLogin";
 import DireccionAR from "../components/DireccionAR";
+import { motion } from "framer-motion";
 
 export default function RegisterForm() {
   const navigate = useNavigate();
@@ -133,120 +136,109 @@ export default function RegisterForm() {
   };
 
   return (
-    <Container maxWidth="sm" sx={{ py: 6 }}>
-      <Paper sx={{ p: 4, borderRadius: 3 }} elevation={4}>
-        <Typography variant="h4" fontWeight={700} gutterBottom>
-          Bienvenido
-        </Typography>
-        <Typography variant="body1" sx={{ mb: 3 }}>
-          Registrate para ver nuestras ofertas de empleo
-        </Typography>
+    <Container maxWidth="sm" sx={{ py: 6, display: 'flex', alignItems: 'center', minHeight: '50vh' }}>
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+        <Paper sx={{ p: { xs: 3, sm: 4 }, borderRadius: 4, boxShadow: "0 8px 32px 0 rgba(31, 38, 135, 0.25)" }} elevation={4}>
+          <Box textAlign="center">
+            <Typography variant="h4" fontWeight={700} gutterBottom>
+              Crear una cuenta
+            </Typography>
+            <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
+              Únete para descubrir nuevas oportunidades.
+            </Typography>
+          </Box>
 
-        <form id="register-form" onSubmit={handleSubmit} style={{ width: "100%" }}>
-          <Stack spacing={2}>
-            <TextField
-              label="Nombre"
-              type="text"
-              name="nombre"
-              value={form.nombre}
-              onChange={handleChange}
-              fullWidth
-              error={!!errors.nombre}
-              helperText={errors.nombre}
-              required
-            />
+          <form id="register-form" onSubmit={handleSubmit} style={{ width: "100%" }}>
+            <Grid container spacing={2.5}>
+              <Grid item xs={12} sm={6}>
+                <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }}>
+                  <TextField label="Nombre" name="nombre" value={form.nombre} onChange={handleChange} fullWidth required error={!!errors.nombre} helperText={errors.nombre} FormHelperTextProps={{ style: { fontSize: '0.70rem' } }} />
+                </motion.div>
+              </Grid>
 
-            <TextField
-              label="Apellido"
-              type="text"
-              name="apellido"
-              value={form.apellido}
-              onChange={handleChange}
-              fullWidth
-              error={!!errors.apellido}
-              helperText={errors.apellido}
-              required
-            />
+              <Grid item xs={12} sm={6}>
+                <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.15 }}>
+                  <TextField label="Apellido" name="apellido" value={form.apellido} onChange={handleChange} fullWidth required error={!!errors.apellido} helperText={errors.apellido} FormHelperTextProps={{ style: { fontSize: '0.75rem' } }} />
+                </motion.div>
+              </Grid>
 
-            <DireccionAR
-              value={form.direccion}
-              onChange={handleDireccionChange}
-              required
-            />
+              <Grid item xs={12}>
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
+                  <DireccionAR value={form.direccion} onChange={handleDireccionChange} required />
+                </motion.div>
+              </Grid>
+              
+              </Grid>
+              <br />
+              <Grid item xs={12} spacing={8}>
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.25 }}>
+                  <TextField label="Correo electrónico" type="email" name="email" value={form.email} onChange={handleChange} fullWidth required error={!!errors.email} helperText={errors.email} FormHelperTextProps={{ style: { fontSize: '0.75rem' } }} />
+                </motion.div>
+              </Grid>
+              <br />  
+              <Grid item xs={12}>
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}>
+                  <TextField
+                    label="Contraseña"
+                    type={showPass ? "text" : "password"}
+                    name="password"
+                    value={form.password}
+                    onChange={handleChange}
+                    fullWidth
+                    required
+                    error={!!errors.password}
+                    helperText={errors.password} FormHelperTextProps={{ style: { fontSize: '0.75rem' } }}
+                    InputProps={{
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <IconButton aria-label={showPass ? "Ocultar contraseña" : "Mostrar contraseña"} onClick={() => setShowPass((v) => !v)} edge="end">
+                            {showPass ? <VisibilityOff /> : <Visibility />}
+                          </IconButton>
+                        </InputAdornment>
+                      ),
+                    }}
+                  />
+                </motion.div>
+              
 
-            <TextField
-              label="Correo electrónico"
-              type="email"
-              name="email"
-              value={form.email}
-              onChange={handleChange}
-              fullWidth
-              error={!!errors.email}
-              helperText={errors.email}
-              required
-            />
+              <Grid item xs={12}>
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.35 }}>
+                  <FormControlLabel control={<Checkbox checked={form.remember} onChange={handleChange} name="remember" />} label="Recordarme" />
+                </motion.div>
+              </Grid>
 
-            <TextField
-              label="Contraseña"
-              type={showPass ? "text" : "password"}
-              name="password"
-              value={form.password}
-              onChange={handleChange}
-              fullWidth
-              error={!!errors.password}
-              helperText={errors.password}
-              required
-              InputProps={{
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton
-                      aria-label={showPass ? "Ocultar contraseña" : "Mostrar contraseña"}
-                      onClick={() => setShowPass((v) => !v)}
-                      edge="end"
-                    >
-                      {showPass ? <VisibilityOff /> : <Visibility />}
-                    </IconButton>
-                  </InputAdornment>
-                ),
-              }}
-            />
+              {errors.general && (
+                <Grid item xs={12}>
+                  <Alert severity="error" sx={{ width: '100%' }}>
+                    {errors.general}
+                  </Alert>
+                </Grid>
+              )}
 
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={form.remember}
-                  onChange={handleChange}
-                  name="remember"
-                />
-              }
-              label="Recordarme"
-            />
+              <Grid item xs={12}>
+                <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} style={{ width: '100%' }}>
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    color="primary"
+                    fullWidth
+                    disabled={loading}
+                    sx={{ mt: 1, py: 1.5, fontWeight: 600, borderRadius: '8px', textTransform: 'none', fontSize: '1rem' }}
+                  >
+                    {loading ? "Registrando..." : "Crear Cuenta"}
+                  </Button>
+                </motion.div>
+              </Grid>
+            </Grid>
+          </form>
 
-            {errors.general && (
-              <Alert severity="error" sx={{ width: '100%' }}>
-                {errors.general}
-              </Alert>
-            )}
+          <SocialLogin />
 
-            <Button
-              type="submit"
-              variant="contained"
-              color="primary"
-              fullWidth
-              disabled={loading}
-              sx={{ mt: 1, py: 1.2, fontWeight: 600 }}
-            >
-              {loading ? "Registrando..." : "Registrar"}
-            </Button>
-          </Stack>
-        </form>
-
-        <SocialLogin />
-
-        <Typography align="center" sx={{ mt: 2 }}>
-          ¿Ya tenés una cuenta? <a href="/login">Iniciá sesión</a>
-        </Typography>
-      </Paper>
+          <Typography align="center" sx={{ mt: 3 }}>
+            ¿Ya tenés una cuenta? <a href="/login" style={{ fontWeight: 'bold', textDecoration: 'none' }}>Iniciá sesión</a>
+          </Typography>
+        </Paper>
+      </motion.div>
     </Container>
   );
 }
