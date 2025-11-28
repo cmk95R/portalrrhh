@@ -10,9 +10,8 @@ import connectDB from "./db/db.js";
 
 // --- 1. Importaciones de Rutas (Mantenemos todas por ahora) ---
 import authRoutes from "./routes/authRoutes.js";
-import cvRoutes from "./routes/cvRoutes.js";
-import searchesRoutes from "./routes/searches.routes.js"; // Rutas públicas y de usuario
-import applicationsRoutes from "./routes/applications.routes.js"; // Rutas de usuario
+import userRoutes from "./routes/userRoutes.js";   // 👈 NUEVO
+
 import adminRoutes from "./routes/adminRoutes.js"; // <-- CORRECCIÓN: Importamos el router de admin centralizado
 import geoRoutes from "./routes/geoRoutes.js"; // Rutas públicas
 import attendanceRoutes from "./routes/attendance.routes.js"; // <-- NUEVO: Rutas de asistencia para usuarios
@@ -81,12 +80,11 @@ app.get("/health", (_req, res) => {
 
 // --- 4. Montaje de Rutas API con prefijo /api ---
 const apiRouter = express.Router(); // Router principal para /api
+apiRouter.use("/users", userRoutes);  // 👈 NUEVO (para /api/users/me)
 
 // Montamos las rutas relevantes para usuarios bajo /api
 apiRouter.use("/auth", authRoutes);            // /api/auth/... (Registro, Login, Google, Verify, Me)
-apiRouter.use("/cv", cvRoutes);                // /api/cv/... (Rutas /me para el CV del usuario)
-apiRouter.use("/searches", searchesRoutes);    // /api/searches/... (Listar, Detalle, Apply)
-apiRouter.use("/applications", applicationsRoutes); // /api/applications/... (Rutas /me y /:id para postulaciones del usuario)
+; // /api/applications/... (Rutas /me y /:id para postulaciones del usuario)
 apiRouter.use("/geo", geoRoutes);              // /api/geo/... (Provincias, Localidades - públicas)
 apiRouter.use("/attendance", attendanceRoutes); // <-- NUEVO: /api/attendance/... (Clock-in, Clock-out, etc.)
 // Montamos TODAS las rutas de admin bajo /api/admin

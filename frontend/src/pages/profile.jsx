@@ -1,520 +1,790 @@
 import React, { useEffect, useState, useCallback } from "react";
 import {
-  Box, Container, Grid, Typography, Card,
-  Button, TextField, MenuItem, Stack, Snackbar, Alert, Skeleton,
-  Stepper, Step, StepLabel, CircularProgress, Fade, IconButton
+  Box,
+  Container,
+  Grid,
+  Typography,
+  Button,
+  TextField,
+  Snackbar,
+  Alert,
+  Skeleton,
+  Avatar,
+  Tabs,
+  Tab,
+  IconButton,
+  Fade,
+  Zoom,
+  Divider,
+  InputAdornment,
 } from "@mui/material";
-import { styled } from '@mui/material/styles';
+import { styled } from "@mui/material/styles";
 import {
-  ArrowBack as ArrowBackIcon,
-  Delete as DeleteIcon,
-  Add as AddIcon,
-  CloudUpload as CloudUploadIcon
+  WorkOutline as WorkIcon,
+  Person as PersonIcon,
+  Home as HomeIcon,
+  PhotoCamera as PhotoCameraIcon,
+  Email as EmailIcon,
+  Badge as BadgeIcon,
+  Phone as PhoneIcon,
+  Business as BusinessIcon,
 } from "@mui/icons-material";
-import DownloadIcon from "@mui/icons-material/Download";
 
 // APIs
 import { profileApi } from "../api/auth";
-import { getMyCvApi, upsertMyCv, upsertMyCvJson, getMyCvDownloadUrlApi } from "../api/cv";
 import { editUserApi } from "../api/users";
 
-// Componentes
-import DireccionAR from "../components/DireccionAR";
-
-// Utils
-import { normalizeDireccion } from "../utils/normalize";
-// import { mergeDireccion } from "../utils/merge";
-
-// Constantes
-const nivelesAcademicos = [
-  "Secundario completo", "Secundario incompleto", "Terciario/Técnico en curso",
-  "Terciario/Técnico completo", "Universitario en curso", "Universitario completo",
-  "Posgrado en curso", "Posgrado completo", "Curso/Bootcamp"
-];
-const steps = ['Datos Personales', 'Contacto', 'Educación', 'Experiencia', 'Adjuntar CV', 'Revisar y Guardar'];
-
-// Componente para ocultar el input de archivo
-const VisuallyHiddenInput = styled('input')({
-  clip: 'rect(0 0 0 0)',
-  clipPath: 'inset(50%)',
+const VisuallyHiddenInput = styled("input")({
+  clip: "rect(0 0 0 0)",
+  clipPath: "inset(50%)",
   height: 1,
-  overflow: 'hidden',
-  position: 'absolute',
+  overflow: "hidden",
+  position: "absolute",
   bottom: 0,
   left: 0,
-  whiteSpace: 'nowrap',
+  whiteSpace: "nowrap",
   width: 1,
 });
 
-// --- Componente principal ---
-export default function ProfileWizard() {
+const AnimatedBox = styled(Box)(({ theme }) => ({
+  borderRadius: 16,
+  background: "rgba(255,255,255,0.96)",
+  backdropFilter: "blur(12px)",
+  boxShadow: "0px 4px 18px rgba(0,0,0,0.12)",
+  transition: "all 0.3s ease-in-out",
+  "&:hover": {
+    boxShadow: "0px 10px 30px rgba(0,0,0,0.18)",
+    transform: "translateY(-4px)",
+  },
+  padding: theme.spacing(3),
+}));
+
+const AnimatedAvatar = styled(Avatar)(({ theme }) => ({
+  transition: "all 0.3s ease-in-out",
+  "&:hover": {
+    transform: "scale(1.05)",
+  },
+}));
+
+const AnimatedButton = styled(Button)(({ theme }) => ({
+  transition: "all 0.25s ease-in-out",
+  "&:hover": {
+    transform: "scale(1.03)",
+  },
+}));
+
+export default function ProfileDashboard() {
   const [loading, setLoading] = useState(true);
-  const [cvData, setCvData] = useState({});
-  const [user, setUser] = useState(null);
-  const [snack, setSnack] = useState({ open: false, severity: "success", msg: "" });
-  const [activeStep, setActiveStep] = useState(0);
+  const [snack, setSnack] = useState({
+    open: false,
+    severity: "success",
+    msg: "",
+  });
   const [isSaving, setIsSaving] = useState(false);
-  const [selectedFile, setSelectedFile] = useState(null);
+  const [selectedPhoto, setSelectedPhoto] = useState(null);
+  const [tabValue, setTabValue] = useState(0);
+
+  // --- Estado de datos del usuario ---
+  const [userData, setUserData] = useState({
+    nombre: "",
+    apellido: "",
+    email: "",
+    dni: "",
+    telefono: "",
+    nacimiento: "",
+    foto: "",
+    cliente: "",
+    direccionCliente: "",
+    horarioLaboral: "",
+    rol: "", // para permisos de edición
+  });
+
+  // --- Estado de dirección ---
+  const [addressData, setAddressData] = useState({
+    calle: "",
+    numero: "",
+    cp: "",
+    localidad: "",
+    provincia: "",
+    pais: "Argentina",
+  });
+
+  // Flag de permisos
+  const isAdminOrRRHH =
+    userData.rol === "admin" || userData.rol === "rrhh";
 
   const fetchAll = useCallback(async () => {
     try {
       setLoading(true);
-      const [{ data: me }, { data: cvResp }] = await Promise.all([profileApi(), getMyCvApi()]);
-      const userData = me?.user || {};
-      const cv = cvResp?.cv || {};
+      const { data } = await profileApi();
+      const u = data.user || {};
 
-      setUser(userData);
-
-      // --- LÓGICA DE FUSIÓN ---
-      // 1. La base son los datos del CV (que no tiene dirección).
-      // 2. Los datos del User (incluida la dirección) sobreescriben la base.
-      setCvData({
-        ...cv,
-        ...userData,
-        nombre: cv?.nombre ?? userData?.nombre ?? "",
-        apellido: cv?.apellido ?? userData?.apellido ?? "",
-        email: cv?.email ?? userData?.email ?? "",
+      setUserData({
+        nombre: u.nombre || "",
+        apellido: u.apellido || "",
+        email: u.email || "",
+        dni: u.dni || "",
+        telefono: u.telefono || "",
+        nacimiento: u.nacimiento ? String(u.nacimiento).slice(0, 10) : "",
+        foto: u.foto || "",
+        cliente: u.cliente || "",
+        direccionCliente: u.direccionCliente || "",
+        horarioLaboral: u.horarioLaboral || "",
+        rol: u.rol || "",
       });
+
+      if (u.direccion) {
+        setAddressData({
+          calle: u.direccion.calle || "",
+          numero: u.direccion.numero || "",
+          cp: u.direccion.cp || "",
+          localidad: u.direccion.localidad || "",
+          provincia:
+            u.direccion.provincia?.nombre || u.direccion.provincia || "",
+          pais: u.direccion.pais || "Argentina",
+        });
+      }
     } catch (e) {
       console.error(e);
-      setSnack({ open: true, severity: "error", msg: "No se pudo cargar tu perfil." });
+      setSnack({
+        open: true,
+        severity: "error",
+        msg: "Error al cargar perfil.",
+      });
     } finally {
       setLoading(false);
     }
   }, []);
 
-  useEffect(() => { fetchAll(); }, [fetchAll]);
+  useEffect(() => {
+    fetchAll();
+  }, [fetchAll]);
 
-  const handleDataChange = (field, value) => {
-    setCvData(prevData => ({ ...prevData, [field]: value }));
+  const handleUserChange = (field, value) => {
+    setUserData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleDireccionChange = useCallback((dir) => {
-    // El componente DireccionAR ya nos da el formato correcto:
-    // { provincia: object, localidad: string }.
-    // Simplemente lo asignamos directamente al estado.
-    setCvData(prev => ({ ...prev, direccion: dir }));
-  }, []);
-
-  const handleExperienceChange = (newExperiences) => {
-    setCvData(prevData => ({ ...prevData, experiencia: newExperiences }));
+  const handleAddressChange = (field, value) => {
+    setAddressData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleEducationChange = (newEducation) => {
-    setCvData(prevData => ({ ...prevData, educacion: newEducation }));
+  const handlePhotoChange = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      setSelectedPhoto(file);
+      // TODO: subir foto al servidor y actualizar userData.foto con la URL
+      setSnack({
+        open: true,
+        severity: "info",
+        msg: "Foto seleccionada (falta implementar subida).",
+      });
+    }
   };
 
   const handleFinalSave = async () => {
     setIsSaving(true);
-
     try {
-      // --- CORRECCIÓN: Se consolida el guardado en una sola llamada a la API del CV ---
-      // El backend (upsertMyCV) ya se encarga de sincronizar los datos con el modelo User.
       const payload = {
-        ...cvData,
+        nombre: userData.nombre,
+        apellido: userData.apellido,
+        email: userData.email, // aunque en el backend puede ignorarse si no permitís cambio
+        telefono: userData.telefono,
+        nacimiento: userData.nacimiento,
+        dni: userData.dni,
+        foto: userData.foto,
+        cliente: userData.cliente,
+        direccionCliente: userData.direccionCliente,
+        horarioLaboral: userData.horarioLaboral,
+        direccion: {
+          ...addressData,
+        },
       };
 
-      if (selectedFile) {
-        const formData = new FormData();
-        // Adjuntamos el archivo bajo el nombre 'cvPdf' que espera el backend
-        formData.append('cvPdf', selectedFile, selectedFile.name);
-
-        // Creamos una copia de payload para no modificar el estado
-        const dataToSend = { ...payload };
-
-        // Adjuntamos el resto de los campos al FormData
-        for (const key in dataToSend) {
-          const value = dataToSend[key];
-          // Los objetos (como 'direccion' o 'experiencia') se convierten a JSON
-          if (['experiencia', 'educacion'].includes(key) || (typeof value === 'object' && value !== null)) {
-            formData.append(key, JSON.stringify(value));
-          } else if (value !== null && value !== undefined) {
-            formData.append(key, value);
-          }
-        }
-        await upsertMyCv(formData);
-      } else {
-        // Si no hay archivo, enviamos solo los datos del CV como JSON
-        await upsertMyCvJson(payload);
+      if (!isAdminOrRRHH) {
+        // Si es empleado, evitamos que mande cambios en cliente/direccionCliente/horario y dni
+        delete payload.cliente;
+        delete payload.direccionCliente;
+        delete payload.horarioLaboral;
+        delete payload.dni;
       }
 
-      setSnack({ open: true, severity: "success", msg: "Perfil guardado con éxito!" });
+      await editUserApi(payload);
+
+      setSnack({
+        open: true,
+        severity: "success",
+        msg: "Perfil actualizado correctamente.",
+      });
+      setSelectedPhoto(null);
       await fetchAll();
-      setSelectedFile(null);
-      setActiveStep(0);
     } catch (e) {
       console.error(e);
-      // Mensaje de error más específico si es posible
-      const errorMsg = e.response?.data?.message || "Error al guardar el perfil.";
-      setSnack({ open: true, severity: "error", msg: errorMsg });
+      setSnack({
+        open: true,
+        severity: "error",
+        msg: e?.response?.data?.message || "Error al guardar.",
+      });
     } finally {
       setIsSaving(false);
     }
   };
 
-  const handleNext = () => setActiveStep(p => p + 1);
-  const handleBack = () => setActiveStep(p => p - 1);
-
   if (loading) {
     return (
-      <Container maxWidth="lg" sx={{ py: 4 }}>
-        <Skeleton variant="rectangular" height={80} sx={{ borderRadius: 3, mb: 3 }} />
-        <Skeleton variant="rectangular" height={400} sx={{ borderRadius: 3 }} />
+      <Container maxWidth="xl" sx={{ py: 4 }}>
+        <Skeleton
+          variant="rectangular"
+          height={420}
+          sx={{ borderRadius: 2 }}
+        />
       </Container>
     );
   }
 
-  const getStepContent = (step) => {
-    switch (step) {
-      case 0: return <PersonalForm data={cvData} onChange={handleDataChange} reviewData={cvData} />;
-      case 1: return <ContactLocationForm data={cvData} onFieldChange={handleDataChange} onDireccionChange={handleDireccionChange} reviewData={cvData} />;
-      case 2: return <EducationForm data={cvData.educacion || []} onChange={handleEducationChange} reviewData={cvData} />;
-      case 3: return <ExperienceForm data={cvData.experiencia || []} onChange={handleExperienceChange} reviewData={cvData} />;
-      case 4: return (
-        <UploadCV
-          key={cvData.updatedAt || (cvData.cvFile?.filename || 'no-file')}
-          existingFile={cvData.cvFile}
-          lastUpdated={cvData.updatedAt}
-          onFileSelect={setSelectedFile}
-          reviewData={cvData}
-          newFile={selectedFile}
-        />
-      );
-      case 5: return <ReviewAndSaveForm data={cvData} newFile={selectedFile} />; // El paso final ya es una revisión completa
-      default: return 'Paso desconocido';
-    }
-  };
-
   return (
-    <Container maxWidth="lg" sx={{ py: 4, bgcolor: 'background.default' }}>
-      <Button startIcon={<ArrowBackIcon />} onClick={() => window.history.back()} sx={{ mb: 3 }}>Volver</Button>
-      <Card sx={{ p: 4, borderRadius: 3, boxShadow: 3 }}>
-        <Typography variant="h4" fontWeight="bold" gutterBottom sx={{ mb: 4 }}>
-          Configurar Perfil Profesional
-        </Typography>
-        <Stepper activeStep={activeStep} alternativeLabel sx={{ mb: 4 }}>
-          {steps.map((label) => (
-            <Step key={label}><StepLabel>{label}</StepLabel></Step>
-          ))}
-        </Stepper>
-        <Box sx={{ minHeight: 400, p: 2 }}>
-          {getStepContent(activeStep)}
-        </Box>
-        <Box sx={{ display: 'flex', flexDirection: 'row', pt: 2 }}>
-          <Button color="inherit" disabled={activeStep === 0 || isSaving} onClick={handleBack} sx={{ mr: 1 }}>
-            Anterior
-          </Button>
-          <Box sx={{ flex: '1 1 auto' }} />
-          {activeStep === steps.length - 1 ? (
-            <Button variant="contained" onClick={handleFinalSave} disabled={isSaving}>
-              {isSaving ? <CircularProgress size={24} /> : 'Confirmar y Guardar'}
-            </Button>
-          ) : (
-            <Button variant="contained" onClick={handleNext}>
-              Siguiente
-            </Button>
-          )}
-        </Box>
-      </Card>
-      <Snackbar open={snack.open} autoHideDuration={4000} onClose={() => setSnack(s => ({ ...s, open: false }))} anchorOrigin={{ vertical: "bottom", horizontal: "center" }}>
-        <Alert severity={snack.severity} variant="filled" onClose={() => setSnack(s => ({ ...s, open: false }))}>{snack.msg}</Alert>
-      </Snackbar>
-    </Container>
-  );
-}
+    <Box
+      component="main"
+      sx={{
+        flexGrow: 1,
+        py: 4,
+        minHeight: "100vh",
+        
+        backgroundAttachment: "fixed",
+      }}
+    >
+      <Container sx={{ width: "100%", maxWidth: "900px" }}>
+        <Fade in={true} timeout={800}>
+          <Typography
+            variant="h4"
+            sx={{
+              mb: 3,
+              fontWeight: 700,
+              color: "white",
+              textAlign: "center",
+              textShadow: "0px 2px 4px rgba(0,0,0,0.35)",
+            }}
+          >
+            Mi Perfil
+          </Typography>
+        </Fade>
 
-// --- Componentes de Resumen (Review Cards) ---
-
-const PersonalDataReviewCard = ({ data }) => (
-  <Card variant="outlined" sx={{ p: 2, height: '100%' }}>
-    <Typography variant="subtitle1" fontWeight="bold">Datos Personales:</Typography>
-    <Typography>Nombre y Apellido: {data.nombre || '—'} {data.apellido || ''}</Typography>
-    <Typography>Fecha de Nacimiento: {data.nacimiento ? new Date(data.nacimiento).toLocaleDateString('es-AR', { timeZone: 'UTC' }) : '—'}</Typography>
-    <Typography variant="subtitle2" fontWeight="bold" mt={1}>Resumen:</Typography>
-    <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', maxHeight: 150, overflow: 'auto' }}>{data.perfil || 'Aún no has añadido un resumen.'}</Typography>
-  </Card>
-);
-
-const ContactDataReviewCard = ({ data }) => (
-  <Card variant="outlined" sx={{ p: 2, height: '100%' }}>
-    <Typography variant="subtitle1" fontWeight="bold">Contacto y Ubicación:</Typography>
-    <Typography>Email: {data.email || '—'}</Typography>
-    <Typography>LinkedIn: {data.linkedin || '—'}</Typography>
-    <Typography>Teléfono: {data.telefono || '—'}</Typography>
-    <Typography>
-      Ubicación: {
-        [
-          (data.direccion?.localidad?.nombre ?? data.direccion?.localidad), // <-- CORRECCIÓN AQUÍ
-          data.direccion?.provincia?.nombre
-        ].filter(Boolean).join(', ') || '—'
-      }
-    </Typography>
-  </Card>
-);
-
-const EducationDataReviewCard = ({ data }) => (
-  <Card variant="outlined" sx={{ p: 2, height: '100%' }}>
-    <Typography variant="subtitle1" fontWeight="bold">Educación:</Typography>
-    {data.educacion && data.educacion.length > 0 ? (
-      data.educacion.map((edu, index) => (
-        <Box key={index} sx={{ mt: index > 0 ? 1 : 0, mb: 1, borderBottom: index < data.educacion.length - 1 ? '1px solid #eee' : 'none', pb: 1 }}>
-          <Typography><strong>Título:</strong> {edu.carrera || '—'}</Typography>
-          <Typography><strong>Institución:</strong> {edu.institucion || '—'}</Typography>
-          <Typography><strong>Nivel:</strong> {edu.nivelAcademico || '—'}</Typography>
-        </Box>
-      ))
-    ) : (
-      <Typography>No se ha añadido información académica.</Typography>
-    )}
-  </Card>
-);
-
-const ExperienceDataReviewCard = ({ data }) => (
-  <Card variant="outlined" sx={{ p: 2, height: '100%' }}>
-    <Typography variant="subtitle1" fontWeight="bold">Experiencia Laboral:</Typography>
-    {data.experiencia && data.experiencia.length > 0 ? (
-      data.experiencia.map((exp, index) => (
-        <Box key={index} sx={{ mt: index > 0 ? 1 : 0, mb: 1, borderBottom: index < data.experiencia.length - 1 ? '1px solid #eee' : 'none', pb: 1 }}>
-          <Typography><strong>Puesto:</strong> {exp.puesto || '—'}</Typography>
-          <Typography><strong>Empresa:</strong> {exp.empresa || '—'}</Typography>
-          <Typography><strong>Periodo:</strong> {exp.desde ? new Date(exp.desde).toLocaleDateString('es-AR', { timeZone: 'UTC' }) : '...'} - {exp.hasta ? new Date(exp.hasta).toLocaleDateString('es-AR', { timeZone: 'UTC' }) : 'Actualidad'}</Typography>
-        </Box>
-      ))
-    ) : (
-      <Typography>No se ha añadido experiencia laboral.</Typography>
-    )}
-  </Card>
-);
-
-const CvFileDataReviewCard = ({ data, newFile }) => (
-  <Card variant="outlined" sx={{ p: 2, height: '100%' }}>
-    <Typography variant="subtitle1" fontWeight="bold">CV Adjunto:</Typography>
-    <Typography>
-      {newFile ? `Nuevo: ${newFile.name}` : (data.cvFile?.filename || 'No hay un CV cargado.')}
-    </Typography>
-  </Card>
-);
-
-// --- Componentes de Formulario por Paso (Modificados) ---
-
-const PersonalForm = ({ data, onChange, reviewData }) => (
-  <Fade in={true}>
-    <Grid container spacing={4} wrap="wrap">
-      <Grid xs={12} md={7}>
-        <Stack spacing={3}>
-          <Typography variant="h6" gutterBottom>Cuéntanos un poco sobre ti</Typography>
-          <TextField label="Nombre *" value={data.nombre || ''} onChange={e => onChange('nombre', e.target.value)} fullWidth />
-          <TextField label="Apellido" value={data.apellido || ''} onChange={e => onChange('apellido', e.target.value)} fullWidth />
-          <TextField type="date" label="Fecha de nacimiento" value={String(data.nacimiento || '').slice(0, 10)} InputLabelProps={{ shrink: true }} onChange={e => onChange('nacimiento', e.target.value)} fullWidth />
-          <TextField label="Resumen Profesional" multiline rows={4} value={data.perfil || ''} onChange={e => onChange('perfil', e.target.value)} fullWidth />
-        </Stack>
-      </Grid>
-      <Grid xs={12} md={5}>
-        <PersonalDataReviewCard data={reviewData} />
-      </Grid>
-    </Grid>
-  </Fade>
-);
-
-const ContactLocationForm = ({ data, onFieldChange, onDireccionChange, reviewData }) => (
-  <Fade in={true}>
-    <Grid container spacing={4}>
-      <Grid xs={12} md={7}>
-        <Stack spacing={3}>
-          <Typography variant="h6" gutterBottom>Información de Contacto y Ubicación</Typography>
-          <TextField label="Email *" value={data.email || ''} onChange={e => onFieldChange('email', e.target.value)} fullWidth />
-          <TextField label="Teléfono" value={data.telefono || ''} onChange={e => onFieldChange('telefono', e.target.value)} fullWidth />
-          <TextField label="URL de LinkedIn" value={data.linkedin || ''} onChange={e => onFieldChange('linkedin', e.target.value)} fullWidth />
-          <DireccionAR value={data.direccion || null} onChange={onDireccionChange} required />
-        </Stack>
-      </Grid>
-      <Grid xs={12} md={5}>
-        <ContactDataReviewCard data={reviewData} />
-      </Grid>
-    </Grid>
-  </Fade>
-);
-
-const EducationForm = ({ data, onChange, reviewData }) => {
-  const educations = data || [];
-
-  const addEducation = () => onChange([...educations, { nivelAcademico: '', carrera: '', institucion: '', desde: '', hasta: '' }]);
-  const removeEducation = (idx) => onChange(educations.filter((_, i) => i !== idx));
-  const updateEducation = (idx, field, value) => {
-    const newEducations = educations.map((edu, i) => i === idx ? { ...edu, [field]: value } : edu);
-    onChange(newEducations);
-  };
-
-  return (
-    <Fade in={true}>
-      <Grid container spacing={4}>
-        <Grid xs={12} md={7}>
-          <Stack spacing={3}>
-            <Typography variant="h6" gutterBottom>Tu Trayectoria Académica</Typography>
-            {educations.map((edu, idx) => (
-              <Card key={idx} variant="outlined" sx={{ p: 2 }}>
-                <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
-                  <Typography variant="subtitle1" fontWeight="medium">Estudio #{idx + 1}</Typography>
-                  <IconButton color="error" size="small" onClick={() => removeEducation(idx)}><DeleteIcon /></IconButton>
-                </Box>
-                <Grid container spacing={2}>
-                  <Grid xs={12} >
-                    <TextField select fullWidth label="Nivel Académico" value={edu.nivelAcademico || ''} onChange={e => updateEducation(idx, 'nivelAcademico', e.target.value)} >
-                      {nivelesAcademicos.map(n => <MenuItem key={n} value={n}>{n}</MenuItem>)}
-                    </TextField>
-                  </Grid>
-                  <Grid xs={12}><TextField label="Nombre de la carrera / Título Obtenido" value={edu.carrera || ''} onChange={e => updateEducation(idx, 'carrera', e.target.value)} fullWidth /></Grid>
-                  <Grid xs={12}><TextField label="Institución Educativa" value={edu.institucion || ''} onChange={e => updateEducation(idx, 'institucion', e.target.value)} fullWidth /></Grid>
-                  <Grid xs={12} sm={6}><TextField type="date" label="Desde" value={String(edu.desde || '').slice(0, 10)} InputLabelProps={{ shrink: true }} onChange={e => updateEducation(idx, 'desde', e.target.value)} fullWidth /></Grid>
-                  <Grid xs={12} sm={6}><TextField type="date" label="Hasta" value={String(edu.hasta || '').slice(0, 10)} InputLabelProps={{ shrink: true }} onChange={e => updateEducation(idx, 'hasta', e.target.value)} fullWidth /></Grid>
-                </Grid>
-              </Card>
-            ))}
-            <Button startIcon={<AddIcon />} onClick={addEducation} variant="text" sx={{ alignSelf: 'flex-start' }}>Añadir Estudio</Button>
-          </Stack>
-        </Grid>
-        <Grid xs={12} md={5}>
-          <EducationDataReviewCard data={reviewData} />
-        </Grid>
-      </Grid>
-    </Fade>
-  );
-};
-
-const ExperienceForm = ({ data, onChange, reviewData }) => {
-  const experiences = data || [];
-
-  const addExperience = () => onChange([...experiences, { puesto: '', empresa: '', desde: '', hasta: '' }]);
-  const removeExperience = (idx) => onChange(experiences.filter((_, i) => i !== idx));
-  const updateExperience = (idx, field, value) => {
-    const newExperiences = experiences.map((exp, i) => i === idx ? { ...exp, [field]: value } : exp);
-    onChange(newExperiences);
-  };
-
-  return (
-    <Fade in={true}>
-      <Grid container spacing={4}>
-        <Grid xs={12} md={7}>
-          <Stack spacing={3}>
-            <Typography variant="h6" gutterBottom>Tu Historial Laboral</Typography>
-            {experiences.map((exp, idx) => (
-              <Card key={exp._id || idx} variant="outlined" sx={{ p: 2 }}>
-                <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
-                  <Typography variant="subtitle1" fontWeight="medium">Experiencia #{idx + 1}</Typography>
-                  <IconButton color="error" size="small" onClick={() => removeExperience(idx)}><DeleteIcon /></IconButton>
-                </Box>
-                <Grid container spacing={2}>
-                  <Grid xs={12}><TextField label="Puesto / Título" value={exp.puesto || ''} onChange={e => updateExperience(idx, 'puesto', e.target.value)} fullWidth /></Grid>
-                  <Grid xs={12}><TextField label="Empresa" value={exp.empresa || ''} onChange={e => updateExperience(idx, 'empresa', e.target.value)} fullWidth /></Grid>
-                  <Grid xs={6}><TextField type="date" label="Desde" value={String(exp.desde || '').slice(0, 10)} InputLabelProps={{ shrink: true }} onChange={e => updateExperience(idx, 'desde', e.target.value)} fullWidth /></Grid>
-                  <Grid xs={6}><TextField type="date" label="Hasta" value={String(exp.hasta || '').slice(0, 10)} InputLabelProps={{ shrink: true }} onChange={e => updateExperience(idx, 'hasta', e.target.value)} fullWidth /></Grid>
-                </Grid>
-              </Card>
-            ))}
-            <Button startIcon={<AddIcon />} onClick={addExperience} variant="text" sx={{ alignSelf: 'flex-start' }}>Añadir Experiencia</Button>
-          </Stack>
-        </Grid>
-        <Grid xs={12} md={5}>
-          <ExperienceDataReviewCard data={reviewData} />
-        </Grid>
-      </Grid>
-    </Fade>
-  );
-};
-
-// --- Componente UploadCV con el botón de descarga corregido ---
-const UploadCV = ({ existingFile, lastUpdated, onFileSelect, reviewData, newFile }) => {
-  const [selectedFileName, setSelectedFileName] = useState("");
-  const [isDownloading, setIsDownloading] = useState(false);
-
-  const handleFileChange = (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      setSelectedFileName(file.name);
-      onFileSelect(file);
-    }
-  };
-
-  const handleDownload = async () => {
-    setIsDownloading(true);
-    try {
-      const { data } = await getMyCvDownloadUrlApi();
-      if (data.downloadUrl) {
-        window.open(data.downloadUrl, '_blank', 'noopener,noreferrer');
-      }
-    } catch (error) {
-      console.error("Error al obtener la URL de descarga:", error);
-      alert("No se pudo obtener el enlace de descarga. Por favor, inténtalo de nuevo.");
-    } finally {
-      setIsDownloading(false);
-    }
-  };
-
-  return (
-    <Fade in={true}>
-      <Grid container spacing={4}>
-        <Grid xs={12} md={7}>
-          <Stack spacing={3}>
-            <Typography variant="h6" gutterBottom>Adjunta tu CV (Formato PDF)</Typography>
-            <Typography variant="body2" color="text.secondary">
-              Si subes un nuevo archivo, reemplazará al existente cuando guardes tu perfil al final del proceso.
-            </Typography>
-            <Stack direction="row" spacing={2} alignItems="center">
-              <Button component="label" variant="outlined" startIcon={<CloudUploadIcon />}>
-                {selectedFileName ? "Cambiar archivo" : "Seleccionar Archivo"}
-                <VisuallyHiddenInput type="file" accept=".pdf" onChange={handleFileChange} />
-              </Button>
-
-              {existingFile?.providerId && !selectedFileName && (
-                <Button
-                  variant="contained"
-                  startIcon={isDownloading ? <CircularProgress size={20} color="inherit" /> : <DownloadIcon />}
-                  onClick={handleDownload}
-                  disabled={isDownloading}
+        <Grid
+          container
+          spacing={2}
+          justifyContent="center"
+          alignItems="stretch"
+        >
+          {/* LADO IZQUIERDO: Card de usuario */}
+          <Grid item xs={12} lg={4}>
+            <Zoom in={true} timeout={700}>
+              <AnimatedBox sx={{ textAlign: "center", height: "100%" }}>
+                <Box
+                  sx={{
+                    position: "relative",
+                    display: "inline-block",
+                    mb: 2,
+                  }}
                 >
-                  {isDownloading ? "Obteniendo..." : "Descargar CV Actual"}
-                </Button>
-              )}
-            </Stack>
+                  <AnimatedAvatar
+                    src={
+                      selectedPhoto instanceof File
+                        ? URL.createObjectURL(selectedPhoto)
+                        : userData.foto
+                    }
+                    sx={{
+                      width: 120,
+                      height: 120,
+                      bgcolor: "#1976d2",
+                      fontSize: "3rem",
+                      mx: "auto",
+                      border: "4px solid white",
+                    }}
+                  >
+                    {userData.nombre
+                      ? userData.nombre[0].toUpperCase()
+                      : "U"}
+                  </AnimatedAvatar>
+                  <IconButton
+                    component="label"
+                    sx={{
+                      position: "absolute",
+                      bottom: 0,
+                      right: 0,
+                      bgcolor: "white",
+                      boxShadow: 3,
+                      "&:hover": {
+                        bgcolor: "#f0f0f0",
+                        transform: "scale(1.1)",
+                      },
+                      transition: "all 0.2s ease",
+                    }}
+                  >
+                    <PhotoCameraIcon color="primary" />
+                    <VisuallyHiddenInput
+                      type="file"
+                      accept="image/*"
+                      onChange={handlePhotoChange}
+                    />
+                  </IconButton>
+                </Box>
 
-            {selectedFileName ? (
-              <Alert severity="info" sx={{ mt: 2 }}>
-                Nuevo archivo seleccionado: <strong>{selectedFileName}</strong>. Se guardará al final del proceso.
-              </Alert>
-            ) : existingFile?.filename ? (
-              <Alert severity="success" sx={{ mt: 2 }}>
-                Ya tienes un CV guardado: <strong>{existingFile.filename}</strong>
-                {lastUpdated && (
-                  <Typography variant="caption" display="block">
-                    (Última actualización: {new Date(lastUpdated).toLocaleDateString('es-AR')})
+                <Typography
+                  variant="h5"
+                  fontWeight="bold"
+                  sx={{ color: "#333" }}
+                >
+                  {userData.nombre} {userData.apellido}
+                </Typography>
+
+                <Typography
+                  variant="body1"
+                  color="text.secondary"
+                  sx={{ mt: 1, fontWeight: 500 }}
+                >
+                  {userData.rol
+                    ? `Rol: ${userData.rol.toUpperCase()}`
+                    : "Usuario"}
+                </Typography>
+
+                {userData.cliente && (
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ mt: 0.5 }}
+                  >
+                    Cliente asignado:{" "}
+                    <strong>{userData.cliente}</strong>
                   </Typography>
                 )}
-              </Alert>
-            ) : (
-              <Alert severity="warning" sx={{ mt: 2 }}>
-                Aún no has subido ningún archivo de CV.
-              </Alert>
-            )}
-          </Stack>
-        </Grid>
-        <Grid xs={12} md={5}>
-          <CvFileDataReviewCard data={reviewData} newFile={newFile} />
-        </Grid>
-      </Grid>
-    </Fade>
-  );
-};
 
-const ReviewAndSaveForm = ({ data, newFile }) => (
-  <Fade in={true}>
-    <Stack spacing={3}>
-      <Typography variant="h6" gutterBottom>Revisa que toda tu información sea correcta</Typography>
-      {/* Usamos los mismos componentes de resumen para consistencia */}
-      <PersonalDataReviewCard data={data} />
-      <ContactDataReviewCard data={data} />
-      <EducationDataReviewCard data={data} />
-      <ExperienceDataReviewCard data={data} />
-      <CvFileDataReviewCard data={data} newFile={newFile} />
-    </Stack>
-  </Fade>
-);
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ mt: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 0.5 }}
+                >
+                  <EmailIcon fontSize="small" /> {userData.email}
+                </Typography>
+
+                {userData.dni && (
+                  <Typography
+                    variant="caption"
+                    display="block"
+                    color="text.disabled"
+                    sx={{ mt: 1, display: "flex", justifyContent: "center", alignItems: "center", gap: 0.5 }}
+                  >
+                    <BadgeIcon fontSize="small" /> DNI: {userData.dni}
+                  </Typography>
+                )}
+              </AnimatedBox>
+            </Zoom>
+          </Grid>
+
+          {/* LADO DERECHO: Tabs + formulario */}
+          <Grid item xs={12} lg={8}>
+            <Fade in={true} timeout={900}>
+              <AnimatedBox
+                sx={{
+                  height: "100%",
+                  display: "flex",
+                  flexDirection: "column",
+                }}
+              >
+                <Box
+                  sx={{
+                    borderBottom: 1,
+                    borderColor: "divider",
+                    mb: 2,
+                  }}
+                >
+                  <Tabs
+                    value={tabValue}
+                    onChange={(e, v) => setTabValue(v)}
+                    variant="scrollable"
+                    scrollButtons="auto"
+                    sx={{ px: 1 }}
+                    TabIndicatorProps={{
+                      style: { backgroundColor: "#1976d2" },
+                    }}
+                  >
+                    <Tab
+                      label="Personal"
+                      iconPosition="start"
+                      icon={<PersonIcon />}
+                      sx={{ fontWeight: "bold" }}
+                    />
+                    <Tab
+                      label="Domicilio"
+                      iconPosition="start"
+                      icon={<HomeIcon />}
+                      sx={{ fontWeight: "bold" }}
+                    />
+                    <Tab
+                      label="Laboral"
+                      iconPosition="start"
+                      icon={<WorkIcon />}
+                      sx={{ fontWeight: "bold" }}
+                    />
+                  </Tabs>
+              </Box>
+
+              <form
+                  autoComplete="off"
+                  noValidate
+                style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    flexGrow: 1,
+                  }}
+                >
+                <Box sx={{ flexGrow: 1, px: 1 }} width={"700px"}>
+                    {/* TAB 0: DATOS PERSONALES */}
+                    {tabValue === 0 && (
+                      <Fade in timeout={400}>
+                        
+                        <Grid container spacing={2} display={"grid"} >
+                              
+                          <Grid item xs={12} sm={6}>
+                            <TextField
+                              fullWidth
+                              label="Nombre"
+                              value={userData.nombre}
+                              onChange={(e) =>
+                                handleUserChange(
+                                  "nombre",
+                                  e.target.value
+                                )
+                              }
+                            />
+                          </Grid>
+                          <Grid item xs={12} sm={6}>
+                            <TextField
+                              fullWidth
+                              label="Apellido"
+                              value={userData.apellido}
+                              onChange={(e) =>
+                                handleUserChange(
+                                  "apellido",
+                                  e.target.value
+                                )
+                              }
+                            />
+                          </Grid>
+
+                          <Grid item xs={12} sm={6}>
+                            <TextField
+                              fullWidth
+                              label="DNI"
+                              value={userData.dni}
+                              onChange={(e) =>
+                                handleUserChange(
+                                  "dni",
+                                  e.target.value
+                                )
+                              }
+                              disabled={!isAdminOrRRHH}
+                              helperText={
+                                !isAdminOrRRHH
+                                  ? "El DNI solo puede ser modificado por RRHH."
+                                  : ""
+                              }
+                              InputProps={{
+                                startAdornment: (
+                                  <InputAdornment position="start">
+                                    <BadgeIcon fontSize="small" />
+                                  </InputAdornment>
+                                ),
+                              }}
+                            />
+                          </Grid>
+
+                            <Grid item xs={12} sm={6}>
+                            <TextField
+                              fullWidth
+                              label="Email"
+                              value={userData.email}
+                              disabled
+                              sx={{ bgcolor: "#f5f5f5" }}
+                              InputProps={{
+                                startAdornment: (
+                                  <InputAdornment position="start">
+                                    <EmailIcon fontSize="small" />
+                                  </InputAdornment>
+                                ),
+                              }}
+                            />
+                          </Grid>
+                                  
+                          <Grid item xs={12} sm={6}>
+                            <TextField
+                              fullWidth
+                              label="Teléfono"
+                              value={userData.telefono}
+                              onChange={(e) =>
+                                handleUserChange(
+                                  "telefono",
+                                  e.target.value
+                                )
+                              }
+                              InputProps={{
+                                startAdornment: (
+                                  <InputAdornment position="start">
+                                    <PhoneIcon fontSize="small" />
+                                  </InputAdornment>
+                                ),
+                              }}
+                            />
+                          </Grid>
+
+                          <Grid item xs={12} sm={6}>
+                            <TextField
+                              fullWidth
+                              type="date"
+                              label="Fecha de nacimiento"
+                              InputLabelProps={{ shrink: true }}
+                              value={userData.nacimiento}
+                              onChange={(e) =>
+                                handleUserChange(
+                                  "nacimiento",
+                                  e.target.value
+                                )
+                              }
+                            />
+                          </Grid>
+
+                        
+
+                          <Grid item xs={12}>
+                            <Divider sx={{ my: 1 }}>
+                              <Typography
+                                variant="caption"
+                                color="text.secondary"
+                              >
+                                Seguridad de acceso
+                              </Typography>
+                            </Divider>
+                            <Alert severity="info" variant="outlined">
+                              Tu acceso se realiza con DNI + PIN. Para
+                              cambiar o resetear tu PIN, contactá a RRHH
+                              o a un administrador.
+                            </Alert>
+                          </Grid>
+                        </Grid>
+                      </Fade>
+                    )}
+
+                    {/* TAB 1: DOMICILIO */}
+                    {tabValue === 1 && (
+                      <Fade in timeout={400}>
+                        <Grid container spacing={2} display={"grid"}  >
+                          <Grid item xs={12} sm={6} >
+                            <TextField
+                              fullWidth
+                              label="Calle"
+                              value={addressData.calle}
+                              onChange={(e) =>
+                                handleAddressChange(
+                                  "calle",
+                                  e.target.value
+                                )
+                              }
+                            />
+                          </Grid>
+                          <Grid item xs={12} sm={4}>
+                            <TextField
+                              fullWidth
+                              label="Número"
+                              value={addressData.numero}
+                              onChange={(e) =>
+                                handleAddressChange(
+                                  "numero",
+                                  e.target.value
+                                )
+                              }
+                            />
+                          </Grid>
+                          <Grid item xs={12} sm={4}>
+                            <TextField
+                              fullWidth
+                              label="Código Postal"
+                              value={addressData.cp}
+                              onChange={(e) =>
+                                handleAddressChange(
+                                  "cp",
+                                  e.target.value
+                                )
+                              }
+                            />
+                          </Grid>
+                          <Grid item xs={12} sm={8}>
+                            <TextField
+                              fullWidth
+                              label="Localidad"
+                              value={addressData.localidad}
+                              onChange={(e) =>
+                                handleAddressChange(
+                                  "localidad",
+                                  e.target.value
+                                )
+                              }
+                            />
+                          </Grid>
+                          <Grid item xs={12} sm={6}>
+                            <TextField
+                              fullWidth
+                              label="Provincia"
+                              value={addressData.provincia}
+                              onChange={(e) =>
+                                handleAddressChange(
+                                  "provincia",
+                                  e.target.value
+                                )
+                              }
+                            />
+                          </Grid>
+                          <Grid item xs={12} sm={6}>
+                            <TextField
+                              fullWidth
+                              label="País"
+                              value={addressData.pais}
+                              onChange={(e) =>
+                                handleAddressChange(
+                                  "pais",
+                                  e.target.value
+                                )
+                              }
+                            />
+                          </Grid>
+                        </Grid>
+                      </Fade>
+                    )}
+
+                    {/* TAB 2: DATOS LABORALES */}
+                    {tabValue === 2 && (
+                      <Fade in timeout={400}>
+                        <Grid container spacing={2} display={"grid"} maxWidth={900}>
+                          
+
+                          <Grid item xs={12} sm={6}>
+                            <TextField
+                              fullWidth
+                              label="Cliente asignado"
+                              value={userData.cliente}
+                              onChange={(e) =>
+                                handleUserChange(
+                                  "cliente",
+                                  e.target.value
+                                )
+                              }
+                              disabled={!isAdminOrRRHH}
+                              InputProps={{
+                                startAdornment: (
+                                  <InputAdornment position="start">
+                                    <BusinessIcon fontSize="small" />
+                                  </InputAdornment>
+                                ),
+                              }}
+                            />
+                          </Grid>
+
+                          <Grid item xs={12} sm={6}>
+                            <TextField
+                              fullWidth
+                              label="Dirección del cliente"
+                              value={userData.direccionCliente}
+                              onChange={(e) =>
+                                handleUserChange(
+                                  "direccionCliente",
+                                  e.target.value
+                                )
+                              }
+                              disabled={!isAdminOrRRHH}
+                            />
+                          </Grid>
+
+                          <Grid item xs={12} sm={6}>
+                            <TextField
+                              fullWidth
+                              label="Horario laboral"
+                              placeholder="09:00 - 18:00"
+                              value={userData.horarioLaboral}
+                              onChange={(e) =>
+                                handleUserChange(
+                                  "horarioLaboral",
+                                  e.target.value
+                                )
+                              }
+                              disabled={!isAdminOrRRHH}
+                            />
+                          </Grid>
+
+                          <Grid item xs={12} sm={6}>
+                            <TextField
+                              fullWidth
+                              label="Rol en el sistema"
+                              value={userData.rol}
+                              disabled
+                              sx={{ bgcolor: "#f0f0f0" }}
+                            />
+                          </Grid>
+                          <Grid item xs={12}>
+                            <Alert severity="info" sx={{ mb: 2 }}>
+                              Información laboral definida por la
+                              empresa. {isAdminOrRRHH ? "Como admin / RRHH podés ajustarla desde aquí." : "Si necesitás cambios, contacta a RRHH."}
+                            </Alert>
+                          </Grid>
+                        </Grid>
+                      </Fade>
+                    )}
+                  </Box>
+  
+                  <Box
+                    sx={{
+                      display: "flex",
+                      justifyContent: "center",
+                      p: 2,
+                      pt: 3,
+                      mt: 2,
+                      borderTop: 1,
+                      borderColor: "divider",
+                    }}
+                  >
+                    <AnimatedButton
+                      color="primary"
+                      variant="contained"
+                      onClick={handleFinalSave}
+                      disabled={isSaving}
+                      sx={{
+                        px: 6,
+                        py: 1.4,
+                        fontWeight: "bold",
+                        borderRadius: 3,
+                        boxShadow: 3,
+                      }}
+                    >
+                      {isSaving ? "Guardando..." : "Guardar cambios"}
+                    </AnimatedButton>
+                  </Box>
+              </form>
+              </AnimatedBox>
+            </Fade>
+          </Grid>
+        </Grid>
+      </Container>
+
+      <Snackbar
+        open={snack.open}
+        autoHideDuration={4000}
+        onClose={() => setSnack((s) => ({ ...s, open: false }))}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+      >
+        <Alert
+          severity={snack.severity}
+          variant="filled"
+          onClose={() => setSnack((s) => ({ ...s, open: false }))}
+        >
+          {snack.msg}
+        </Alert>
+      </Snackbar>
+    </Box>
+  );
+}

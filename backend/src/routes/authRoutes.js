@@ -1,61 +1,94 @@
 import { Router } from "express";
-// Importa los controladores necesarios
 import { register, login, me, logout } from "../controllers/auth.controller.js";
-import { requireAuth } from "../middleware/auth.middleware.js";
+import { requireAuth } from "../middleware/auth.middleware.js"; // 👈 ojo con la 's'
 import passport from "passport";
 import { body } from "express-validator";
 
-// --- Validaciones (sin cambios) ---
+// --- Validaciones de REGISTER (las podés ajustar luego si querés usar PIN también acá) ---
 const registerValidations = [
-  body("nombre").trim().notEmpty().withMessage("El nombre es requerido.").isLength({ min: 2 }).withMessage("Mínimo 2 caracteres.").matches(/^[a-zA-ZÀ-ÿ\s']+$/).withMessage("Nombre inválido."),
-  body("apellido").trim().notEmpty().withMessage("El apellido es requerido.").isLength({ min: 2 }).withMessage("Mínimo 2 caracteres.").matches(/^[a-zA-ZÀ-ÿ\s']+$/).withMessage("Apellido inválido."),
-  body("email", "El email no es válido").isEmail().normalizeEmail(),
-  body("password").isLength({ min: 8 }).withMessage("La contraseña debe tener al menos 8 caracteres.").matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&.,])/).withMessage("La contraseña debe incluir mayúscula, minúscula, número y símbolo."),
+  body("nombre")
+    .trim()
+    .notEmpty().withMessage("El nombre es requerido.")
+    .isLength({ min: 2 }).withMessage("Mínimo 2 caracteres.")
+    // Permitimos letras, números, espacios y '
+    .matches(/^[a-zA-ZÀ-ÿ0-9\s']+$/).withMessage("Nombre inválido."),
+  
+  body("apellido")
+    .trim()
+    .notEmpty().withMessage("El apellido es requerido.")
+    .isLength({ min: 2 }).withMessage("Mínimo 2 caracteres.")
+    .matches(/^[a-zA-ZÀ-ÿ0-9\s']+$/).withMessage("Apellido inválido."),
+  
+  body("email", "El email no es válido")
+    .isEmail()
+    .normalizeEmail(),
+
+  // ✅ Ahora validamos DNI
+  body("dni")
+    .notEmpty().withMessage("El DNI es obligatorio.")
+    .isLength({ min: 6, max: 9 }).withMessage("El DNI debe tener entre 6 y 9 dígitos.")
+    .matches(/^\d+$/).withMessage("El DNI debe ser numérico."),
+
+  // ✅ Y validamos PIN (en lugar de password)
+  body("pin")
+    .notEmpty().withMessage("El PIN es obligatorio.")
+    .isLength({ min: 4, max: 6 }).withMessage("El PIN debe tener entre 4 y 6 dígitos.")
+    .matches(/^\d+$/).withMessage("El PIN debe ser numérico."),
 ];
+
+
+// --- ✅ VALIDACIONES DE LOGIN: AHORA CON DNI + PIN ---
 const loginValidations = [
-  body("email", "El email no es válido").isEmail().normalizeEmail(),
-  body("password", "La contraseña es requerida").notEmpty(),
+  body("dni")
+    .notEmpty().withMessage("El DNI es requerido.")
+    .isLength({ min: 6, max: 9 }).withMessage("El DNI debe tener entre 6 y 9 dígitos.")
+    .matches(/^\d+$/).withMessage("El DNI debe ser numérico."),
+  body("pin")
+    .notEmpty().withMessage("El PIN es requerido.")
+    .isLength({ min: 4, max: 6 }).withMessage("El PIN debe tener entre 4 y 6 dígitos.")
+    .matches(/^\d+$/).withMessage("El PIN debe ser numérico."),
 ];
 
 const router = Router();
 
 // --- Rutas Estándar (montadas bajo /api/auth) ---
 
-// POST /api/auth/register - Registro de nuevo usuario
+// POST /api/auth/register - (usada por ahora si aún tenés alta pública o por admin)
 router.post("/register", registerValidations, register);
 
-// POST /api/auth/login - Inicio de sesión
+// POST /api/auth/login - Inicio de sesión con DNI + PIN
 router.post("/login", loginValidations, login);
 
 // GET /api/auth/me - Obtener datos del usuario logueado
-router.get("/me", requireAuth, me); // <-- CAMBIO: Se usa /me en lugar de /profile
+router.get("/me", requireAuth, me);
 
-// POST /api/auth/logout - Cierre de sesión (opcional, depende de tu manejo de tokens en el front)
+// POST /api/auth/logout
 router.post("/logout", logout);
 
-// GET /api/auth/verify-email - Endpoint para validar el token del correo
-// router.get("/verify-email", verifyEmail); // <-- AÑADIDO: Asegura que esta ruta exista
+// --- Rutas de Google OAuth (si después no las usás, se pueden borrar) ---
 
-// --- Rutas de Google OAuth (montadas bajo /api/auth) ---
+router.get(
+  "/google",
+  passport.authenticate("google", {
+    scope: ["profile", "email"],
+    prompt: "consent",
+  })
+);
 
-// GET /api/auth/google - Iniciar flujo de Google
-router.get("/google", passport.authenticate("google", { scope: ["profile", "email"], prompt: "consent" }));
-
-// GET /api/auth/google/callback - Callback de Google
 router.get(
   "/google/callback",
   passport.authenticate("google", {
-    session: false, // Usamos JWT, no sesiones de Passport
-    failureRedirect: `${process.env.FRONTEND_URL}/login?error=google_auth_failed`, // URL de error más específica
+    session: false,
+    failureRedirect: `${process.env.FRONTEND_URL}/login?error=google_auth_failed`,
   }),
   (req, res) => {
-    // Redirige al frontend con el token para que procese el login
     const token = req.user?.token;
     if (!token) {
-        // Si por alguna razón no hay token, redirige con error
-        return res.redirect(`${process.env.FRONTEND_URL}/login?error=token_generation_failed`);
+      return res.redirect(
+        `${process.env.FRONTEND_URL}/login?error=token_generation_failed`
+      );
     }
-    const url = new URL(`${process.env.FRONTEND_URL}/login/sso`); // Ruta del frontend que procesa el token
+    const url = new URL(`${process.env.FRONTEND_URL}/login/sso`);
     url.searchParams.set("token", token);
     return res.redirect(url.toString());
   }

@@ -142,27 +142,26 @@ export default function DashboardLayout() {
   const userMenu = [
     { text: "Inicio", icon: <HomeIcon />, path: "/" },
     { text: "Mi Perfil", icon: <PersonIcon />, path: "/profile" },
-    { text: "Mis Postulaciones", icon: <AssignmentIndIcon />, path: "/applications/me" },
+    
     { text: "Mi Asistencia", icon: <CoPresentIcon />, path: "/my-attendance" },
-    { text: "Búsquedas activas", icon: <FindInPageIcon />, path: "/searches" },
+    
     { text: "Cerrar Sesión", icon: <LogoutIcon />, action: "logout" },
   ];
 
   const adminMenu = [
     { text: "Inicio", icon: <HomeIcon />, path: "/admin/dashboard" },
-    { text: "Gestión de Búsquedas", icon: <WorkIcon />, path: "/admin/searches" },
+    
     { text: "Gestión de Usuarios", icon: <AdminPanelSettingsIcon />, path: "/admin/users" },
     { text: "Gestión de Candidatos", icon: <PeopleIcon />, path: "/admin/candidates" },
-    { text: "Gestión de Postulaciones", icon: <AssignmentIndIcon />, path: "/admin/applications" },
+    
     { text: "Gestión de Asistencias", icon: <CoPresentIcon />, path: "/admin/attendance" },
     { text: "Cerrar Sesión", icon: <LogoutIcon />, action: "logout" },
   ];
 
   const rrhhMenu = [
     { text: "Inicio", icon: <HomeIcon />, path: "/" },
-    { text: " Gestión de Busquedas", icon: <WorkIcon />, path: "/admin/searches" },
-    { text: " Gestión de Postulaciones", icon: <AssignmentIndIcon />, path: "/admin/applications" },
-    { text: " Gestión de Candidatos", icon: <PeopleIcon />, path: "/admin/candidates"},
+    { text: "Gestión de Asistencias", icon: <CoPresentIcon />, path: "/admin/attendance" },
+
     { text: "Cerrar Sesión", icon: <LogoutIcon />, action: "logout" },
   ]  
 
