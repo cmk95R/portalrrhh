@@ -26,3 +26,20 @@ export const clockOutApi = (notes) => {
 export const submitDailyAttendanceApi = () => {
     return api.post(`${API_URL}/submit-daily`);
 };
+
+/**
+ * Marca la asistencia de un día específico como 'presente' o 'ausente'.
+ * @param {{ date: string, status: 'presente' | 'ausente' }} data - La fecha y el estado.
+ * @returns {Promise}
+ */
+export const setDailyAttendanceApi = (data) => {
+    return api.post(`${API_URL}/daily`, data);
+};
+
+/**
+ * Obtiene todos los registros de asistencia para un mes y año específicos.
+ * @param {{ month: number, year: number }} params - El mes (1-12) y el año.
+ */
+export const getMyMonthlyAttendanceApi = (params) => {
+    return api.get(`${API_URL}/monthly`, { params });
+};

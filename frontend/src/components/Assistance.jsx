@@ -1,256 +1,293 @@
-import React, { useState, useEffect, useCallback, useContext } from 'react';
-import {
-    Card,
-    Typography,
-    Button,
-    CircularProgress,
-    Stack,
-    Alert,
-    Snackbar,
-    Box,
-} from '@mui/material';
-import { styled } from '@mui/material/styles';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState } from 'react';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { DateCalendar } from '@mui/x-date-pickers/DateCalendar';
+import { PickersDay } from '@mui/x-date-pickers/PickersDay';
+import { Box, Button, Typography, List, ListItem, ListItemText, Paper, Snackbar, Alert, Tooltip, Grid, Divider } from '@mui/material';
+import { CheckCircle, Cancel } from '@mui/icons-material';
+import dayjs from 'dayjs';
+import 'dayjs/locale/es'; // 1. Importar el locale de español para dayjs
+dayjs.locale('es'); // 2. Establecer el idioma globalmente para dayjs
+// --- 1. Importar la API y hooks necesarios ---
+import { setDailyAttendanceApi, getMyMonthlyAttendanceApi } from '../api/attendanceApi'; // Asegúrate que esta API exista
+import { getHolidaysApi } from '../api/apiCalendar'; // <-- 1. Importar la API de feriados
+import { useEffect, useCallback } from 'react';
 
-// --- Iconos ---
-import SendIcon from '@mui/icons-material/Send';
-import ScheduleIcon from '@mui/icons-material/Schedule';
-import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
-import LoginIcon from '@mui/icons-material/Login'; // Icono para la entrada
-import LogoutIcon from '@mui/icons-material/Logout'; // Icono para la salida
-import { Paper } from '@mui/material';
 
-// APIs y Contexto
-import { getMyCurrentStatusApi, submitDailyAttendanceApi } from '../api/attendanceApi';
-import { AuthContext } from '../context/AuthContext';
+const AttendanceCalendar = () => {
+  // Estado para las asistencias: objeto con claves de fecha (formato 'YYYY-MM-DD') y valores booleanos (true = presente)
+  const [attendances, setAttendances] = useState({});
+  // Fecha seleccionada en el calendario
+  const [selectedDate, setSelectedDate] = useState(dayjs());
+  // --- 2. Estados para feedback y carga ---
+  const [loading, setLoading] = useState(false);
+  const [snack, setSnack] = useState({ open: false, msg: '', severity: 'success' });
+  // --- 3. Estado para la vista del mes actual ---
+  const [currentMonthView, setCurrentMonthView] = useState(dayjs());
+  // --- Nuevo estado para los feriados ---
+  const [holidays, setHolidays] = useState({});
 
-// --- Componentes de Estilo Inspirados en tu Diseño ---
+  // --- 4. Función para cargar asistencias del mes ---
+  const fetchMonthlyData = useCallback(async (date) => {
+    setLoading(true);
+    try {
+      const year = date.year();
+      const month = date.month() + 1; // dayjs month es 0-11, la API espera 1-12
+      const [{ data }, { data: holidaysData }] = await Promise.all([
+        getMyMonthlyAttendanceApi({ year, month }),
+        getHolidaysApi(year) // <-- 2. Llamar a la API de feriados en paralelo
+      ]);
 
-const StyledCard = styled(Card)(({ theme }) => ({
-    background: 'rgba(255, 255, 255, 0.95)',
-    backdropFilter: 'blur(10px)',
-    border: '1px solid rgba(255, 255, 255, 0.2)',
-    padding: theme.spacing(6),
-    borderRadius: '20px',
-    boxShadow: '0 20px 60px rgba(0, 0, 0, 0.15)',
-    textAlign: 'center',
-    maxWidth: 600,
-    width: '100%',
-    transition: 'transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94), box-shadow 0.4s ease',
-    '&:hover': {
-        transform: 'translateY(-10px) scale(1.02)',
-        boxShadow: '0 30px 80px rgba(0, 0, 0, 0.2)',
-    },
-    [theme.breakpoints.down('sm')]: {
-        padding: theme.spacing(4),
-    },
-}));
+      // Convertimos el array de la API a un objeto para el estado local
+      const newAttendances = (data || []).reduce((acc, record) => {
+        const dateKey = dayjs(record.date).format('YYYY-MM-DD');
+        acc[dateKey] = record.status; // Guardamos el estado: 'presente' o 'ausente'
+        return acc;
+      }, {});
 
-const MotionStyledCard = motion(StyledCard);
+      setAttendances(newAttendances);
 
-// --- Variantes de Animación ---
-const cardVariants = {
-    hidden: { opacity: 0, y: 30 },
-    visible: {
-        opacity: 1,
-        y: 0,
-        transition: {
-            type: 'tween',      // Cambiado a 'tween' para un control de duración directo
-            duration: 0.4,      // Duración más corta para una entrada rápida
-            when: "beforeChildren",
-            staggerChildren: 0.1, // Los elementos internos aparecen más rápido
-        },
-    },
-};
-
-const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } },
-};
-
-const submittedItemVariants = {
-    hidden: { opacity: 0, scale: 0.8 },
-    visible: { opacity: 1, scale: 1, transition: { type: 'spring', damping: 15 } }
-};
-
-const timeCardHover = {
-    y: -5,
-    boxShadow: '0 10px 20px rgba(0,0,0,0.1)'
-};
-
-const GradientButton = styled(Button)(({ theme }) => ({
-    padding: '15px 40px',
-    fontSize: '1.1rem',
-    fontWeight: 500,
-    borderRadius: '30px',
-    background: 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
-    color: 'white',
-    boxShadow: '0 4px 15px rgba(25, 118, 210, 0.3)',
-    transition: 'all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
-    '&:hover': {
-        background: 'linear-gradient(45deg, #1565c0 30%, #1976d2 90%)',
-        transform: 'translateY(-3px) scale(1.05)',
-        boxShadow: '0 8px 25px rgba(25, 118, 210, 0.4)',
-    },
-    '&:disabled': {
-        background: theme.palette.grey[400],
+      // Convertimos los feriados a un mapa para fácil acceso
+      const holidaysMap = (holidaysData || []).reduce((acc, holiday) => {
+        acc[holiday.date] = holiday.name; // 'YYYY-MM-DD': 'Nombre del feriado'
+        return acc;
+      }, {});
+      setHolidays(holidaysMap);
+    } catch (error) {
+      console.error("Error al cargar asistencias del mes:", error);
+      setSnack({ open: true, msg: 'No se pudieron cargar las asistencias.', severity: 'error' });
+    } finally {
+      setLoading(false);
     }
-}));
+  }, []);
 
-// --- Componente Principal ---
+  // --- 5. useEffect para cargar datos al cambiar de mes ---
+  useEffect(() => {
+    fetchMonthlyData(currentMonthView);
+  }, [currentMonthView, fetchMonthlyData]);
 
-export default function AssistanceWidget() {
-    const { user } = useContext(AuthContext);
-    const [status, setStatus] = useState('loading'); // 'loading', 'initial', 'sending', 'submitted', 'error'
-    const [submittedRecord, setSubmittedRecord] = useState(null);
-    const [error, setError] = useState('');
-    const [snackbarOpen, setSnackbarOpen] = useState(false);
+  // Función para marcar asistencia de una fecha específica
+  const markAttendance = async (date, present) => {
+    const dateKey = date.format('YYYY-MM-DD');
+    const status = present ? 'presente' : 'ausente';
 
-    const fetchStatus = useCallback(async () => {
-        try {
-            setStatus('loading');
-            const { data } = await getMyCurrentStatusApi();
-            if (data.status === 'clocked-in') {
-                setStatus('submitted');
-                setSubmittedRecord(data.record);
-            } else {
-                setStatus('initial');
-            }
-        } catch (e) {
-            setStatus('error');
-            setError(e.response?.data?.message || 'Error al cargar el estado.');
-        }
-    }, []); // No necesita dependencias
+    setLoading(true);
+    try {
+      await setDailyAttendanceApi({ date: dateKey, status });
+      setAttendances((prev) => ({
+        ...prev,
+        [dateKey]: status, // Actualizamos el estado con 'presente' o 'ausente'
+      }));
+      setSnack({ open: true, msg: `Asistencia marcada como ${status}`, severity: 'success' });
+    } catch (error) {
+      const errorMsg = error.response?.data?.message || 'No se pudo marcar la asistencia.';
+      setSnack({ open: true, msg: errorMsg, severity: 'error' });
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    useEffect(() => {
-        fetchStatus();
-    }, [fetchStatus]);
+  // Función para marcar asistencias de lunes a viernes de la semana de la fecha seleccionada
+  const markWeekAttendances = async () => {
+    setLoading(true);
+    try {
+      const startOfWeek = selectedDate.startOf('week').add(1, 'day'); // Lunes
+      const weekDates = [];
+      const promises = [];
 
-    const handleSubmitAttendance = async () => {
-        setStatus('sending');
-        setError('');
-        try {
-            await submitDailyAttendanceApi();
-            setSnackbarOpen(true);
-            await fetchStatus();
-        } catch (e) {
-            setError(e.response?.data?.message || 'No se pudo enviar la asistencia.');
-            setStatus('initial'); // Vuelve al estado inicial si hay error
-        }
-    };
+      // 1. Preparamos todas las llamadas a la API
+      for (let i = 0; i < 5; i++) { // Lunes a viernes
+        const date = startOfWeek.add(i, 'day');
+        const dateKey = date.format('YYYY-MM-DD');
+        weekDates.push(dateKey);
+        promises.push(setDailyAttendanceApi({ date: dateKey, status: 'presente' }));
+      }
+
+      // 2. Ejecutamos todas las promesas en paralelo
+      await Promise.all(promises);
+
+      // 3. Si todo fue exitoso, actualizamos el estado local de una vez
+      setAttendances(prev => {
+        const newAttendances = { ...prev };
+        weekDates.forEach(dateKey => { newAttendances[dateKey] = 'presente'; });
+        return newAttendances;
+      });
+
+      setSnack({ open: true, msg: 'Semana marcada como presente con éxito.', severity: 'success' });
+    } catch (error) {
+      const errorMsg = error.response?.data?.message || 'Error al marcar la semana.';
+      setSnack({ open: true, msg: errorMsg, severity: 'error' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Función para determinar si una fecha debe resaltarse (tiene asistencia)
+  const isDateHighlighted = (date) => {
+    const dateKey = date.format('YYYY-MM-DD');
+    return attendances[dateKey];
+  };
+
+  // Función para determinar si una fecha es lunes a viernes (para resaltar en el calendario)
+  const isWeekday = (date) => {
+    const day = date.day(); // 0 = Domingo, 1 = Lunes, ..., 6 = Sábado
+    return day >= 1 && day <= 5; // Lunes a viernes
+  };
+
+  // --- Nueva función para verificar si es feriado ---
+  const isHoliday = (date) => {
+    const dateKey = date.format('YYYY-MM-DD');
+    return holidays[dateKey];
+  };
+
+  // Componente personalizado para los días del calendario
+  const CustomDay = (props) => {
+    const { day, selected, outsideCurrentMonth, ...other } = props; // Destructure para evitar props inválidas
+    const holidayName = isHoliday(day);
+
+    if (holidayName) {
+      return (
+        <Tooltip title={holidayName} placement="top">
+          <PickersDay 
+            {...other} 
+            day={day} 
+            disabled 
+            sx={{ 
+              backgroundColor: 'warning.light', 
+              color: 'warning.contrastText' 
+            }} />
+        </Tooltip>
+      );
+    }
 
     return (
-        <>
-            <MotionStyledCard variants={cardVariants} initial="hidden" animate="visible">
-                <motion.div variants={itemVariants}>
-                    <Typography variant="h4" component="h1" fontWeight="700" color="primary.main" display="flex" alignItems="center" justifyContent="center" sx={{ mb: 1 }}>
-                        <ScheduleIcon sx={{ fontSize: '2.8rem', mr: 1.5 }} />
-                        Registro de Asistencia
-                    </Typography>
-                </motion.div>
-                <motion.div variants={itemVariants}>
-                    <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-                        Hola {user?.nombre}, ¡que tengas una excelente jornada!
-                    </Typography>
-                </motion.div>
-
-                <Box sx={{ minHeight: 150, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <AnimatePresence mode="wait">
-                        {status === 'loading' && <CircularProgress />}
-
-                        {(status === 'initial' || status === 'sending') && (
-                            <motion.div key="initial" variants={itemVariants} initial="hidden" animate="visible" exit={{ opacity: 0 }}>
-                                {status === 'sending' ? (
-                                    <Stack direction="row" alignItems="center" spacing={2}>
-                                        <CircularProgress size={24} />
-                                        <Typography>Enviando...</Typography>
-                                    </Stack>
-                                ) : (
-                                    <GradientButton
-                                        component={motion.button}
-                                        whileHover={{ scale: 1.05, y: -3 }}
-                                        whileTap={{ scale: 0.95 }}
-                                        startIcon={<SendIcon />}
-                                        onClick={handleSubmitAttendance}
-                                        disabled={status === 'sending'}
-                                    >
-                                        Enviar Asistencia
-                                    </GradientButton>
-                                )}
-                            </motion.div>
-                        )}
-
-                        {status === 'submitted' && submittedRecord && (
-                            <motion.div key="submitted" variants={cardVariants} initial="hidden" animate="visible" exit={{ opacity: 0 }}>
-                                <Stack spacing={2} alignItems="center">
-                                    <motion.div variants={submittedItemVariants}>
-                                        <CheckCircleOutlineIcon sx={{ fontSize: '5rem', color: 'success.main' }} />
-                                    </motion.div>
-                                    <motion.div variants={submittedItemVariants} style={{ width: '100%' }}>
-                                        <Alert
-                                        severity="success"
-                                        variant="standard"
-                                        sx={{
-                                            background: 'linear-gradient(45deg, #e8f5e8 30%, #c8e6c9 90%)',
-                                            color: '#2e7d32',
-                                            borderRadius: '12px',
-                                            fontSize: '1.1rem',
-                                            fontWeight: 500,
-                                            borderLeft: '5px solid #4caf50',
-                                        }}
-                                    >
-                                        ¡Asistencia registrada exitosamente!
-                                        </Alert>
-                                    </motion.div>
-                                    {/* --- SECCIÓN MEJORADA VISUALMENTE --- */}
-                                    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="center" alignItems="center" sx={{ pt: 1 }}>
-                                        <motion.div variants={submittedItemVariants} whileHover={timeCardHover}>
-                                            <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, textAlign: 'center', width: 160 }}>
-                                                <Typography variant="caption" color="text.secondary" display="block">Entrada</Typography>
-                                                <Stack direction="row" spacing={1} justifyContent="center" alignItems="center">
-                                                    <LoginIcon color="success" />
-                                                    <Typography variant="h6" fontWeight="bold">
-                                                        {new Date(submittedRecord.clockInTime).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
-                                                    </Typography>
-                                                </Stack>
-                                            </Paper>
-                                        </motion.div>
-                                        <motion.div variants={submittedItemVariants} whileHover={timeCardHover}>
-                                            <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, textAlign: 'center', width: 160 }}>
-                                                <Typography variant="caption" color="text.secondary" display="block">Salida (Est.)</Typography>
-                                                <Stack direction="row" spacing={1} justifyContent="center" alignItems="center">
-                                                    <LogoutIcon color="error" />
-                                                    <Typography variant="h6" fontWeight="bold">
-                                                        {new Date(submittedRecord.clockOutTime).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false })} hs
-                                                    </Typography>
-                                                </Stack>
-                                            </Paper>
-                                        </motion.div>
-                                    </Stack>
-                                </Stack>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
-                </Box>
-
-                {error && <Alert severity="error" sx={{ mt: 3, justifyContent: 'center' }}>{error}</Alert>}
-
-                <motion.div variants={itemVariants}>
-                    <Box sx={{ mt: 5, borderTop: '1px solid', borderColor: 'divider', pt: 2 }}>
-                    <Typography variant="caption" color="text.secondary">
-                        © {new Date().getFullYear()} Sistema de Registro de Asistencia.
-                    </Typography>
-                    </Box>
-                </motion.div>
-            </MotionStyledCard>
-
-            <Snackbar
-                open={snackbarOpen}
-                autoHideDuration={4000}
-                onClose={() => setSnackbarOpen(false)}
-                message="Asistencia enviada correctamente"
-                anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-            />
-        </>
+      <PickersDay
+        {...other}
+        day={day}
+        selected={selected}
+        outsideCurrentMonth={outsideCurrentMonth}
+        sx={{
+          // Estilo para días con asistencia 'presente'
+          ...(isDateHighlighted(day) === 'presente' && {
+            backgroundColor: 'success.light',
+            color: 'success.contrastText',
+            '&:hover': {
+              backgroundColor: 'success.main',
+            },
+          }),
+          // Estilo para días con asistencia 'ausente'
+          ...(isDateHighlighted(day) === 'ausente' && {
+            backgroundColor: 'error.light',
+            color: 'error.contrastText',
+            '&:hover': {
+              backgroundColor: 'error.main',
+            },
+          }),
+        }}
+      />
     );
-}
+  };
+
+  // --- Filtra los feriados para el mes actual ---
+  const holidaysOfMonth = Object.entries(holidays)
+    .filter(([date]) => dayjs(date).isSame(currentMonthView, 'month'))
+    .sort(([dateA], [dateB]) => dayjs(dateA).date() - dayjs(dateB).date());
+
+  return (
+    <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="es">
+      <Box sx={{ p: 3, maxWidth: '100%', mx: 'auto' }}>
+        <Typography variant="h4" gutterBottom>
+          Calendario de Asistencias
+        </Typography>
+        
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(5, 1fr)',
+            gridTemplateRows: 'auto',
+            gap: 2,
+          }}
+        >
+          {/* Calendario */}
+          <Paper elevation={3} sx={{ gridColumn: { xs: 'span 5', md: '1 / span 3' }, gridRow: { xs: '1', md: '1 / span 4' }, p: 2 }}>
+            <DateCalendar
+              value={selectedDate}
+              onChange={(newDate) => setSelectedDate(newDate)}
+              onMonthChange={(newMonth) => setCurrentMonthView(newMonth)}
+              shouldDisableDate={(date) => !isWeekday(date) || isHoliday(date)}
+              slots={{ day: CustomDay }}
+            />
+          </Paper>
+
+          {/* Feriados */}
+          <Paper elevation={3} sx={{ gridColumn: { xs: 'span 5', md: '4 / span 2' }, gridRow: { xs: '2', md: '1 / span 2' }, p: 2 }}>
+            <Typography variant="h6" gutterBottom>
+              Feriados de {currentMonthView.format('MMMM')}
+            </Typography>
+            <List dense sx={{ maxHeight: 200, overflow: 'auto' }}>
+              {holidaysOfMonth.length > 0 ? (
+                holidaysOfMonth.map(([date, name]) => (
+                  <ListItem key={date} disablePadding>
+                    <ListItemText primary={name} secondary={dayjs(date).format('dddd DD')} />
+                  </ListItem>
+                ))
+              ) : (
+                <ListItem><ListItemText secondary="No hay feriados este mes." /></ListItem>
+              )}
+            </List>
+          </Paper>
+
+          {/* Controles */}
+          <Paper elevation={3} sx={{ gridColumn: { xs: 'span 5', md: '1 / span 3' }, gridRow: { xs: '4', md: '5' }, p: 2 }}>
+            <Typography variant="h6" gutterBottom>
+              Asistencia para {selectedDate.format('dddd, DD/MM/YYYY')}
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 2, mb: 2, flexWrap: 'wrap' }}>
+              <Button variant="contained" color="success" startIcon={<CheckCircle />} disabled={loading} onClick={() => markAttendance(selectedDate, true)}>
+                Marcar Presente
+              </Button>
+              <Button variant="contained" color="error" disabled={loading} startIcon={<Cancel />} onClick={() => markAttendance(selectedDate, false)}>
+                Marcar Ausente
+              </Button>
+            </Box>
+            <Button variant="outlined" disabled={loading} onClick={markWeekAttendances}>
+              Marcar Semana como Presente
+            </Button>
+          </Paper>
+
+          {/* Estado de Asistencias */}
+          <Paper elevation={3} sx={{ gridColumn: { xs: 'span 5', md: '4 / span 2' }, gridRow: { xs: '3', md: '3 / span 3' }, p: 2 }}>
+            <Typography variant="h6" gutterBottom>
+              Estado de Asistencias del Mes
+            </Typography>
+            <List dense sx={{ maxHeight: 350, overflow: 'auto' }}>
+              {Object.entries(attendances).length > 0 ? (
+                Object.entries(attendances).map(([date, status]) => (
+                  <ListItem key={date}>
+                    <ListItemText primary={`${dayjs(date).format('DD/MM/YYYY')}: ${status}`} />
+                  </ListItem>
+                ))
+              ) : (
+                <ListItem><ListItemText primary="No hay asistencias registradas." /></ListItem>
+              )}
+            </List>
+          </Paper>
+        </Box>
+
+        {/* --- 3. Snackbar para notificaciones --- */}
+        <Snackbar
+          open={snack.open}
+          autoHideDuration={4000}
+          onClose={() => setSnack(prev => ({ ...prev, open: false }))}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        >
+          <Alert onClose={() => setSnack(prev => ({ ...prev, open: false }))} severity={snack.severity} sx={{ width: '100%' }}>
+            {snack.msg}
+          </Alert>
+        </Snackbar>
+      </Box>
+    </LocalizationProvider>
+  );
+};
+
+export default AttendanceCalendar;

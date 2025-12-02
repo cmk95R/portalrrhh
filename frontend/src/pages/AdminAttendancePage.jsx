@@ -86,10 +86,30 @@ export default function AdminAttendancePage() {
     };
 
     const columns = [
-        { field: 'nombre', headerName: 'Nombre', flex: 1, valueGetter: (params) => `${params.row.nombre || ''} ${params.row.apellido || ''}` },
-        { field: 'clockInDate', headerName: 'Fecha Entrada', width: 120, valueGetter: (params) => formatDate(params.row.clockInTime) },
-        { field: 'clockInTime', headerName: 'Hora Entrada', width: 120, valueGetter: (params) => formatTime(params.row.clockInTime) },
-        { field: 'clockOutTime', headerName: 'Hora Salida', width: 120, valueGetter: (params) => formatTime(params.row.clockOutTime) },
+        { 
+            field: 'nombre', 
+            headerName: 'Nombre', 
+            flex: 1, 
+            valueGetter: (params) => {
+                if (!params || !params.row || !params.row.user) {
+                    return '';
+                }
+                const user = params.row.user; // Ahora sabemos que params.row.user existe
+                return `${user.nombre || ''} ${user.apellido || ''}`.trim();
+            }
+        },
+        { field: 'clockInDate', headerName: 'Fecha Entrada', width: 120, valueGetter: (params) => {
+            if (!params || !params.row) return '';
+            return formatDate(params.row.clockInTime);
+        }},
+        { field: 'clockInTime', headerName: 'Hora Entrada', width: 120, valueGetter: (params) => {
+            if (!params || !params.row) return '';
+            return formatTime(params.row.clockInTime);
+        }},
+        { field: 'clockOutTime', headerName: 'Hora Salida', width: 120, valueGetter: (params) => {
+            if (!params || !params.row) return '';
+            return formatTime(params.row.clockOutTime);
+        }},
         { field: 'status', headerName: 'Estado', width: 110, renderCell: (params) => <Typography color={params.value === 'completed' ? 'success.main' : 'warning.main'}>{params.value}</Typography> },
         { field: 'notes', headerName: 'Notas', flex: 1.5 },
         {
@@ -119,9 +139,11 @@ export default function AdminAttendancePage() {
             <Stack direction="row" justifyContent="space-between" alignItems="center" mb={3}>
                 <Typography variant="h4" fontWeight={700}>Gestión de Asistencias</Typography>
                 <Tooltip title="Actualizar Datos">
-                    <IconButton onClick={fetchData} disabled={loading}>
-                        <RefreshIcon />
-                    </IconButton>
+                    <span>
+                        <IconButton onClick={fetchData} disabled={loading}>
+                            <RefreshIcon />
+                        </IconButton>
+                    </span>
                 </Tooltip>
             </Stack>
 

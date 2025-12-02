@@ -159,9 +159,11 @@ export default function MyApplications() {
           <Typography variant="body2" color="text.secondary">Acá vas a ver todas las búsquedas a las que te postulaste.</Typography>
         </Box>
         <Tooltip title="Actualizar">
-          <IconButton onClick={fetchData} disabled={loading}>
-            <RefreshIcon />
-          </IconButton>
+          <span>
+            <IconButton onClick={fetchData} disabled={loading}>
+              <RefreshIcon />
+            </IconButton>
+          </span>
         </Tooltip>
       </Stack>
 

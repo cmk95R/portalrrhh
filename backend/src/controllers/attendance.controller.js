@@ -2,6 +2,9 @@ import Attendance from '../models/attendance.model.js';
 import createError from 'http-errors';
 import XLSX from 'xlsx';
 import { uploadFileToOneDrive } from '../services/oneDrive.service.js';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc.js';
+dayjs.extend(utc);
 
 // @desc    Enviar la asistencia diaria de un solo clic.
 // @route   POST /api/attendance/submit-daily
@@ -61,19 +64,25 @@ export const submitDailyAttendance = async (req, res, next) => {
  */
 async function saveAttendanceToOneDrive(record) {
   try {
-    // 1. Definir el nombre del archivo (ej: Asistencias_2025-11.xlsx)
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = (now.getMonth() + 1).toString().padStart(2, '0');
+    // --- CORRECCIÓN: Usar la fecha del registro, no la fecha actual del servidor ---
+    // Esto asegura que si se modifica un registro antiguo, se actualice el Excel del mes correcto.
+    const recordDate = record.date || record.clockInTime || new Date();
+    const year = recordDate.getFullYear();
+    const monthJs = recordDate.getMonth(); // 0-11
+    const month = (monthJs + 1).toString().padStart(2, '0');
     const fileName = `Asistencias_${year}-${month}.xlsx`;
 
     // 2. Obtener todos los registros del mes actual de la base de datos
-    const monthStart = new Date(year, now.getMonth(), 1);
-    const monthEnd = new Date(year, now.getMonth() + 1, 0, 23, 59, 59);
+    const monthStart = new Date(year, monthJs, 1);
+    const monthEnd = new Date(year, monthJs + 1, 0, 23, 59, 59);
 
+    // CORRECCIÓN: Buscamos por 'date' o 'clockInTime' para incluir ambos tipos de registros
     const allRecordsThisMonth = await Attendance.find({
-      createdAt: { $gte: monthStart, $lte: monthEnd }
-    }).sort({ createdAt: 'asc' }).lean();
+      $or: [
+        { date: { $gte: monthStart, $lte: monthEnd } },
+        { clockInTime: { $gte: monthStart, $lte: monthEnd } }
+      ]
+    }).sort({ date: 'asc', clockInTime: 'asc' }).lean();
 
     // 3. Formatear los datos para el Excel
     const dataForExcel = allRecordsThisMonth.map(rec => ({
@@ -81,11 +90,13 @@ async function saveAttendanceToOneDrive(record) {
       'ID Usuario': rec.user.toString(),
       'Nombre': rec.nombre,
       'Apellido': rec.apellido,
-      'Fecha Entrada': new Date(rec.clockInTime).toLocaleDateString('es-AR'),
-      'Hora Entrada': new Date(rec.clockInTime).toLocaleTimeString('es-AR'),
-      'Fecha Salida': new Date(rec.clockOutTime).toLocaleDateString('es-AR'),
-      'Hora Salida': new Date(rec.clockOutTime).toLocaleTimeString('es-AR'),
+      // CORRECCIÓN: Usamos 'date' como fallback si 'clockInTime' no existe
+      'Fecha Entrada': rec.clockInTime ? new Date(rec.clockInTime).toLocaleDateString('es-AR') : (rec.date ? new Date(rec.date).toLocaleDateString('es-AR') : 'N/A'),
+      'Hora Entrada': rec.clockInTime ? new Date(rec.clockInTime).toLocaleTimeString('es-AR') : 'N/A',
+      'Fecha Salida': rec.clockOutTime ? new Date(rec.clockOutTime).toLocaleDateString('es-AR') : 'N/A',
+      'Hora Salida': rec.clockOutTime ? new Date(rec.clockOutTime).toLocaleTimeString('es-AR') : 'N/A',
       'IP': rec.clockInIp,
+      'Estado': rec.status, // <-- AÑADIDO: Columna de estado
       'Notas': rec.notes,
     }));
 
@@ -212,6 +223,79 @@ export const getMyCurrentStatus = async (req, res, next) => {
             // Si no, informamos que no ha fichado.
             res.status(200).json({ status: 'clocked-out' });
         }
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * @desc    Marcar la asistencia de un día completo (Presente/Ausente)
+ * @route   POST /api/attendance/daily
+ * @access  Private (Empleado)
+ */
+export const setDailyAttendance = async (req, res, next) => {
+    try {
+        const { date, status } = req.body;
+        const userId = req.user._id;
+
+        if (!date || !['presente', 'ausente'].includes(status)) {
+            return res.status(400).json({ message: 'Fecha y estado (presente/ausente) son requeridos.' });
+        }
+
+        const targetDate = dayjs.utc(date).startOf('day').toDate();
+
+        const attendanceRecord = await Attendance.findOneAndUpdate(
+            { user: userId, date: targetDate },
+            { 
+                $set: { 
+                    status: status, 
+                    source: 'empleado', 
+                    date: targetDate, 
+                    user: userId, 
+                    nombre: req.user.nombre, 
+                    apellido: req.user.apellido 
+                } 
+            },
+            { new: true, upsert: true, setDefaultsOnInsert: true }
+        );
+
+        res.status(200).json({
+            message: `Asistencia para el día ${dayjs(date).format('DD/MM/YYYY')} marcada como ${status}.`,
+            record: attendanceRecord,
+        });
+
+        // --- AÑADIDO: Llamamos a la función de guardado en Excel ---
+        // Lo hacemos después de responder al usuario para no retrasar la respuesta.
+        await saveAttendanceToOneDrive(attendanceRecord);
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * @desc    Obtener todos los registros de asistencia de un mes para el usuario logueado
+ * @route   GET /api/attendance/monthly
+ * @access  Private (Empleado)
+ */
+export const getMyMonthlyAttendance = async (req, res, next) => {
+    try {
+        const { year, month } = req.query;
+        const userId = req.user._id;
+
+        if (!year || !month) {
+            return res.status(400).json({ message: 'Año y mes son requeridos.' });
+        }
+
+        const startDate = dayjs.utc(`${year}-${month}-01`).startOf('month').toDate();
+        const endDate = dayjs.utc(`${year}-${month}-01`).endOf('month').toDate();
+
+        const records = await Attendance.find({
+            user: userId,
+            date: { $gte: startDate, $lte: endDate }
+        }).lean();
+
+        res.status(200).json(records);
+
     } catch (error) {
         next(error);
     }

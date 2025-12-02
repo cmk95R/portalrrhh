@@ -20,7 +20,7 @@ const attendanceSchema = new mongoose.Schema({
   // Fecha y hora de entrada.
   clockInTime: {
     type: Date,
-    required: true,
+    required: false, // Ya no es obligatorio para registros de calendario
   },
   // IP desde donde se ficha la entrada (para auditoría).
   clockInIp: {
@@ -37,13 +37,23 @@ const attendanceSchema = new mongoose.Schema({
   // Estado del registro: 'active' (solo entrada) o 'completed' (entrada y salida).
   status: {
     type: String,
-    enum: ['active', 'completed'],
+    enum: ['active', 'completed', 'presente', 'ausente'], // <-- 2. Añadir nuevos estados
     default: 'active',
   },
   // Notas que el empleado quiera añadir (ej: "Visita a cliente").
   notes: {
     type: String,
     trim: true,
+  },
+  // --- NUEVOS CAMPOS PARA EL CALENDARIO ---
+  date: {
+    type: Date, // <-- 1. Añadir el campo 'date'
+    index: true,
+  },
+  source: {
+    type: String,
+    enum: ['empleado', 'admin', 'sistema'],
+    default: 'sistema',
   },
 }, {
   timestamps: true, // Añade createdAt y updatedAt automáticamente.

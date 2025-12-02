@@ -241,9 +241,8 @@ function ApplicationDetailDialog({ open, onClose, application }) {
             {isDownloading ? "Obteniendo..." : "Descargar CV"}
           </Button>
         ) : (
-          <Tooltip title="El postulante no adjuntó un archivo de CV en esta postulación.">
-            {/* El span es necesario para que el Tooltip funcione en un botón deshabilitado */}
-            <span>
+          <Tooltip title="El postulante no adjuntó un archivo de CV en esta postulación.">            
+            <span> {/* El span es necesario para que el Tooltip funcione en un botón deshabilitado */}
               <Button variant="contained" startIcon={<DownloadIcon />} disabled>
                 Descargar CV
               </Button>

@@ -15,6 +15,7 @@ import userRoutes from "./routes/userRoutes.js";   // 👈 NUEVO
 import adminRoutes from "./routes/adminRoutes.js"; // <-- CORRECCIÓN: Importamos el router de admin centralizado
 import geoRoutes from "./routes/geoRoutes.js"; // Rutas públicas
 import attendanceRoutes from "./routes/attendance.routes.js"; // <-- NUEVO: Rutas de asistencia para usuarios
+import holidaysRoutes from "./routes/holidays.routes.js"; // <-- AÑADIDO
 import { initGooglePassport } from "./auth/google.strategy.js"; 
 
 dotenv.config();
@@ -87,6 +88,7 @@ apiRouter.use("/auth", authRoutes);            // /api/auth/... (Registro, Login
 ; // /api/applications/... (Rutas /me y /:id para postulaciones del usuario)
 apiRouter.use("/geo", geoRoutes);              // /api/geo/... (Provincias, Localidades - públicas)
 apiRouter.use("/attendance", attendanceRoutes); // <-- NUEVO: /api/attendance/... (Clock-in, Clock-out, etc.)
+apiRouter.use("/holidays", holidaysRoutes);     // <-- AÑADIDO: /api/holidays/...
 // Montamos TODAS las rutas de admin bajo /api/admin
 apiRouter.use("/admin", adminRoutes);
 // Finalmente, montamos el router principal de la API en la app
