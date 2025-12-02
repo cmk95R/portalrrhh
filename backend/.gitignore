@@ -1,3 +1,8 @@
+# Dependencias de Node
 node_modules
 
+# Archivos de entorno - ¡NUNCA SUBIR!
 .env
+
+# Credenciales y configuración sensible
+config/
