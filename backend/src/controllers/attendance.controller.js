@@ -1,10 +1,14 @@
-import Attendance from '../models/attendance.model.js';
+import Asistencia from '../models/attendance.model.js'; // <-- CAMBIO: Usamos el nuevo modelo
 import createError from 'http-errors';
 import XLSX from 'xlsx';
 import { uploadFileToOneDrive } from '../services/oneDrive.service.js';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc.js';
 dayjs.extend(utc);
+
+// --- Helper para obtener el día de la semana en español ---
+const diasSemana = ["domingo", "lunes", "martes", "miercoles", "jueves", "viernes", "sabado"];
+
 
 // @desc    Enviar la asistencia diaria de un solo clic.
 // @route   POST /api/attendance/submit-daily
@@ -13,31 +17,28 @@ export const submitDailyAttendance = async (req, res, next) => {
   try {
     const userId = req.user.id;
 
-    // 1. Verificar si ya se registró la asistencia para hoy.
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-    const todayEnd = new Date();
-    todayEnd.setHours(23, 59, 59, 999);
-
-    const existingRecord = await Attendance.findOne({ user: userId, clockInTime: { $gte: todayStart, $lte: todayEnd } });
+    // 1. Verificar si ya se registró la asistencia para hoy usando el formato YYYY-MM-DD
+    const hoy = dayjs().format('YYYY-MM-DD');
+    const existingRecord = await Asistencia.findOne({ usuario: userId, fecha: hoy });
     if (existingRecord) {
       throw createError(409, 'Ya has enviado tu asistencia por hoy.');
     }
 
-    // 2. Crear el nuevo registro con hora de salida a las 18:00 hs.
+    // 2. Crear el nuevo registro
     const clockInTime = new Date();
     const clockOutTime = new Date(clockInTime);
     clockOutTime.setHours(18, 0, 0, 0); // Fija la hora de salida a las 18:00
 
-    const newRecord = new Attendance({
-      user: userId,
+    const newRecord = new Asistencia({
+      usuario: userId,
       nombre: req.user.nombre, // <-- AÑADIDO
       apellido: req.user.apellido, // <-- AÑADIDO
-      clockInTime,
-      clockOutTime,
-      clockInIp: req.ip,
-      status: 'completed', // El registro nace completo
-      notes: 'Asistencia diaria registrada.'
+      fecha: hoy,
+      diaSemana: diasSemana[dayjs().day()],
+      estado: 'presente',
+      horaEntrada: clockInTime,
+      horaSalida: clockOutTime,
+      autoGenerado: true,
     });
 
     await newRecord.save();
@@ -63,47 +64,44 @@ export const submitDailyAttendance = async (req, res, next) => {
  * @param {object} record - El documento de asistencia de Mongoose.
  */
 async function saveAttendanceToOneDrive(record) {
-  try {
-    // --- CORRECCIÓN: Usar la fecha del registro, no la fecha actual del servidor ---
-    // Esto asegura que si se modifica un registro antiguo, se actualice el Excel del mes correcto.
-    const recordDate = record.date || record.clockInTime || new Date();
-    const year = recordDate.getFullYear();
-    const monthJs = recordDate.getMonth(); // 0-11
-    const month = (monthJs + 1).toString().padStart(2, '0');
+  try {    
+    // 1. Usar la fecha del registro para determinar el mes y año del archivo
+    const recordDate = dayjs(record.fecha);
+    const year = recordDate.year();
+    const month = recordDate.format('MM');
     const fileName = `Asistencias_${year}-${month}.xlsx`;
 
-    // 2. Obtener todos los registros del mes actual de la base de datos
-    const monthStart = new Date(year, monthJs, 1);
-    const monthEnd = new Date(year, monthJs + 1, 0, 23, 59, 59);
-
-    // CORRECCIÓN: Buscamos por 'date' o 'clockInTime' para incluir ambos tipos de registros
-    const allRecordsThisMonth = await Attendance.find({
-      $or: [
-        { date: { $gte: monthStart, $lte: monthEnd } },
-        { clockInTime: { $gte: monthStart, $lte: monthEnd } }
-      ]
-    }).sort({ date: 'asc', clockInTime: 'asc' }).lean();
+    // 2. Obtener todos los registros del mes
+    const allRecordsThisMonth = await Asistencia.find({
+      fecha: { $regex: `^${year}-${month}` }
+    }).sort({ fecha: 'asc' }).lean();
 
     // 3. Formatear los datos para el Excel
     const dataForExcel = allRecordsThisMonth.map(rec => ({
       'ID Registro': rec._id.toString(),
-      'ID Usuario': rec.user.toString(),
+      'ID Usuario': rec.usuario.toString(),
       'Nombre': rec.nombre,
       'Apellido': rec.apellido,
-      // CORRECCIÓN: Usamos 'date' como fallback si 'clockInTime' no existe
-      'Fecha Entrada': rec.clockInTime ? new Date(rec.clockInTime).toLocaleDateString('es-AR') : (rec.date ? new Date(rec.date).toLocaleDateString('es-AR') : 'N/A'),
-      'Hora Entrada': rec.clockInTime ? new Date(rec.clockInTime).toLocaleTimeString('es-AR') : 'N/A',
-      'Fecha Salida': rec.clockOutTime ? new Date(rec.clockOutTime).toLocaleDateString('es-AR') : 'N/A',
-      'Hora Salida': rec.clockOutTime ? new Date(rec.clockOutTime).toLocaleTimeString('es-AR') : 'N/A',
-      'IP': rec.clockInIp,
-      'Estado': rec.status, // <-- AÑADIDO: Columna de estado
-      'Notas': rec.notes,
+      'Fecha': rec.fecha,
+      'Día': rec.diaSemana,
+      'Estado': rec.estado,
+      'Hora Entrada': rec.horaEntrada ? dayjs(rec.horaEntrada).format('HH:mm') : 'N/A',
+      'Hora Salida': rec.horaSalida ? dayjs(rec.horaSalida).format('HH:mm') : 'N/A',
+      'Horas Extras': rec.horasExtras,
+      'Guardia': rec.guardia,
+      'Horas Fin de Semana': rec.horasFinDeSemana,
     }));
 
     // 4. Crear el libro de Excel en memoria
     const worksheet = XLSX.utils.json_to_sheet(dataForExcel);
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, `Asistencias ${year}-${month}`);
+    // Ajustar anchos de columna (opcional, pero mejora la legibilidad)
+    worksheet['!cols'] = [
+      { wch: 24 }, { wch: 24 }, { wch: 15 }, { wch: 15 }, { wch: 12 },
+      { wch: 10 }, { wch: 10 }, { wch: 12 }, { wch: 12 }, { wch: 12 },
+      { wch: 10 }, { wch: 18 }
+    ];
+    XLSX.utils.book_append_sheet(workbook, worksheet, `Asistencias`);
 
     // 5. Convertir el libro a un buffer de datos
     const buffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'buffer' });
@@ -129,15 +127,15 @@ export const clockIn = async (req, res, next) => {
     const userId = req.user.id; // Suponiendo que tienes el usuario en req.user
 
     // El índice único en el modelo ya previene esto, pero una verificación explícita da un mejor mensaje de error.
-    const existingActiveRecord = await Attendance.findOne({ user: userId, status: 'active' });
+    const existingActiveRecord = await Asistencia.findOne({ usuario: userId, estado: 'presente', horaSalida: null });
     if (existingActiveRecord) {
       throw createError(409, 'Ya tienes una jornada activa. Debes fichar la salida primero.');
     }
 
-    const newRecord = new Attendance({
-      user: userId,
-      clockInTime: new Date(),
-      clockInIp: req.ip, // express guarda la IP en req.ip
+    const newRecord = new Asistencia({
+      usuario: userId,
+      horaEntrada: new Date(),
+      // ... otros campos del nuevo modelo
     });
 
     await newRecord.save();
@@ -163,17 +161,15 @@ export const clockOut = async (req, res, next) => {
     const userId = req.user.id;
     const { notes } = req.body;
 
-    const activeRecord = await Attendance.findOne({ user: userId, status: 'active' });
+    const activeRecord = await Asistencia.findOne({ usuario: userId, estado: 'presente', horaSalida: null });
 
     if (!activeRecord) {
       throw createError(404, 'No se encontró una jornada activa para registrar la salida.');
     }
 
-    activeRecord.clockOutTime = new Date();
-    activeRecord.clockOutIp = req.ip;
-    activeRecord.status = 'completed';
+    activeRecord.horaSalida = new Date();
     if (notes) {
-      activeRecord.notes = notes;
+      // El nuevo modelo no tiene 'notes', puedes agregarlo si lo necesitas
     }
 
     await activeRecord.save();
@@ -194,7 +190,7 @@ export const getMyAttendance = async (req, res, next) => {
   try {
     const userId = req.user.id;
     // Podríamos añadir paginación aquí en el futuro
-    const records = await Attendance.find({ user: userId }).sort({ clockInTime: -1 });
+    const records = await Asistencia.find({ usuario: userId }).sort({ fecha: -1 });
     res.status(200).json(records);
   } catch (error) {
     next(error);
@@ -208,17 +204,12 @@ export const getMyCurrentStatus = async (req, res, next) => {
     try {
         const userId = req.user.id;
         
-        // CORRECCIÓN: Ahora buscamos si existe CUALQUIER registro para el día de hoy.
-        const todayStart = new Date();
-        todayStart.setHours(0, 0, 0, 0);
-        const todayEnd = new Date();
-        todayEnd.setHours(23, 59, 59, 999);
-
-        const todaysRecord = await Attendance.findOne({ user: userId, clockInTime: { $gte: todayStart, $lte: todayEnd } });
+        const hoy = dayjs().format('YYYY-MM-DD');
+        const todaysRecord = await Asistencia.findOne({ usuario: userId, fecha: hoy });
 
         if (todaysRecord) {
             // Si se encuentra un registro para hoy, se lo devolvemos al frontend.
-            res.status(200).json({ status: 'clocked-in', record: todaysRecord });
+            res.status(200).json({ status: todaysRecord.estado, record: todaysRecord });
         } else {
             // Si no, informamos que no ha fichado.
             res.status(200).json({ status: 'clocked-out' });
@@ -235,32 +226,35 @@ export const getMyCurrentStatus = async (req, res, next) => {
  */
 export const setDailyAttendance = async (req, res, next) => {
     try {
-        const { date, status } = req.body;
-        const userId = req.user._id;
+        const { fecha, estado } = req.body; // <-- CORRECCIÓN
+        const { _id: userId, nombre, apellido } = req.user;
 
-        if (!date || !['presente', 'ausente'].includes(status)) {
+        if (!fecha || !['presente', 'ausente'].includes(estado)) { // <-- CORRECCIÓN
             return res.status(400).json({ message: 'Fecha y estado (presente/ausente) son requeridos.' });
         }
 
-        const targetDate = dayjs.utc(date).startOf('day').toDate();
+        const diaSemana = diasSemana[dayjs(fecha).day()]; // <-- CORRECCIÓN
 
-        const attendanceRecord = await Attendance.findOneAndUpdate(
-            { user: userId, date: targetDate },
+        const attendanceRecord = await Asistencia.findOneAndUpdate(
+            { usuario: userId, fecha: fecha }, // <-- CORRECCIÓN
             { 
                 $set: { 
-                    status: status, 
-                    source: 'empleado', 
-                    date: targetDate, 
-                    user: userId, 
-                    nombre: req.user.nombre, 
-                    apellido: req.user.apellido 
+                    estado: estado,
+                    nombre: nombre, // <-- AÑADIDO: Asegura que siempre esté presente
+                    apellido: apellido, // <-- AÑADIDO: Asegura que siempre esté presente
                 } 
             },
-            { new: true, upsert: true, setDefaultsOnInsert: true }
+            { 
+              new: true, 
+              upsert: true, 
+              setDefaultsOnInsert: true,
+              // Añadimos los campos que solo se deben crear si el documento es nuevo
+              $setOnInsert: { usuario: userId, fecha: fecha, diaSemana }
+            }
         );
 
         res.status(200).json({
-            message: `Asistencia para el día ${dayjs(date).format('DD/MM/YYYY')} marcada como ${status}.`,
+            message: `Asistencia para el día ${dayjs(fecha).format('DD/MM/YYYY')} marcada como ${estado}.`, // <-- CORRECCIÓN
             record: attendanceRecord,
         });
 
@@ -280,21 +274,54 @@ export const setDailyAttendance = async (req, res, next) => {
 export const getMyMonthlyAttendance = async (req, res, next) => {
     try {
         const { year, month } = req.query;
-        const userId = req.user._id;
+        const { _id: userId } = req.user;
 
         if (!year || !month) {
             return res.status(400).json({ message: 'Año y mes son requeridos.' });
         }
 
-        const startDate = dayjs.utc(`${year}-${month}-01`).startOf('month').toDate();
-        const endDate = dayjs.utc(`${year}-${month}-01`).endOf('month').toDate();
-
-        const records = await Attendance.find({
-            user: userId,
-            date: { $gte: startDate, $lte: endDate }
+        const records = await Asistencia.find({
+            usuario: userId,
+            fecha: { $regex: `^${year}-${String(month).padStart(2, '0')}` }
         }).lean();
 
         res.status(200).json(records);
+
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * @desc    Actualizar un registro de asistencia propio (ej. para horas extras, guardias).
+ * @route   PATCH /api/attendance/:id
+ * @access  Private (Empleado)
+ */
+export const updateMyAttendance = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const userId = req.user._id;
+
+        // Campos que el usuario puede modificar
+        const { horasExtras, guardia, horasFinDeSemana } = req.body;
+
+        const record = await Asistencia.findOne({ _id: id, usuario: userId });
+
+        if (!record) {
+            return res.status(404).json({ message: "Registro de asistencia no encontrado o no te pertenece." });
+        }
+
+        // Aplicar actualizaciones de forma segura
+        if (typeof horasExtras === 'number') record.horasExtras = horasExtras;
+        if (['ninguna', 'pasiva', 'activa'].includes(guardia)) record.guardia = guardia;
+        if (typeof horasFinDeSemana === 'number') record.horasFinDeSemana = horasFinDeSemana;
+
+        const updatedRecord = await record.save();
+
+        res.status(200).json({
+            message: "Registro de asistencia actualizado.",
+            record: updatedRecord,
+        });
 
     } catch (error) {
         next(error);

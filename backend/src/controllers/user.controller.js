@@ -144,96 +144,36 @@ const SAFE_SORT = new Set([
   "cliente"
 ]);
 
-export const listUsersWithCv = async (req, res, next) => {
+export const adminListUsers = async (req, res, next) => {
   try {
-    const {
-      q,
-      rol,
-      page = 1,
-      limit = 20,
-      sortBy = "updatedAt",
-      sortDir = "desc",
-    } = req.query;
+    const { sort, order, page, pageSize, search } = req.query;
 
-    const _page  = Math.max(1, parseInt(page, 10) || 1);
-    const _limit = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
-    const _sortBy = SAFE_SORT.has(sortBy) ? sortBy : "updatedAt";
-    const _sortDir = String(sortDir).toLowerCase() === "asc" ? 1 : -1;
-
-    const userMatch = {};
-    if (rol) userMatch.rol = rol;
-    if (q) {
-      const rx = new RegExp(
-        q.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), 
-        "i"
-      );
-      userMatch.$or = [
+    const filter = {};
+    if (search) {
+      const rx = new RegExp(search.trim(), "i");
+      filter.$or = [
         { nombre: rx },
         { apellido: rx },
         { email: rx },
-        { publicId: rx },
         { dni: rx },
+        { rol: rx },
         { cliente: rx },
       ];
     }
 
-    const sortStage = {};
-    sortStage[_sortBy] = _sortDir;
+    const items = await User.find(filter)
+      .sort({ [sort]: order === "asc" ? 1 : -1 })
+      .skip((page - 1) * pageSize)  // Paginación
+      .limit(pageSize)              // Paginación
+      .lean();
 
-    const pipeline = [
-      { $match: userMatch },
-      {
-        $project: {
-          _id: 1,
-          publicId: 1,
-          nombre: 1,
-          apellido: 1,
-          dni: 1,               
-          foto: 1,              
-          cliente: 1,           
-          direccionCliente: 1,  
-          horarioLaboral: 1,    
-          email: 1,
-          rol: 1,
-          telefono: 1,
-          nacimiento: 1,
-          estado: 1,
-          createdAt: 1,
-          updatedAt: 1,
-          direccion: {
-            localidad: "$direccion.localidad",
-            provincia: "$direccion.provincia",
-            pais: "$direccion.pais"
-          }
-        }
-      },
-      { $sort: sortStage },
-      {
-        $facet: {
-          items: [
-            { $skip: (_page - 1) * _limit },
-            { $limit: _limit }
-          ],
-          total: [{ $count: "count" }]
-        }
-      }
-    ];
+    const total = await User.countDocuments(filter);
 
-    const [agg] = await User.aggregate(pipeline).allowDiskUse(true);
-    const items = agg?.items ?? [];
-    const total = agg?.total?.[0]?.count ?? 0;
-
-    res.json({
-      items,
-      total,
-      page: _page,
-      pages: Math.ceil(total / _limit)
-    });
-  } catch (err) {
-    next(err);
+    res.json({ items, total });
+  } catch (e) {
+    next(e);
   }
 };
-
 // PATCH /admin/users/:id/status
 export const adminSetUserStatus = async (req, res, next) => {
   try {
@@ -400,4 +340,3 @@ export const adminResetUserPin = async (req, res, next) => {
     next(e);
   }
 };
-

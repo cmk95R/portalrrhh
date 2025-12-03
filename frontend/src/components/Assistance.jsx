@@ -3,11 +3,13 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { DateCalendar } from '@mui/x-date-pickers/DateCalendar';
 import { PickersDay } from '@mui/x-date-pickers/PickersDay';
-import { Box, Button, Typography, List, ListItem, ListItemText, Paper, Snackbar, Alert, Tooltip, Grid, Divider } from '@mui/material';
-import { CheckCircle, Cancel } from '@mui/icons-material';
+
 import dayjs from 'dayjs';
 import 'dayjs/locale/es'; // 1. Importar el locale de español para dayjs
 dayjs.locale('es'); // 2. Establecer el idioma globalmente para dayjs
+
+import { Box, Button, Typography, List, ListItem, ListItemText, Paper, Snackbar, Alert, Tooltip, Grid, Divider } from '@mui/material';
+import { CheckCircle, Cancel } from '@mui/icons-material';
 // --- 1. Importar la API y hooks necesarios ---
 import { setDailyAttendanceApi, getMyMonthlyAttendanceApi } from '../api/attendanceApi'; // Asegúrate que esta API exista
 import { getHolidaysApi } from '../api/apiCalendar'; // <-- 1. Importar la API de feriados
@@ -40,8 +42,8 @@ const AttendanceCalendar = () => {
 
       // Convertimos el array de la API a un objeto para el estado local
       const newAttendances = (data || []).reduce((acc, record) => {
-        const dateKey = dayjs(record.date).format('YYYY-MM-DD');
-        acc[dateKey] = record.status; // Guardamos el estado: 'presente' o 'ausente'
+        const dateKey = record.fecha; // El backend ahora devuelve 'fecha' en formato YYYY-MM-DD
+        acc[dateKey] = record.estado; // CORRECCIÓN: El campo en el modelo es 'estado'
         return acc;
       }, {});
 
@@ -59,7 +61,7 @@ const AttendanceCalendar = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [setAttendances, setHolidays, setLoading, setSnack]); // <-- CORRECCIÓN: Añadir dependencias
 
   // --- 5. useEffect para cargar datos al cambiar de mes ---
   useEffect(() => {
@@ -69,16 +71,16 @@ const AttendanceCalendar = () => {
   // Función para marcar asistencia de una fecha específica
   const markAttendance = async (date, present) => {
     const dateKey = date.format('YYYY-MM-DD');
-    const status = present ? 'presente' : 'ausente';
+    const estado = present ? 'presente' : 'ausente';
 
     setLoading(true);
     try {
-      await setDailyAttendanceApi({ date: dateKey, status });
+      await setDailyAttendanceApi({ fecha: dateKey, estado: estado }); // <-- CORRECCIÓN: Usamos 'fecha' y 'estado'
       setAttendances((prev) => ({
         ...prev,
-        [dateKey]: status, // Actualizamos el estado con 'presente' o 'ausente'
+        [dateKey]: estado, // CORRECCIÓN: Usar la variable 'estado'
       }));
-      setSnack({ open: true, msg: `Asistencia marcada como ${status}`, severity: 'success' });
+      setSnack({ open: true, msg: `Asistencia marcada como ${estado}`, severity: 'success' }); // CORRECCIÓN: Usar la variable 'estado'
     } catch (error) {
       const errorMsg = error.response?.data?.message || 'No se pudo marcar la asistencia.';
       setSnack({ open: true, msg: errorMsg, severity: 'error' });
@@ -91,7 +93,7 @@ const AttendanceCalendar = () => {
   const markWeekAttendances = async () => {
     setLoading(true);
     try {
-      const startOfWeek = selectedDate.startOf('week').add(1, 'day'); // Lunes
+      const startOfWeek = selectedDate.startOf('week'); // Con locale 'es', esto ya es Lunes
       const weekDates = [];
       const promises = [];
 
@@ -100,7 +102,7 @@ const AttendanceCalendar = () => {
         const date = startOfWeek.add(i, 'day');
         const dateKey = date.format('YYYY-MM-DD');
         weekDates.push(dateKey);
-        promises.push(setDailyAttendanceApi({ date: dateKey, status: 'presente' }));
+        promises.push(setDailyAttendanceApi({ fecha: dateKey, estado: 'presente' })); // <-- CORRECCIÓN
       }
 
       // 2. Ejecutamos todas las promesas en paralelo
@@ -218,9 +220,27 @@ const AttendanceCalendar = () => {
               slots={{ day: CustomDay }}
             />
           </Paper>
-
+            {/* Estado de Asistencias */}
+          <Paper elevation={3} sx={{ gridColumn: { xs: 'span 5', md: '4 / span 2' }, gridRow: { xs: '2', md: '1/ span 2' }, p: 2 }}>
+            <Typography variant="h6" gutterBottom>
+              Estado de Asistencias del Mes
+            </Typography>
+            <List dense sx={{ maxHeight: 350, overflow: 'auto' }}>
+              {Object.entries(attendances).length > 0 ? (
+                Object.entries(attendances).map(([date, status]) => (
+                  <ListItem key={date}>
+                    <ListItemText 
+                      primary={`${dayjs(date).format('DD/MM/YYYY')}: ${status ? status.charAt(0).toUpperCase() + status.slice(1) : 'No definido'}`}
+                    />
+                  </ListItem>
+                ))
+              ) : (
+                <ListItem><ListItemText primary="No hay asistencias registradas." /></ListItem>
+              )}
+            </List>
+          </Paper>
           {/* Feriados */}
-          <Paper elevation={3} sx={{ gridColumn: { xs: 'span 5', md: '4 / span 2' }, gridRow: { xs: '2', md: '1 / span 2' }, p: 2 }}>
+          <Paper elevation={3} sx={{ gridColumn: { xs: 'span 5', md: '4 / span 2' }, gridRow: { xs: '3', md: '3 / span 3' }, p: 2 }}>
             <Typography variant="h6" gutterBottom>
               Feriados de {currentMonthView.format('MMMM')}
             </Typography>
@@ -255,23 +275,7 @@ const AttendanceCalendar = () => {
             </Button>
           </Paper>
 
-          {/* Estado de Asistencias */}
-          <Paper elevation={3} sx={{ gridColumn: { xs: 'span 5', md: '4 / span 2' }, gridRow: { xs: '3', md: '3 / span 3' }, p: 2 }}>
-            <Typography variant="h6" gutterBottom>
-              Estado de Asistencias del Mes
-            </Typography>
-            <List dense sx={{ maxHeight: 350, overflow: 'auto' }}>
-              {Object.entries(attendances).length > 0 ? (
-                Object.entries(attendances).map(([date, status]) => (
-                  <ListItem key={date}>
-                    <ListItemText primary={`${dayjs(date).format('DD/MM/YYYY')}: ${status}`} />
-                  </ListItem>
-                ))
-              ) : (
-                <ListItem><ListItemText primary="No hay asistencias registradas." /></ListItem>
-              )}
-            </List>
-          </Paper>
+          
         </Box>
 
         {/* --- 3. Snackbar para notificaciones --- */}

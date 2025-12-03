@@ -6,7 +6,8 @@ import {
     getMyCurrentStatus, 
     submitDailyAttendance,
     setDailyAttendance,      // <-- 1. Importar la nueva función
-    getMyMonthlyAttendance   // <-- 1. Importar la nueva función
+    getMyMonthlyAttendance   // <-- AÑADIDO: Importar controlador de actualización
+    , updateMyAttendance
 } from '../controllers/attendance.controller.js';
 import { requireAuth } from '../middleware/auth.middleware.js';
 
@@ -26,5 +27,8 @@ router.post('/clock-in', clockIn);
 router.post('/clock-out', clockOut);
 router.get('/me', getMyAttendance);
 router.get('/status', getMyCurrentStatus);
+
+// --- Ruta para actualizar un registro específico ---
+router.patch('/:id', updateMyAttendance); // <-- AÑADIDO: Ruta PATCH para actualizar
 
 export default router;

@@ -152,7 +152,7 @@ export default function DashboardLayout() {
     { text: "Inicio", icon: <HomeIcon />, path: "/admin/dashboard" },
     
     { text: "Gestión de Usuarios", icon: <AdminPanelSettingsIcon />, path: "/admin/users" },
-    { text: "Gestión de Candidatos", icon: <PeopleIcon />, path: "/admin/candidates" },
+   
     
     { text: "Gestión de Asistencias", icon: <CoPresentIcon />, path: "/admin/attendance" },
     { text: "Cerrar Sesión", icon: <LogoutIcon />, action: "logout" },

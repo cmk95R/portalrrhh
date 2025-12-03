@@ -1,9 +1,13 @@
-import Attendance from '../models/attendance.model.js';
+import Asistencia from '../models/attendance.model.js';
 import User from '../models/User.js';
 import createError from 'http-errors';
 import mongoose from 'mongoose';
+import dayjs from 'dayjs';
 
-// @desc    Listar todos los registros de asistencia (con filtros y paginación)
+// --- Helper para obtener el día de la semana en español ---
+const diasSemana = ["domingo", "lunes", "martes", "miercoles", "jueves", "viernes", "sabado"];
+
+// @desc    Listar todos los registros de asistencia para el admin (con filtros y paginación)
 // @route   GET /api/admin/attendance
 // @access  Private (Admin/RRHH)
 export const getAllAttendance = async (req, res, next) => {
@@ -11,25 +15,30 @@ export const getAllAttendance = async (req, res, next) => {
         const {
             page = 1,
             limit = 20,
-            sortBy = 'clockInTime',
+            sortBy = 'fecha',
             sortDir = 'desc',
-            userId,       // Filtrar por un usuario específico
+            usuarioId,    // Filtrar por un usuario específico
             dateFrom,     // Formato YYYY-MM-DD
             dateTo,       // Formato YYYY-MM-DD
-            status,       // 'active' o 'completed'
+            estado,       // 'presente', 'ausente', etc.
+            q,            // Búsqueda por nombre/apellido
         } = req.query;
 
         const filter = {};
-        if (userId && mongoose.Types.ObjectId.isValid(userId)) {
-            filter.user = userId;
+        if (usuarioId && mongoose.Types.ObjectId.isValid(usuarioId)) {
+            filter.usuario = usuarioId;
         }
-        if (status && ['active', 'completed'].includes(status)) {
-            filter.status = status;
+        if (estado) {
+            filter.estado = estado;
         }
         if (dateFrom || dateTo) {
-            filter.clockInTime = {};
-            if (dateFrom) filter.clockInTime.$gte = new Date(dateFrom);
-            if (dateTo) filter.clockInTime.$lte = new Date(`${dateTo}T23:59:59.999Z`);
+            filter.fecha = {};
+            if (dateFrom) filter.fecha.$gte = dateFrom;
+            if (dateTo) filter.fecha.$lte = dateTo;
+        }
+        if (q) {
+            const rx = new RegExp(q.trim(), 'i');
+            filter.$or = [{ nombre: rx }, { apellido: rx }];
         }
 
         const _page = parseInt(page, 10);
@@ -37,13 +46,12 @@ export const getAllAttendance = async (req, res, next) => {
         const sort = { [sortBy]: sortDir === 'asc' ? 1 : -1 };
 
         const [items, total] = await Promise.all([
-            Attendance.find(filter)
-                .populate('user', 'nombre apellido email')
+            Asistencia.find(filter)
                 .sort(sort)
                 .skip((_page - 1) * _limit)
                 .limit(_limit)
                 .lean(),
-            Attendance.countDocuments(filter)
+            Asistencia.countDocuments(filter)
         ]);
 
         res.json({
@@ -58,62 +66,64 @@ export const getAllAttendance = async (req, res, next) => {
     }
 };
 
-// @desc    Crear un registro de asistencia manualmente
+// @desc    Admin crea un registro de asistencia manualmente
 // @route   POST /api/admin/attendance
 // @access  Private (Admin/RRHH)
 export const createAttendanceRecord = async (req, res, next) => {
     try {
-        const { user, clockInTime, clockOutTime, notes } = req.body;
+        const { usuario, fecha, estado } = req.body;
 
-        if (!user || !clockInTime) {
-            throw createError(400, "El usuario y la hora de entrada son obligatorios.");
+        if (!usuario || !fecha || !estado) {
+            throw createError(400, "Usuario, fecha y estado son obligatorios.");
         }
 
-        const userExists = await User.findById(user);
+        const userExists = await User.findById(usuario).lean();
         if (!userExists) {
             throw createError(404, "El usuario especificado no existe.");
         }
 
-        const newRecord = new Attendance({
-            user,
-            clockInTime: new Date(clockInTime),
-            clockOutTime: clockOutTime ? new Date(clockOutTime) : undefined,
-            status: clockOutTime ? 'completed' : 'active',
-            notes: `Registro manual por ${req.user.nombre}. Nota original: ${notes || ''}`.trim()
+        const diaSemana = diasSemana[dayjs(fecha).day()];
+
+        const newRecord = await Asistencia.create({
+            usuario,
+            fecha,
+            estado,
+            diaSemana,
+            nombre: userExists.nombre,
+            apellido: userExists.apellido,
+            autoGenerado: false, // Es un registro manual
         });
 
-        await newRecord.save();
         res.status(201).json({ message: "Registro de asistencia creado manualmente.", record: newRecord });
 
     } catch (error) {
+        if (error.code === 11000) {
+            return next(createError(409, 'Ya existe un registro para este usuario en esa fecha.'));
+        }
         next(error);
     }
 };
 
-// @desc    Actualizar un registro de asistencia
+// @desc    Admin actualiza un registro de asistencia
 // @route   PATCH /api/admin/attendance/:id
 // @access  Private (Admin/RRHH)
 export const updateAttendanceRecord = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const { clockInTime, clockOutTime, notes } = req.body;
+        // Campos que el admin puede modificar
+        const { estado, horasExtras, guardia, horasFinDeSemana, horaEntrada, horaSalida } = req.body;
 
-        const record = await Attendance.findById(id);
+        const record = await Asistencia.findById(id);
         if (!record) {
             throw createError(404, "Registro de asistencia no encontrado.");
         }
 
-        if (clockInTime) record.clockInTime = new Date(clockInTime);
-        if (clockOutTime) {
-            record.clockOutTime = new Date(clockOutTime);
-            record.status = 'completed';
-        } else {
-            // Si se elimina la hora de salida, el estado vuelve a activo
-            record.clockOutTime = undefined;
-            record.status = 'active';
-        }
-
-        if (notes) record.notes = notes;
+        if (estado) record.estado = estado;
+        if (typeof horasExtras === 'number') record.horasExtras = horasExtras;
+        if (guardia) record.guardia = guardia;
+        if (typeof horasFinDeSemana === 'number') record.horasFinDeSemana = horasFinDeSemana;
+        if (horaEntrada) record.horaEntrada = horaEntrada;
+        if (horaSalida) record.horaSalida = horaSalida;
 
         await record.save();
         res.json({ message: "Registro actualizado.", record });
@@ -123,19 +133,92 @@ export const updateAttendanceRecord = async (req, res, next) => {
     }
 };
 
-// @desc    Eliminar un registro de asistencia
+// @desc    Admin elimina un registro de asistencia
 // @route   DELETE /api/admin/attendance/:id
 // @access  Private (Admin/RRHH)
 export const deleteAttendanceRecord = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const record = await Attendance.findByIdAndDelete(id);
+        const record = await Asistencia.findByIdAndDelete(id);
 
         if (!record) {
             throw createError(404, "Registro de asistencia no encontrado.");
         }
 
         res.status(200).json({ message: "Registro de asistencia eliminado correctamente." });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// @desc    Obtener un resumen de asistencias agrupado por usuario
+// @route   GET /api/admin/attendance/summary
+// @access  Private (Admin/RRHH)
+export const getAttendanceSummary = async (req, res, next) => {
+    try {
+        const {
+            page = 1,
+            limit = 20,
+            sortBy = 'apellido',
+            sortDir = 'asc',
+            q, // Búsqueda por nombre/apellido
+        } = req.query;
+
+        const _page = parseInt(page, 10);
+        const _limit = parseInt(limit, 10);
+        
+        // 1. Obtener los IDs de los usuarios que tienen el rol 'empleado'
+        const employeeUsers = await User.find({ rol: 'empleado' }).select('_id').lean();
+        const employeeUserIds = employeeUsers.map(user => user._id);
+
+        const aggregationPipeline = [];
+
+        // 2. Etapa inicial para filtrar solo las asistencias de los empleados
+        aggregationPipeline.push({
+            $match: {
+                usuario: { $in: employeeUserIds }
+            }
+        });
+
+        // Etapa de filtrado por nombre/apellido si existe 'q'
+        if (q) {
+            const rx = new RegExp(q.trim(), 'i');
+            aggregationPipeline.push({ // Este $match se añade después del filtro de rol
+                $match: { $or: [{ nombre: rx }, { apellido: rx }] }
+            });
+        }
+
+        // Etapa de agrupación para calcular estadísticas
+        aggregationPipeline.push({
+            $group: {
+                _id: '$usuario',
+                nombre: { $first: '$nombre' },
+                apellido: { $first: '$apellido' },
+                presentes: { $sum: { $cond: [{ $eq: ['$estado', 'presente'] }, 1, 0] } },
+                ausentes: { $sum: { $cond: [{ $eq: ['$estado', 'ausente'] }, 1, 0] } },
+                ultimaAsistencia: { $max: '$fecha' }
+            }
+        });
+
+        // Conteo total de usuarios después de agrupar y filtrar
+        const countPipeline = [...aggregationPipeline, { $count: 'total' }];
+        const totalResult = await Asistencia.aggregate(countPipeline);
+        const total = totalResult.length > 0 ? totalResult[0].total : 0;
+
+        // Etapa de ordenamiento y paginación
+        const sortField = ['nombre', 'apellido', 'ultimaAsistencia'].includes(sortBy) ? sortBy : 'apellido';
+        aggregationPipeline.push({ $sort: { [sortField]: sortDir === 'asc' ? 1 : -1 } });
+        aggregationPipeline.push({ $skip: (_page - 1) * _limit });
+        aggregationPipeline.push({ $limit: _limit });
+
+        const items = await Asistencia.aggregate(aggregationPipeline);
+
+        res.json({
+            items,
+            total,
+            page: _page,
+            pages: Math.ceil(total / _limit)
+        });
     } catch (error) {
         next(error);
     }

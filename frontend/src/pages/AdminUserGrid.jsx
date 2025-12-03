@@ -34,7 +34,7 @@ import VpnKeyIcon from "@mui/icons-material/VpnKey";
 import { DataGrid } from "@mui/x-data-grid";
 
 import {
-  listUsersWithCvApi,
+  listUsersApi,
   adminSetUserRoleApi,
   adminSetUserStatusApi,
   adminUpdateUserApi,
@@ -117,7 +117,7 @@ export default function AdminUsersGrid() {
         rol: roleFilter === "all" ? undefined : roleFilter,
       };
 
-      const { data } = await listUsersWithCvApi(params);
+      const { data } = await listUsersApi(params);
 
       const mapped = (data?.items ?? []).map((u) => ({
         id: u._id || u.id,
@@ -291,7 +291,7 @@ export default function AdminUsersGrid() {
       const pin = String(Math.floor(1000 + Math.random() * 9000));
 
       const payload = {
-        nombre: createForm.nombre,
+        nombre: createForm.nombre, // <-- CORRECCIÓN: El nombre del campo es 'nombre'
         apellido: createForm.apellido,
         email: createForm.email,
         dni: createForm.dni,
@@ -302,7 +302,7 @@ export default function AdminUsersGrid() {
         horarioLaboral: createForm.horarioLaboral,
       };
 
-      const { data } = await registerApi(payload);
+      const { data } = await registerApi(payload); // registerApi ahora se usa para crear
 
       setSnack({
         open: true,
@@ -816,7 +816,7 @@ export default function AdminUsersGrid() {
                 helperText={createErrors.dni}
                 fullWidth
               />
-              <TextField
+              <TextField // <-- CORRECCIÓN: El campo de email estaba duplicado
                 label="Email"
                 name="email"
                 value={createForm.email}

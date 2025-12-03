@@ -15,20 +15,11 @@ export const editUserApi = (data) => api.patch("/users/me", data);
 // --- Rutas de Administrador ---
 
 /**
- * 🔑 ADMIN/RRHH: Lista todos los usuarios (versión básica).
+ * 🔑 ADMIN/RRHH: Lista paginada y filtrable de usuarios.
  * Calls GET /api/admin/users
  */
 export const listUsersApi = (params = {}) =>
   api.get("/admin/users", { params });
-
-/**
- * 🔑 ADMIN/RRHH: Lista paginada y filtrable de usuarios (versión extendida).
- * Aunque la ruta se llama 'with-cv' por legado, ahora devuelve datos como:
- * DNI, cliente, direcciónCliente, horarioLaboral, etc.
- * Calls GET /api/admin/users/with-cv
- */
-export const listUsersWithCvApi = (params) =>
-  api.get("/admin/users/with-cv", { params });
 
 /**
  * 🔑 ADMIN: Asigna el rol de admin a un usuario.

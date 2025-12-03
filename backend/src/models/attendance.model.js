@@ -1,70 +1,70 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
-const attendanceSchema = new mongoose.Schema({
-  // Referencia al usuario que realiza el fichaje.
-  user: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User', // Asegúrate de que tu modelo de usuario se llame 'User'
-    required: true,
-    index: true, // Indexamos para búsquedas rápidas por usuario.
-  },
-  // Guardamos el nombre y apellido para facilitar las consultas
-  nombre: {
-    type: String,
-    required: true,
-  },
-  apellido: {
-    type: String,
-    required: true,
-  },
-  // Fecha y hora de entrada.
-  clockInTime: {
-    type: Date,
-    required: false, // Ya no es obligatorio para registros de calendario
-  },
-  // IP desde donde se ficha la entrada (para auditoría).
-  clockInIp: {
-    type: String,
-  },
-  // Fecha y hora de salida (opcional hasta que se ficha).
-  clockOutTime: {
-    type: Date,
-  },
-  // IP de salida.
-  clockOutIp: {
-    type: String,
-  },
-  // Estado del registro: 'active' (solo entrada) o 'completed' (entrada y salida).
-  status: {
-    type: String,
-    enum: ['active', 'completed', 'presente', 'ausente'], // <-- 2. Añadir nuevos estados
-    default: 'active',
-  },
-  // Notas que el empleado quiera añadir (ej: "Visita a cliente").
-  notes: {
-    type: String,
-    trim: true,
-  },
-  // --- NUEVOS CAMPOS PARA EL CALENDARIO ---
-  date: {
-    type: Date, // <-- 1. Añadir el campo 'date'
-    index: true,
-  },
-  source: {
-    type: String,
-    enum: ['empleado', 'admin', 'sistema'],
-    default: 'sistema',
-  },
-}, {
-  timestamps: true, // Añade createdAt y updatedAt automáticamente.
-});
+const asistenciaSchema = new mongoose.Schema(
+  {
+    usuario: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      index: true,
+    },
 
-// Índice compuesto para asegurar que un usuario solo tenga un registro 'active' a la vez.
-attendanceSchema.index({ user: 1, status: 1 }, {
-  unique: true,
-  partialFilterExpression: { status: 'active' }
-});
+    nombre: { type: String, required: true },
+    apellido: { type: String, required: true },
 
-const Attendance = mongoose.model('Attendance', attendanceSchema);
+    // Fecha del registro (un documento por día)
+    fecha: {
+      type: String, // Formato YYYY-MM-DD
+      required: true,
+      index: true,
+    },
 
-export default Attendance;
+    diaSemana: {
+      type: String,
+      enum: [
+        "lunes",
+        "martes",
+        "miercoles",
+        "jueves",
+        "viernes",
+        "sabado",
+        "domingo"
+      ],
+      required: true,
+    },
+
+    // Estado de asistencia (solo lunes a viernes)
+    estado: {
+      type: String,
+      enum: ["presente", "ausente", "no-aplica"], 
+      default: "no-aplica" 
+    },
+
+    // Para fichaje a futuro
+    horaEntrada: { type: Date, default: null },
+    horaSalida: { type: Date, default: null },
+
+    // Horas extras de lunes a viernes
+    horasExtras: { type: Number, default: 0 },
+
+    // Guardias de fin de semana
+    guardia: {
+      type: String,
+      enum: ["ninguna", "pasiva", "activa"], 
+      default: "ninguna"
+    },
+
+    // Horas trabajadas si fue guardia activa
+    horasFinDeSemana: { type: Number, default: 0 },
+
+    // Cuando la semana se completa automáticamente
+    autoGenerado: { type: Boolean, default: false },
+  },
+  { timestamps: true }
+);
+
+// Evita dos registros del mismo usuario en el mismo día
+asistenciaSchema.index({ usuario: 1, fecha: 1 }, { unique: true });
+
+const Asistencia = mongoose.model("Asistencia", asistenciaSchema);
+export default Asistencia;
