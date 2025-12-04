@@ -1,7 +1,8 @@
-import React, { useState, useContext } from "react";
+import React, { useState, useContext, useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   Container,
+  Box,
   Paper,
   Typography,
   Stack,
@@ -12,12 +13,84 @@ import {
   IconButton,
   InputAdornment,
   Alert,
+  CircularProgress,
 } from "@mui/material";
 
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
+import AccountCircle from "@mui/icons-material/AccountCircle";
+import Lock from "@mui/icons-material/Lock";
+
 import { loginApi } from "../api/auth";
+
+// --- 1. IMPORTACIONES PARA PARTÍCULAS ---
+import Particles from "react-tsparticles";
+import { loadFull } from "tsparticles";
+
 import { AuthContext } from "../context/AuthContext";
+
+// --- Estilos para un JSX más limpio ---
+const styles = {
+  // Keyframes para las animaciones
+  "@keyframes gradient": {
+    "0%": { backgroundPosition: "0% 50%" },
+    "50%": { backgroundPosition: "100% 50%" },
+    "100%": { backgroundPosition: "0% 50%" },
+  },
+  "@keyframes float": {
+    "0%": { transform: "translateY(0px)" },
+    "50%": { transform: "translateY(-8px)" },
+    "100%": { transform: "translateY(0px)" },
+  },
+  "@keyframes shake": {
+    "10%, 90%": { transform: "translateX(-1px)" },
+    "20%, 80%": { transform: "translateX(2px)" },
+    "30%, 50%, 70%": { transform: "translateX(-4px)" },
+    "40%, 60%": { transform: "translateX(4px)" },
+  },
+  rootBox: {
+    minHeight: "100vh",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    py: 8,
+    // --- 2. VOLVEMOS AL GRADIENTE ORIGINAL ---
+    background: "linear-gradient(180deg, #e3e8f7 0%, #d2d8e8 100%)",
+    position: "relative", // Necesario para que las partículas queden de fondo
+    overflow: "hidden",
+  },
+  logo: {
+    height: 80,
+    mb: 1,
+    // Animación de flote para el logo
+    animation: "float 6s ease-in-out infinite",
+  },
+  paper: (animate, hasError) => ({
+    p: { xs: 3, md: 6 },
+    borderRadius: 4,
+    backgroundColor: "rgba(255, 255, 255, 0.98)",
+    boxShadow: "0px 10px 30px -5px rgba(0, 0, 0, 0.1)",
+    transition: "opacity 0.5s ease-in-out, transform 0.5s ease-in-out",
+    opacity: animate ? 1 : 0,
+    transform: animate ? "translateY(0)" : "translateY(20px)",
+    // Animación de vibración en caso de error
+    animation: hasError ? "shake 0.82s cubic-bezier(.36,.07,.19,.97) both" : "none",
+  }),
+  submitButton: {
+    mt: 2,
+    py: 1.5,
+    fontWeight: 700,
+    fontSize: "1rem",
+    transition: "background-color 0.3s, box-shadow 0.3s",
+    "&:hover": {
+      boxShadow: "0px 4px 20px -5px rgba(71, 98, 189, 0.8)",
+    },
+    // Efecto de pulsación al hacer clic
+    "&:active": {
+      transform: "scale(0.98)",
+    },
+  },
+};
 
 export default function Login() {
   const navigate = useNavigate();
@@ -28,9 +101,24 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [showPin, setShowPin] = useState(false);
   const [errors, setErrors] = useState({});
+  const [animate, setAnimate] = useState(false);
 
   const redirectTo =
     new URLSearchParams(location.search).get("redirectTo") || "/";
+
+  // --- 3. INICIALIZADOR PARA LAS PARTÍCULAS ---
+  const particlesInit = useCallback(async (engine) => {
+    await loadFull(engine);
+  }, []);
+
+  const particlesLoaded = useCallback(async (container) => {
+    // Puedes hacer algo cuando las partículas se cargan, si es necesario
+  }, []);
+  // Efecto para la animación de entrada
+  useEffect(() => {
+    const timer = setTimeout(() => setAnimate(true), 100);
+    return () => clearTimeout(timer);
+  }, []);
 
   const validateField = (name, value) => {
     let error = "";
@@ -77,6 +165,7 @@ export default function Login() {
         ...prev,
         general: "Por favor, completa todos los campos correctamente.",
       }));
+      setTimeout(() => setErrors(prev => ({ ...prev, general: "" })), 100); // Limpia el error para poder re-animar
       return;
     }
 
@@ -121,8 +210,106 @@ export default function Login() {
   };
 
   return (
-    <Container maxWidth="sm" sx={{ py: 8 }}>
-      <Paper sx={{ p: 6, borderRadius: 3 }} elevation={4}>
+    <Box sx={styles.rootBox}>
+      {/* --- 4. AÑADIMOS EL COMPONENTE DE PARTÍCULAS --- */}
+      <Particles
+        id="tsparticles"
+        init={particlesInit}
+        loaded={particlesLoaded}
+        options={{
+          background: {
+            color: {
+              value: "transparent", // El fondo del canvas es transparente
+            },
+          },
+          fpsLimit: 60,
+          interactivity: {
+            events: {
+              onHover: {
+                enable: true,
+                mode: "grab",
+              },
+              resize: true,
+            },
+            modes: {
+              grab: {
+                distance: 140,
+                links: {
+                  opacity: 0.7,
+                },
+              },
+            },
+          },
+          particles: {
+            color: {
+              value: "#5A7E9E", // Color de las partículas
+            },
+            links: {
+              color: "#6A8EAE", // Color de las líneas
+              distance: 150,
+              enable: true,
+              opacity: 0.3,
+              width: 1,
+            },
+            collisions: {
+              enable: true,
+            },
+            move: {
+              direction: "none",
+              enable: true,
+              outModes: {
+                default: "bounce",
+              },
+              random: false,
+              speed: 0.5, // Velocidad de movimiento
+              straight: false,
+            },
+            number: {
+              density: {
+                enable: true,
+                area: 800,
+              },
+              value: 50, // Cantidad de partículas
+            },
+            opacity: {
+              value: 0.4,
+            },
+            shape: {
+              type: "circle",
+            },
+            size: {
+              value: { min: 1, max: 3 },
+            },
+          },
+          detectRetina: true,
+        }}
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "100%",
+          zIndex: 0, // Detrás de todo
+        }}
+      />
+      <style>{`@keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-8px); } 100% { transform: translateY(0px); } } @keyframes shake { 10%, 90% { transform: translateX(-1px); } 20%, 80% { transform: translateX(2px); } 30%, 50%, 70% { transform: translateX(-4px); } 40%, 60% { transform: translateX(4px); } }`}</style>
+      {/* Contenedor principal con zIndex para que esté por delante de las partículas */}
+      <Container maxWidth="sm" sx={{ position: 'relative', zIndex: 1 }}>
+        <Stack
+          direction="column"
+          alignItems="center"
+          spacing={1}
+          sx={{ mb: 3 }}
+        >
+          <Box
+            component="img"
+            src="/logo3.png"
+            alt="Logo Corporativo"
+            sx={styles.logo}
+          />
+        </Stack>
+
+        <Paper sx={styles.paper(animate, !!errors.general)} elevation={12}>
         <form
           id="login-form"
           onSubmit={handleSubmit}
@@ -145,6 +332,14 @@ export default function Login() {
               fullWidth
               error={!!errors.dni}
               helperText={errors.dni}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <AccountCircle color={errors.dni ? "error" : "action"} />
+                  </InputAdornment>
+                ),
+              }}
+              sx={{ "&:hover .MuiOutlinedInput-root": { "& > fieldset": { borderColor: "primary.main" } } }}
             />
 
             <TextField
@@ -157,6 +352,11 @@ export default function Login() {
               error={!!errors.pin}
               helperText={errors.pin}
               InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Lock color={errors.pin ? "error" : "action"} />
+                  </InputAdornment>
+                ),
                 endAdornment: (
                   <InputAdornment position="end">
                     <IconButton
@@ -171,6 +371,7 @@ export default function Login() {
                   </InputAdornment>
                 ),
               }}
+              sx={{ "&:hover .MuiOutlinedInput-root": { "& > fieldset": { borderColor: "primary.main" } } }}
             />
 
             <FormControlLabel
@@ -197,16 +398,21 @@ export default function Login() {
             color="primary"
             fullWidth
             disabled={loading}
-            sx={{ mt: 2, py: 1.2, fontWeight: 600 }}
+            sx={styles.submitButton}
           >
-            {loading ? "Ingresando..." : "INGRESAR"}
+            {loading ? (
+              <CircularProgress size={26} color="inherit" />
+            ) : (
+              "INGRESAR"
+            )}
           </Button>
 
           <Typography align="center" sx={{ mt: 2 }} variant="body2">
             ¿Problemas para ingresar? Contactá con RRHH o tu administrador.
           </Typography>
         </form>
-      </Paper>
-    </Container>
+        </Paper>
+      </Container>
+    </Box>
   );
 }

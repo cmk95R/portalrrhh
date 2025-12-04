@@ -28,7 +28,7 @@ function App() {
         <Route path="/login/sso" element={<GoogleAuthCallback />} />
         <Route path="/admin/dashboard" element={<Dashboard   />} />
         <Route path="/profile" element={<Profile />} />
-        <Route path="/login" element={<Login />} />
+        {/* <Route path="/login" element={<Login />} /> */}
         <Route path="/admin/applications" element={< AdminApplicationsPage />} />
         <Route path="/admin/attendance" element={<AdminAttendancePage />} />
         <Route path="/my-attendance" element={<AttendancePage />} /> {/* <-- 2. Añade la ruta */}
@@ -37,7 +37,7 @@ function App() {
       </Route>
 
       {/* Sin layout (login aparte) */}
-     
+                <Route path="/login" element={<Login />} />
     </Routes>
      </ColorModeProvider>
   );
