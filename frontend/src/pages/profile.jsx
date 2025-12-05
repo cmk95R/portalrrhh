@@ -30,7 +30,7 @@ import {
   Business as BusinessIcon,
 } from "@mui/icons-material";
 
-// APIs
+// APIs (Simuladas o importadas según tu proyecto)
 import { profileApi } from "../api/auth";
 import { editUserApi } from "../api/users";
 
@@ -56,7 +56,11 @@ const AnimatedBox = styled(Box)(({ theme }) => ({
     boxShadow: "0px 10px 30px rgba(0,0,0,0.18)",
     transform: "translateY(-4px)",
   },
+  // Responsive padding
   padding: theme.spacing(3),
+  [theme.breakpoints.down("sm")]: {
+    padding: theme.spacing(2),
+  },
 }));
 
 const AnimatedAvatar = styled(Avatar)(({ theme }) => ({
@@ -96,7 +100,7 @@ export default function ProfileDashboard() {
     cliente: "",
     direccionCliente: "",
     horarioLaboral: "",
-    rol: "", // para permisos de edición
+    rol: "",
   });
 
   // --- Estado de dirección ---
@@ -109,9 +113,7 @@ export default function ProfileDashboard() {
     pais: "Argentina",
   });
 
-  // Flag de permisos
-  const isAdminOrRRHH =
-    userData.rol === "admin" || userData.rol === "rrhh";
+  const isAdminOrRRHH = userData.rol === "admin" || userData.rol === "rrhh";
 
   const fetchAll = useCallback(async () => {
     try {
@@ -172,7 +174,6 @@ export default function ProfileDashboard() {
     const file = event.target.files[0];
     if (file) {
       setSelectedPhoto(file);
-      // TODO: subir foto al servidor y actualizar userData.foto con la URL
       setSnack({
         open: true,
         severity: "info",
@@ -187,7 +188,7 @@ export default function ProfileDashboard() {
       const payload = {
         nombre: userData.nombre,
         apellido: userData.apellido,
-        email: userData.email, // aunque en el backend puede ignorarse si no permitís cambio
+        email: userData.email,
         telefono: userData.telefono,
         nacimiento: userData.nacimiento,
         dni: userData.dni,
@@ -195,13 +196,10 @@ export default function ProfileDashboard() {
         cliente: userData.cliente,
         direccionCliente: userData.direccionCliente,
         horarioLaboral: userData.horarioLaboral,
-        direccion: {
-          ...addressData,
-        },
+        direccion: { ...addressData },
       };
 
       if (!isAdminOrRRHH) {
-        // Si es empleado, evitamos que mande cambios en cliente/direccionCliente/horario y dni
         delete payload.cliente;
         delete payload.direccionCliente;
         delete payload.horarioLaboral;
@@ -231,7 +229,7 @@ export default function ProfileDashboard() {
 
   if (loading) {
     return (
-      <Container maxWidth="xl" sx={{ py: 4 }}>
+      <Container maxWidth="lg" sx={{ py: 4 }}>
         <Skeleton
           variant="rectangular"
           height={420}
@@ -246,36 +244,22 @@ export default function ProfileDashboard() {
       component="main"
       sx={{
         flexGrow: 1,
-        py: 4,
+        py: { xs: 2, md: 4 }, // Padding vertical responsivo
         minHeight: "100vh",
-        
-        backgroundAttachment: "fixed",
       }}
     >
-      <Container sx={{ width: "100%", maxWidth: "900px" }}>
-        <Fade in={true} timeout={800}>
-          <Typography
-            variant="h4"
-            sx={{
-              mb: 3,
-              fontWeight: 700,
-              color: "white",
-              textAlign: "center",
-              textShadow: "0px 2px 4px rgba(0,0,0,0.35)",
-            }}
-          >
-            Mi Perfil
-          </Typography>
-        </Fade>
+      {/* Container fluido pero con limite maximo 'lg' (aprox 1200px) */}
+      <Container maxWidth="lg">
+       
 
         <Grid
           container
-          spacing={2}
+          spacing={3}
           justifyContent="center"
           alignItems="stretch"
         >
           {/* LADO IZQUIERDO: Card de usuario */}
-          <Grid item xs={12} lg={4}>
+          <Grid item xs={12} md={5} lg={4}>
             <Zoom in={true} timeout={700}>
               <AnimatedBox sx={{ textAlign: "center", height: "100%" }}>
                 <Box
@@ -300,9 +284,7 @@ export default function ProfileDashboard() {
                       border: "4px solid white",
                     }}
                   >
-                    {userData.nombre
-                      ? userData.nombre[0].toUpperCase()
-                      : "U"}
+                    {userData.nombre ? userData.nombre[0].toUpperCase() : "U"}
                   </AnimatedAvatar>
                   <IconButton
                     component="label"
@@ -352,15 +334,21 @@ export default function ProfileDashboard() {
                     color="text.secondary"
                     sx={{ mt: 0.5 }}
                   >
-                    Cliente asignado:{" "}
-                    <strong>{userData.cliente}</strong>
+                    Cliente asignado: <strong>{userData.cliente}</strong>
                   </Typography>
                 )}
 
                 <Typography
                   variant="body2"
                   color="text.secondary"
-                  sx={{ mt: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 0.5 }}
+                  sx={{
+                    mt: 1,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 0.5,
+                    wordBreak: "break-all", // Evita desborde si el email es largo
+                  }}
                 >
                   <EmailIcon fontSize="small" /> {userData.email}
                 </Typography>
@@ -370,7 +358,13 @@ export default function ProfileDashboard() {
                     variant="caption"
                     display="block"
                     color="text.disabled"
-                    sx={{ mt: 1, display: "flex", justifyContent: "center", alignItems: "center", gap: 0.5 }}
+                    sx={{
+                      mt: 1,
+                      display: "flex",
+                      justifyContent: "center",
+                      alignItems: "center",
+                      gap: 0.5,
+                    }}
                   >
                     <BadgeIcon fontSize="small" /> DNI: {userData.dni}
                   </Typography>
@@ -380,13 +374,14 @@ export default function ProfileDashboard() {
           </Grid>
 
           {/* LADO DERECHO: Tabs + formulario */}
-          <Grid item xs={12} lg={8}>
+          <Grid item xs={12} md={7} lg={8}>
             <Fade in={true} timeout={900}>
               <AnimatedBox
                 sx={{
                   height: "100%",
                   display: "flex",
                   flexDirection: "column",
+                  overflow: "hidden", // Previene scrollbars indeseados
                 }}
               >
                 <Box
@@ -394,6 +389,8 @@ export default function ProfileDashboard() {
                     borderBottom: 1,
                     borderColor: "divider",
                     mb: 2,
+                    // Aseguramos que los tabs no se salgan del contenedor
+                    width: "100%",
                   }}
                 >
                   <Tabs
@@ -401,6 +398,7 @@ export default function ProfileDashboard() {
                     onChange={(e, v) => setTabValue(v)}
                     variant="scrollable"
                     scrollButtons="auto"
+                    allowScrollButtonsMobile
                     sx={{ px: 1 }}
                     TabIndicatorProps={{
                       style: { backgroundColor: "#1976d2" },
@@ -410,49 +408,47 @@ export default function ProfileDashboard() {
                       label="Personal"
                       iconPosition="start"
                       icon={<PersonIcon />}
-                      sx={{ fontWeight: "bold" }}
+                      sx={{ fontWeight: "bold", minHeight: 48 }}
                     />
                     <Tab
                       label="Domicilio"
                       iconPosition="start"
                       icon={<HomeIcon />}
-                      sx={{ fontWeight: "bold" }}
+                      sx={{ fontWeight: "bold", minHeight: 48 }}
                     />
                     <Tab
                       label="Laboral"
                       iconPosition="start"
                       icon={<WorkIcon />}
-                      sx={{ fontWeight: "bold" }}
+                      sx={{ fontWeight: "bold", minHeight: 48 }}
                     />
                   </Tabs>
-              </Box>
+                </Box>
 
-              <form
+                <form
                   autoComplete="off"
                   noValidate
-                style={{
+                  style={{
                     display: "flex",
                     flexDirection: "column",
                     flexGrow: 1,
+                    width: "100%", // Asegura ancho completo
                   }}
                 >
-                <Box sx={{ flexGrow: 1, px: 1 }} width={"700px"}>
+                  {/* Contenedor fluido para inputs */}
+                  <Box sx={{ flexGrow: 1, width: "100%" }}>
+                    
                     {/* TAB 0: DATOS PERSONALES */}
                     {tabValue === 0 && (
                       <Fade in timeout={400}>
-                        
-                        <Grid container spacing={2} display={"grid"} >
-                              
+                        <Grid container spacing={2}>
                           <Grid item xs={12} sm={6}>
                             <TextField
                               fullWidth
                               label="Nombre"
                               value={userData.nombre}
                               onChange={(e) =>
-                                handleUserChange(
-                                  "nombre",
-                                  e.target.value
-                                )
+                                handleUserChange("nombre", e.target.value)
                               }
                             />
                           </Grid>
@@ -462,10 +458,7 @@ export default function ProfileDashboard() {
                               label="Apellido"
                               value={userData.apellido}
                               onChange={(e) =>
-                                handleUserChange(
-                                  "apellido",
-                                  e.target.value
-                                )
+                                handleUserChange("apellido", e.target.value)
                               }
                             />
                           </Grid>
@@ -476,10 +469,7 @@ export default function ProfileDashboard() {
                               label="DNI"
                               value={userData.dni}
                               onChange={(e) =>
-                                handleUserChange(
-                                  "dni",
-                                  e.target.value
-                                )
+                                handleUserChange("dni", e.target.value)
                               }
                               disabled={!isAdminOrRRHH}
                               helperText={
@@ -497,7 +487,7 @@ export default function ProfileDashboard() {
                             />
                           </Grid>
 
-                            <Grid item xs={12} sm={6}>
+                          <Grid item xs={12} sm={6}>
                             <TextField
                               fullWidth
                               label="Email"
@@ -513,17 +503,14 @@ export default function ProfileDashboard() {
                               }}
                             />
                           </Grid>
-                                  
+
                           <Grid item xs={12} sm={6}>
                             <TextField
                               fullWidth
                               label="Teléfono"
                               value={userData.telefono}
                               onChange={(e) =>
-                                handleUserChange(
-                                  "telefono",
-                                  e.target.value
-                                )
+                                handleUserChange("telefono", e.target.value)
                               }
                               InputProps={{
                                 startAdornment: (
@@ -543,15 +530,10 @@ export default function ProfileDashboard() {
                               InputLabelProps={{ shrink: true }}
                               value={userData.nacimiento}
                               onChange={(e) =>
-                                handleUserChange(
-                                  "nacimiento",
-                                  e.target.value
-                                )
+                                handleUserChange("nacimiento", e.target.value)
                               }
                             />
                           </Grid>
-
-                        
 
                           <Grid item xs={12}>
                             <Divider sx={{ my: 1 }}>
@@ -563,9 +545,9 @@ export default function ProfileDashboard() {
                               </Typography>
                             </Divider>
                             <Alert severity="info" variant="outlined">
-                              Tu acceso se realiza con DNI + PIN. Para
-                              cambiar o resetear tu PIN, contactá a RRHH
-                              o a un administrador.
+                              Tu acceso se realiza con DNI + PIN. Para cambiar o
+                              resetear tu PIN, contactá a RRHH o a un
+                              administrador.
                             </Alert>
                           </Grid>
                         </Grid>
@@ -575,56 +557,44 @@ export default function ProfileDashboard() {
                     {/* TAB 1: DOMICILIO */}
                     {tabValue === 1 && (
                       <Fade in timeout={400}>
-                        <Grid container spacing={2} display={"grid"}  >
-                          <Grid item xs={12} sm={6} >
+                        <Grid container spacing={2}>
+                          <Grid item xs={12} sm={6}>
                             <TextField
                               fullWidth
                               label="Calle"
                               value={addressData.calle}
                               onChange={(e) =>
-                                handleAddressChange(
-                                  "calle",
-                                  e.target.value
-                                )
+                                handleAddressChange("calle", e.target.value)
                               }
                             />
                           </Grid>
-                          <Grid item xs={12} sm={4}>
+                          <Grid item xs={6} sm={3}>
                             <TextField
                               fullWidth
                               label="Número"
                               value={addressData.numero}
                               onChange={(e) =>
-                                handleAddressChange(
-                                  "numero",
-                                  e.target.value
-                                )
+                                handleAddressChange("numero", e.target.value)
                               }
                             />
                           </Grid>
-                          <Grid item xs={12} sm={4}>
+                          <Grid item xs={6} sm={3}>
                             <TextField
                               fullWidth
-                              label="Código Postal"
+                              label="CP"
                               value={addressData.cp}
                               onChange={(e) =>
-                                handleAddressChange(
-                                  "cp",
-                                  e.target.value
-                                )
+                                handleAddressChange("cp", e.target.value)
                               }
                             />
                           </Grid>
-                          <Grid item xs={12} sm={8}>
+                          <Grid item xs={12} sm={6}>
                             <TextField
                               fullWidth
                               label="Localidad"
                               value={addressData.localidad}
                               onChange={(e) =>
-                                handleAddressChange(
-                                  "localidad",
-                                  e.target.value
-                                )
+                                handleAddressChange("localidad", e.target.value)
                               }
                             />
                           </Grid>
@@ -634,10 +604,7 @@ export default function ProfileDashboard() {
                               label="Provincia"
                               value={addressData.provincia}
                               onChange={(e) =>
-                                handleAddressChange(
-                                  "provincia",
-                                  e.target.value
-                                )
+                                handleAddressChange("provincia", e.target.value)
                               }
                             />
                           </Grid>
@@ -647,10 +614,7 @@ export default function ProfileDashboard() {
                               label="País"
                               value={addressData.pais}
                               onChange={(e) =>
-                                handleAddressChange(
-                                  "pais",
-                                  e.target.value
-                                )
+                                handleAddressChange("pais", e.target.value)
                               }
                             />
                           </Grid>
@@ -661,19 +625,14 @@ export default function ProfileDashboard() {
                     {/* TAB 2: DATOS LABORALES */}
                     {tabValue === 2 && (
                       <Fade in timeout={400}>
-                        <Grid container spacing={2} display={"grid"} maxWidth={900}>
-                          
-
+                        <Grid container spacing={2}>
                           <Grid item xs={12} sm={6}>
                             <TextField
                               fullWidth
                               label="Cliente asignado"
                               value={userData.cliente}
                               onChange={(e) =>
-                                handleUserChange(
-                                  "cliente",
-                                  e.target.value
-                                )
+                                handleUserChange("cliente", e.target.value)
                               }
                               disabled={!isAdminOrRRHH}
                               InputProps={{
@@ -728,20 +687,22 @@ export default function ProfileDashboard() {
                           </Grid>
                           <Grid item xs={12}>
                             <Alert severity="info" sx={{ mb: 2 }}>
-                              Información laboral definida por la
-                              empresa. {isAdminOrRRHH ? "Como admin / RRHH podés ajustarla desde aquí." : "Si necesitás cambios, contacta a RRHH."}
+                              Información laboral definida por la empresa.{" "}
+                              {isAdminOrRRHH
+                                ? "Como admin / RRHH podés ajustarla desde aquí."
+                                : "Si necesitás cambios, contacta a RRHH."}
                             </Alert>
                           </Grid>
                         </Grid>
                       </Fade>
                     )}
                   </Box>
-  
+
                   <Box
                     sx={{
                       display: "flex",
                       justifyContent: "center",
-                      p: 2,
+                      p: { xs: 1, md: 2 },
                       pt: 3,
                       mt: 2,
                       borderTop: 1,
@@ -753,8 +714,10 @@ export default function ProfileDashboard() {
                       variant="contained"
                       onClick={handleFinalSave}
                       disabled={isSaving}
+                      fullWidth // Full width en movil
                       sx={{
-                        px: 6,
+                        // En pantallas medianas hacia arriba, ancho fijo y centrado
+                        maxWidth: { md: "300px" },
                         py: 1.4,
                         fontWeight: "bold",
                         borderRadius: 3,
@@ -764,7 +727,7 @@ export default function ProfileDashboard() {
                       {isSaving ? "Guardando..." : "Guardar cambios"}
                     </AnimatedButton>
                   </Box>
-              </form>
+                </form>
               </AnimatedBox>
             </Fade>
           </Grid>

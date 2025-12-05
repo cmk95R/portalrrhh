@@ -11,6 +11,8 @@ import Profile from './pages/profile';
 import AdminApplicationsPage from './pages/AdminApplicationsPage'; 
 import LoginSso from "./pages/LoginSso";
 import AttendancePage from './pages/AttendancePage'; // <-- 1. Importa la nueva página
+import ProtectedRoute from './components/ProtectedRoute'; // ¡Importa el nuevo componente!
+
 import GoogleAuthCallback from './pages/GoogleAuthCallback';
 import AdminAttendancePage from './pages/AdminAttendancePage';
 import ColorModeProvider from './context/ColorModeProvider'; 
@@ -27,6 +29,15 @@ function App() {
         <Route path="/admin/users" element={<AdminUsersGrid />} />
         <Route path="/login/sso" element={<GoogleAuthCallback />} />
         <Route path="/admin/dashboard" element={<Dashboard   />} />
+        {/* 👇 AQUÍ APLICAMOS LA PROTECCIÓN 👇 */}
+          <Route 
+            path="/my-attendance" 
+            element={
+              <ProtectedRoute>
+                <AttendancePage />
+              </ProtectedRoute>
+            } 
+          />
         <Route path="/profile" element={<Profile />} />
         {/* <Route path="/login" element={<Login />} /> */}
         <Route path="/admin/applications" element={< AdminApplicationsPage />} />

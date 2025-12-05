@@ -76,7 +76,7 @@ const cardVariants = {
 
 // ===== Datos =====
 const valores = [
-  { icon: AccessTimeFilledIcon, title: 'Registracion de Horas', text: 'Facilita el registro y seguimiento de las horas trabajadas, garantizando , eficiencia y calidad en el trabajo.' },
+  { icon: AccessTimeFilledIcon, title: 'Registracion de Horas', text: 'Facilita el registro y seguimiento de las horas trabajadas, garantizando , eficiencia y calidad en el trabajo.', path: '/my-attendance' },
   { icon: SchoolIcon, title: 'Solicitud Dias de Estudios y Vacaciones', text: 'Gestioná los días de estudio y vacaciones fácilmente desde un mismo lugar.' },
   { icon: Diversity3Icon, title: 'Licencias Medicas', text: 'Cargá las licencias médicas y hacé el seguimiento de tus ausencias de manera sencilla.' },
 
@@ -203,7 +203,7 @@ const Home = () => {
                       </CardContent>
                     </CardActionArea>
                     <CardActions sx={{ justifyContent: 'center', p: 2 }}>
-                      <Button size="small" color="primary">
+                      <Button size="small" color="primary" onClick={() => v.path && navigate(v.path)}>
                         Ver Mas
                       </Button>
                     </CardActions>
