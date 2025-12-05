@@ -132,7 +132,7 @@ const Home = () => {
   }, []);
 
   return (
-    <Box sx={{ backgroundColor: '#f4f6f8' }}>
+    <Box sx={{ background: "linear-gradient(180deg, #e3e8f7 0%, #d2d8e8 100%)" }}>
 
       {/* ===== HERO con animaciones ===== */}
       <Box

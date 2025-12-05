@@ -139,7 +139,6 @@ export default function DashboardLayout() {
   const guestMenu = [
     { text: "Inicio", icon: <HomeIcon />, path: "/" },
     { text: "Iniciar Sesión", icon: <LoginIcon />, path: "/login" },
-    { text: "Crear Cuenta", icon: <PersonAddIcon />, path: "/register" },
   ];
 
   const userMenu = [
