@@ -395,7 +395,7 @@ export default function Login() {
           <Button
             type="submit"
             variant="contained"
-            color="primary"
+            backgroundColor="#173487"
             fullWidth
             disabled={loading}
             sx={styles.submitButton}

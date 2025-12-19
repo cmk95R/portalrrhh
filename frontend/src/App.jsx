@@ -8,7 +8,6 @@ import AdminUsersGrid from './pages/AdminUserGrid';
 
 import Profile from './pages/profile';
 
-import AdminApplicationsPage from './pages/AdminApplicationsPage'; 
 import LoginSso from "./pages/LoginSso";
 import AttendancePage from './pages/AttendancePage'; // <-- 1. Importa la nueva página
 import ProtectedRoute from './components/ProtectedRoute'; // ¡Importa el nuevo componente!
@@ -40,7 +39,6 @@ function App() {
           />
         <Route path="/profile" element={<Profile />} />
         {/* <Route path="/login" element={<Login />} /> */}
-        <Route path="/admin/applications" element={< AdminApplicationsPage />} />
         <Route path="/admin/attendance" element={<AdminAttendancePage />} />
         <Route path="/my-attendance" element={<AttendancePage />} /> {/* <-- 2. Añade la ruta */}
         <Route path="/login/sso" element={<LoginSso />} />

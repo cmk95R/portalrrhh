@@ -62,7 +62,7 @@ const AppBar = styled(MuiAppBar, { shouldForwardProp: (prop) => prop !== "open" 
     zIndex: theme.zIndex.drawer + 1,
     ...(theme.palette.mode === 'light'
       ? {
-        background: `linear-gradient(135deg, ${theme.palette.primary.dark} 0%, ${theme.palette.primary.main} 100%)`,
+        background: `#173487`,
         color: theme.palette.common.white,
       }
       : {
@@ -211,11 +211,11 @@ export default function DashboardLayout() {
                   borderRadius: '8px',
                   mx: 1.5,
                   "&.Mui-selected": {
-                    backgroundColor: theme.palette.primary.main,
+                    backgroundColor: "#173487",
                     color: theme.palette.primary.contrastText,
                     boxShadow: `0 4px 12px ${theme.palette.primary.main}40`,
                     '&:hover': {
-                      backgroundColor: theme.palette.primary.dark,
+                      backgroundColor:  "#173487",
                     }
                   },
                   "&.Mui-selected .MuiListItemIcon-root": {
@@ -227,7 +227,7 @@ export default function DashboardLayout() {
                   minWidth: 0,
                   mr: (open || isMobile) ? 3 : "auto",
                   justifyContent: "center",
-                  color: theme.palette.text.secondary,
+                  color: '#173487',
                   transition: 'color 0.2s'
                 }}>
                   {item.icon}
@@ -236,10 +236,11 @@ export default function DashboardLayout() {
                 {/* Texto siempre visible en móvil, condicional en desktop */}
                 <ListItemText
                   primary={item.text}
-                  sx={{
+                  sx={{ 
                     opacity: (open || isMobile) ? 1 : 0,
-                    color: theme.palette.text.primary,
+                    color: location.pathname === item.path ? 'inherit' : "#173487",
                     display: (open || isMobile) ? 'block' : 'none' // Hack para que no ocupe espacio visual cuando está cerrado en desktop
+                    
                   }}
                 />
               </ListItemButton>
@@ -262,7 +263,7 @@ export default function DashboardLayout() {
         sx={{
           ...(theme.palette.mode === 'light' && {
             backdropFilter: 'blur(8px)',
-            backgroundColor: 'rgba(0, 70, 128, 0.8)',
+            backgroundColor: '#173487',
           })
         }}
       >
@@ -351,7 +352,11 @@ export default function DashboardLayout() {
         ModalProps={{ keepMounted: true }} // Mejor rendimiento en móviles
         sx={{
           display: { xs: 'block', md: 'none' }, // Visible solo en xs y sm
-          '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
+          '& .MuiDrawer-paper': { 
+            boxSizing: 'border-box', 
+            width: drawerWidth,
+            background: 'linear-gradient(180deg, #e3e8f7 0%, #d2d8e8 100%)'
+          },
         }}
       >
         {drawerContent}
@@ -366,6 +371,9 @@ export default function DashboardLayout() {
         onMouseLeave={() => !isMobile && setOpen(false)}
         sx={{
           display: { xs: 'none', md: 'block' }, // Oculto en móviles
+          '& .MuiDrawer-paper': {
+            background: 'linear-gradient(180deg, #e3e8f7 0%, #d2d8e8 100%)'
+          }
         }}
       >
         {drawerContent}

@@ -191,7 +191,7 @@ const Home = () => {
                   <Card sx={{ borderRadius: 3, boxShadow: 3, width: "360px", height: "300px", display: 'flex', flexDirection: 'column' }}>
                     <CardActionArea>
                       <CardContent sx={{ p: 3, textAlign: 'center', flexGrow: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                        <Avatar sx={{ bgcolor: 'primary.main', width: 72, height: 72, mx: 'auto', mb: 2 }}>
+                        <Avatar sx={{ bgcolor: '#173487', width: 72, height: 72, mx: 'auto', mb: 2 }}>
                           <v.icon sx={{ fontSize: 40, color: 'white' }} />
                         </Avatar>
                         <Typography gutterBottom variant="h6" component="div" >

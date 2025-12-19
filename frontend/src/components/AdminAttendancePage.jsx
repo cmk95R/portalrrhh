@@ -94,6 +94,7 @@ export default function AdminAttendancePage() {
         { field: 'clockInTime', headerName: 'Hora Entrada', width: 120, valueGetter: (params) => formatTime(params.row.clockInTime) },
         { field: 'clockOutTime', headerName: 'Hora Salida', width: 120, valueGetter: (params) => formatTime(params.row.clockOutTime) },
         { field: 'status', headerName: 'Estado', width: 110, renderCell: (params) => <Typography color={params.value === 'completed' ? 'success.main' : 'warning.main'}>{params.value}</Typography> },
+        { field: 'motivo', headerName: 'Motivo', flex: 1 },
         { field: 'notes', headerName: 'Notas', flex: 1.5 },
         {
             field: 'actions',
@@ -186,4 +187,3 @@ export default function AdminAttendancePage() {
         </Container>
     );
 }
-

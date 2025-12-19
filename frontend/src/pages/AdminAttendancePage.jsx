@@ -244,7 +244,20 @@ function ApplyAttendanceModal({ open, onClose, employee, onApplied }) {
 
   const handleApply = async () => {
     try {
-      await createAttendanceApi({ usuario: employee.usuario, fecha, estado });
+      if (estado === 'quitar') {
+        // 1. Buscar si existe un registro ese día para el usuario
+        const { data } = await getAllAttendanceApi({ 
+            usuarioId: employee.usuario, 
+            dateFrom: fecha, 
+            dateTo: fecha 
+        });
+        // 2. Si existe, eliminarlo
+        if (data.items && data.items.length > 0) {
+            await deleteAttendanceApi(data.items[0]._id);
+        }
+      } else {
+        await createAttendanceApi({ usuario: employee.usuario, fecha, estado });
+      }
       onApplied();
       onClose();
     } catch (error) {
@@ -274,6 +287,9 @@ function ApplyAttendanceModal({ open, onClose, employee, onApplied }) {
                 <MenuItem value="presente">Presente</MenuItem>
                 <MenuItem value="ausente">Ausente</MenuItem>
                 <MenuItem value="no-aplica">No Aplica</MenuItem>
+                <MenuItem value="quitar" sx={{ color: 'error.main', borderTop: '1px solid #e0e0e0' }}>
+                  Quitar Asistencia (Limpiar día)
+                </MenuItem>
             </Select>
             </FormControl>
             <Stack direction="row" spacing={2} justifyContent="flex-end">
@@ -359,17 +375,19 @@ export default function AdminAttendancePage() {
     { field: 'fecha', headerName: 'Fecha', width: 120, valueGetter: (v, row) => formatDate(row.fecha) },
     { field: 'horaEntrada', headerName: 'Entrada', width: 100, valueGetter: (v, row) => formatTime(row.horaEntrada) },
     { field: 'horaSalida', headerName: 'Salida', width: 100, valueGetter: (v, row) => formatTime(row.horaSalida) },
+    
     { 
       field: 'estado', headerName: 'Estado', width: 130, 
       renderCell: (params) => ( // Corregido
         <Chip 
-            label={params.value || 'N/A'} 
-            color={params.value?.includes('Presente') ? 'success' : 'error'} 
+            label={(params.value || 'N/A').toUpperCase()} 
+            color={params.value?.toLowerCase() === 'presente' ? 'success' : 'error'} 
             variant="outlined" size="small" 
             sx={{ fontWeight: 'bold' }}
         />
       )
     },
+    { field: 'motivo', headerName: 'Motivo', width: 200 },
     { field: 'actions', headerName: 'Acciones', width: 180, sortable: false,
       renderCell: (params) => (
         <Stack direction="row" spacing={0.5}>
@@ -432,7 +450,7 @@ export default function AdminAttendancePage() {
 
       <ViewModal open={viewModalOpen} onClose={() => setViewModalOpen(false)} employee={selectedEmployee} />
       <MessageModal open={messageModalOpen} onClose={() => setMessageModalOpen(false)} employee={selectedEmployee} />
-      <ApplyAttendanceModal open={applyModalOpen} onClose={() => setApplyModalOpen(false)} employee={selectedEmployee} />
+      <ApplyAttendanceModal open={applyModalOpen} onClose={() => setApplyModalOpen(false)} employee={selectedEmployee} onApplied={fetchData} />
     </Container>
   );
 }

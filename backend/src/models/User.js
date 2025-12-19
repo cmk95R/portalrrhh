@@ -95,9 +95,18 @@ const userSchema = new Schema(
     },
 
     // --- Datos laborales / de asignación simple ---
-    cliente: { type: String, trim: true }, // nombre del cliente donde trabaja
+    // Mantenemos estos campos por compatibilidad con registros viejos, 
+    // pero los nuevos usarán el array 'clientes'.
+    cliente: { type: String, trim: true },
     direccionCliente: { type: String, trim: true },
-    horarioLaboral: { type: String, trim: true }, // ej: "09:00-18:00"
+    horarioLaboral: { type: String, trim: true },
+
+    // Nuevo campo para múltiples asignaciones
+    clientes: [{
+      nombre: { type: String, required: true },
+      direccion: { type: String, default: "" },
+      horario: { type: String, default: "" }
+    }],
 
     // Opcional: integración con proveedores externos (si más adelante lo usás)
     providers: {

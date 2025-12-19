@@ -71,7 +71,7 @@ export const getAllAttendance = async (req, res, next) => {
 // @access  Private (Admin/RRHH)
 export const createAttendanceRecord = async (req, res, next) => {
     try {
-        const { usuario, fecha, estado } = req.body;
+        const { usuario, fecha, estado, motivo, nota } = req.body;
 
         if (!usuario || !fecha || !estado) {
             throw createError(400, "Usuario, fecha y estado son obligatorios.");
@@ -92,6 +92,8 @@ export const createAttendanceRecord = async (req, res, next) => {
             nombre: userExists.nombre,
             apellido: userExists.apellido,
             autoGenerado: false, // Es un registro manual
+            motivo: estado === 'ausente' ? motivo : null,
+            nota: estado === 'ausente' ? nota : null,
         });
 
         res.status(201).json({ message: "Registro de asistencia creado manualmente.", record: newRecord });
@@ -111,7 +113,7 @@ export const updateAttendanceRecord = async (req, res, next) => {
     try {
         const { id } = req.params;
         // Campos que el admin puede modificar
-        const { estado, horasExtras, guardia, horasFinDeSemana, horaEntrada, horaSalida } = req.body;
+        const { estado, horasExtras, guardia, horasFinDeSemana, horaEntrada, horaSalida, motivo, nota } = req.body;
 
         const record = await Asistencia.findById(id);
         if (!record) {
@@ -124,6 +126,8 @@ export const updateAttendanceRecord = async (req, res, next) => {
         if (typeof horasFinDeSemana === 'number') record.horasFinDeSemana = horasFinDeSemana;
         if (horaEntrada) record.horaEntrada = horaEntrada;
         if (horaSalida) record.horaSalida = horaSalida;
+        if (motivo !== undefined) record.motivo = motivo;
+        if (nota !== undefined) record.nota = nota;
 
         await record.save();
         res.json({ message: "Registro actualizado.", record });

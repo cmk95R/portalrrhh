@@ -85,6 +85,8 @@ async function saveAttendanceToOneDrive(record) {
       'Fecha': rec.fecha,
       'Día': rec.diaSemana,
       'Estado': rec.estado,
+      'Motivo': rec.motivo || '',
+      'Nota': rec.nota || '',
       'Hora Entrada': rec.horaEntrada ? dayjs(rec.horaEntrada).format('HH:mm') : 'N/A',
       'Hora Salida': rec.horaSalida ? dayjs(rec.horaSalida).format('HH:mm') : 'N/A',
       'Horas Extras': rec.horasExtras,
@@ -98,7 +100,8 @@ async function saveAttendanceToOneDrive(record) {
     // Ajustar anchos de columna (opcional, pero mejora la legibilidad)
     worksheet['!cols'] = [
       { wch: 24 }, { wch: 24 }, { wch: 15 }, { wch: 15 }, { wch: 12 },
-      { wch: 10 }, { wch: 10 }, { wch: 12 }, { wch: 12 }, { wch: 12 },
+      { wch: 10 }, { wch: 10 }, { wch: 25 }, { wch: 30 }, // Motivo y Nota
+      { wch: 12 }, { wch: 12 }, { wch: 12 },
       { wch: 10 }, { wch: 18 }
     ];
     XLSX.utils.book_append_sheet(workbook, worksheet, `Asistencias`);
@@ -226,7 +229,7 @@ export const getMyCurrentStatus = async (req, res, next) => {
  */
 export const setDailyAttendance = async (req, res, next) => {
     try {
-        const { fecha, estado } = req.body; // <-- CORRECCIÓN
+        const { fecha, estado, motivo, nota, horasExtras, guardia, horasFinDeSemana } = req.body; // <-- CORRECCIÓN
         const { _id: userId, nombre, apellido } = req.user;
 
         if (!fecha || !['presente', 'ausente'].includes(estado)) { // <-- CORRECCIÓN
@@ -242,6 +245,11 @@ export const setDailyAttendance = async (req, res, next) => {
                     estado: estado,
                     nombre: nombre, // <-- AÑADIDO: Asegura que siempre esté presente
                     apellido: apellido, // <-- AÑADIDO: Asegura que siempre esté presente
+                    motivo: estado === 'ausente' ? motivo : null,
+                    nota: estado === 'ausente' ? nota : null,
+                    ...(typeof horasExtras === 'number' && { horasExtras }),
+                    ...(guardia && ['ninguna', 'pasiva', 'activa'].includes(guardia) && { guardia }),
+                    ...(typeof horasFinDeSemana === 'number' && { horasFinDeSemana }),
                 } 
             },
             { 

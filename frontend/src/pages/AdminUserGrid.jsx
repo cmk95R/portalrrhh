@@ -30,6 +30,7 @@ import VisibilityIcon from "@mui/icons-material/Visibility";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import VpnKeyIcon from "@mui/icons-material/VpnKey";
+import DeleteIcon from "@mui/icons-material/Delete";
 
 import { DataGrid } from "@mui/x-data-grid";
 
@@ -84,9 +85,7 @@ export default function AdminUsersGrid() {
     apellido: "",
     dni: "",
     email: "",
-    cliente: "",
-    direccionCliente: "",
-    horarioLaboral: "",
+    clientes: [],
     rol: "empleado",
   });
   const [createErrors, setCreateErrors] = React.useState({});
@@ -98,9 +97,7 @@ export default function AdminUsersGrid() {
     apellido: "",
     dni: "",
     email: "",
-    cliente: "",
-    direccionCliente: "",
-    horarioLaboral: "",
+    clientes: [],
     rol: "",
   });
   const [editErrors, setEditErrors] = React.useState({});
@@ -130,6 +127,7 @@ export default function AdminUsersGrid() {
         cliente: u.cliente ?? "",
         direccionCliente: u.direccionCliente ?? "",
         horarioLaboral: u.horarioLaboral ?? "",
+        clientes: u.clientes && u.clientes.length > 0 ? u.clientes : (u.cliente ? [{ nombre: u.cliente, direccion: u.direccionCliente, horario: u.horarioLaboral }] : []),
         createdAt: u.createdAt,
       }));
 
@@ -250,9 +248,7 @@ export default function AdminUsersGrid() {
       apellido: "",
       dni: "",
       email: "",
-      cliente: "",
-      direccionCliente: "",
-      horarioLaboral: "",
+      clientes: [{ nombre: "", direccion: "", horario: "" }],
       rol: "empleado",
     });
     setCreateErrors({});
@@ -267,6 +263,26 @@ export default function AdminUsersGrid() {
     const { name, value } = e.target;
     setCreateForm((prev) => ({ ...prev, [name]: value }));
     setCreateErrors((prev) => ({ ...prev, [name]: "" }));
+  };
+
+  const handleCreateClientChange = (index, field, value) => {
+    const newClientes = [...createForm.clientes];
+    newClientes[index] = { ...newClientes[index], [field]: value };
+    setCreateForm((prev) => ({ ...prev, clientes: newClientes }));
+  };
+
+  const handleAddCreateClient = () => {
+    setCreateForm((prev) => ({
+      ...prev,
+      clientes: [...prev.clientes, { nombre: "", direccion: "", horario: "" }],
+    }));
+  };
+
+  const handleRemoveCreateClient = (index) => {
+    setCreateForm((prev) => ({
+      ...prev,
+      clientes: prev.clientes.filter((_, i) => i !== index),
+    }));
   };
 
   const validateCreate = () => {
@@ -297,9 +313,7 @@ export default function AdminUsersGrid() {
         dni: createForm.dni,
         pin,
         rol: createForm.rol,
-        cliente: createForm.cliente,
-        direccionCliente: createForm.direccionCliente,
-        horarioLaboral: createForm.horarioLaboral,
+        clientes: createForm.clientes,
       };
 
       const { data } = await registerApi(payload); // registerApi ahora se usa para crear
@@ -338,9 +352,7 @@ export default function AdminUsersGrid() {
       apellido: user.apellido || "",
       dni: user.dni || "",
       email: user.email || "",
-      cliente: user.cliente || "",
-      direccionCliente: user.direccionCliente || "",
-      horarioLaboral: user.horarioLaboral || "",
+      clientes: user.clientes && user.clientes.length > 0 ? user.clientes : [{ nombre: user.cliente || "", direccion: user.direccionCliente || "", horario: user.horarioLaboral || "" }],
       rol: user.rol || "empleado",
     });
     setEditErrors({});
@@ -356,6 +368,26 @@ export default function AdminUsersGrid() {
     const { name, value } = e.target;
     setEditForm((prev) => ({ ...prev, [name]: value }));
     setEditErrors((prev) => ({ ...prev, [name]: "" }));
+  };
+
+  const handleEditClientChange = (index, field, value) => {
+    const newClientes = [...editForm.clientes];
+    newClientes[index] = { ...newClientes[index], [field]: value };
+    setEditForm((prev) => ({ ...prev, clientes: newClientes }));
+  };
+
+  const handleAddEditClient = () => {
+    setEditForm((prev) => ({
+      ...prev,
+      clientes: [...prev.clientes, { nombre: "", direccion: "", horario: "" }],
+    }));
+  };
+
+  const handleRemoveEditClient = (index) => {
+    setEditForm((prev) => ({
+      ...prev,
+      clientes: prev.clientes.filter((_, i) => i !== index),
+    }));
   };
 
   const validateEdit = () => {
@@ -464,6 +496,12 @@ export default function AdminUsersGrid() {
       minWidth: 140,
       align: "center",
       headerAlign: "center",
+      valueGetter: (value, row) => {
+        if (row.clientes && row.clientes.length > 0) {
+            return row.clientes.map(c => c.nombre).join(", ");
+        }
+        return value;
+      }
     },
     {
       field: "rol",
@@ -826,27 +864,47 @@ export default function AdminUsersGrid() {
                 fullWidth
               />
             </Stack>
-            <TextField
-              label="Cliente"
-              name="cliente"
-              value={createForm.cliente}
-              onChange={handleCreateChange}
-              fullWidth
-            />
-            <TextField
-              label="Dirección del cliente"
-              name="direccionCliente"
-              value={createForm.direccionCliente}
-              onChange={handleCreateChange}
-              fullWidth
-            />
-            <TextField
-              label="Horario laboral (ej: 09:00–17:00)"
-              name="horarioLaboral"
-              value={createForm.horarioLaboral}
-              onChange={handleCreateChange}
-              fullWidth
-            />
+            
+            <Typography variant="subtitle2" sx={{ mt: 1 }}>Clientes Asignados</Typography>
+            {createForm.clientes.map((client, index) => (
+              <Box key={index} sx={{ p: 2, border: '1px solid #e0e0e0', borderRadius: 2, position: 'relative' }}>
+                <IconButton 
+                  size="small" 
+                  onClick={() => handleRemoveCreateClient(index)}
+                  sx={{ position: 'absolute', top: 5, right: 5 }}
+                  disabled={createForm.clientes.length === 1 && index === 0}
+                >
+                  <DeleteIcon fontSize="small" />
+                </IconButton>
+                <Stack spacing={2}>
+                  <TextField
+                    label="Nombre Cliente"
+                    value={client.nombre}
+                    onChange={(e) => handleCreateClientChange(index, "nombre", e.target.value)}
+                    fullWidth
+                    size="small"
+                  />
+                  <TextField
+                    label="Dirección"
+                    value={client.direccion}
+                    onChange={(e) => handleCreateClientChange(index, "direccion", e.target.value)}
+                    fullWidth
+                    size="small"
+                  />
+                  <TextField
+                    label="Horario"
+                    value={client.horario}
+                    onChange={(e) => handleCreateClientChange(index, "horario", e.target.value)}
+                    fullWidth
+                    size="small"
+                  />
+                </Stack>
+              </Box>
+            ))}
+            <Button startIcon={<AddIcon />} onClick={handleAddCreateClient} variant="outlined" size="small">
+              Agregar Cliente
+            </Button>
+
             <FormControl fullWidth>
               <InputLabel id="create-rol-label">Rol</InputLabel>
               <Select
@@ -934,27 +992,46 @@ export default function AdminUsersGrid() {
                 fullWidth
               />
             </Stack>
-            <TextField
-              label="Cliente"
-              name="cliente"
-              value={editForm.cliente}
-              onChange={handleEditChange}
-              fullWidth
-            />
-            <TextField
-              label="Dirección del cliente"
-              name="direccionCliente"
-              value={editForm.direccionCliente}
-              onChange={handleEditChange}
-              fullWidth
-            />
-            <TextField
-              label="Horario laboral"
-              name="horarioLaboral"
-              value={editForm.horarioLaboral}
-              onChange={handleEditChange}
-              fullWidth
-            />
+
+            <Typography variant="subtitle2" sx={{ mt: 1 }}>Clientes Asignados</Typography>
+            {editForm.clientes.map((client, index) => (
+              <Box key={index} sx={{ p: 2, border: '1px solid #e0e0e0', borderRadius: 2, position: 'relative' }}>
+                <IconButton 
+                  size="small" 
+                  onClick={() => handleRemoveEditClient(index)}
+                  sx={{ position: 'absolute', top: 5, right: 5 }}
+                >
+                  <DeleteIcon fontSize="small" />
+                </IconButton>
+                <Stack spacing={2}>
+                  <TextField
+                    label="Nombre Cliente"
+                    value={client.nombre}
+                    onChange={(e) => handleEditClientChange(index, "nombre", e.target.value)}
+                    fullWidth
+                    size="small"
+                  />
+                  <TextField
+                    label="Dirección"
+                    value={client.direccion}
+                    onChange={(e) => handleEditClientChange(index, "direccion", e.target.value)}
+                    fullWidth
+                    size="small"
+                  />
+                  <TextField
+                    label="Horario"
+                    value={client.horario}
+                    onChange={(e) => handleEditClientChange(index, "horario", e.target.value)}
+                    fullWidth
+                    size="small"
+                  />
+                </Stack>
+              </Box>
+            ))}
+            <Button startIcon={<AddIcon />} onClick={handleAddEditClient} variant="outlined" size="small">
+              Agregar Cliente
+            </Button>
+
             <FormControl fullWidth>
               <InputLabel id="edit-rol-label">Rol</InputLabel>
               <Select

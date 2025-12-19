@@ -40,6 +40,12 @@ const asistenciaSchema = new mongoose.Schema(
       default: "no-aplica" 
     },
 
+    // Motivo de ausencia (si estado es 'ausente')
+    motivo: { type: String, default: null },
+
+    // Nota adicional o observación
+    nota: { type: String, default: null },
+
     // Para fichaje a futuro
     horaEntrada: { type: Date, default: null },
     horaSalida: { type: Date, default: null },
