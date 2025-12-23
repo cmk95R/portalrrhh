@@ -15,6 +15,8 @@ export const getHolidays = async (req, res, next) => {
         res.status(200).json(holidays);
 
     } catch (error) {
+        // Logueamos el error específico para verlo en la consola de Render
+        console.error("❌ Error obteniendo feriados (Google Calendar):", error?.response?.data || error?.message || error);
         next(error);
     }
 };
