@@ -157,6 +157,7 @@ export default function DashboardLayout() {
 
   const rrhhMenu = [
     { text: "Inicio", icon: <HomeIcon />, path: "/" },
+    { text: "Gestión de Usuarios", icon: <AdminPanelSettingsIcon />, path: "/admin/users" },
     { text: "Gestión de Asistencias", icon: <CoPresentIcon />, path: "/admin/attendance" },
     { text: "Cerrar Sesión", icon: <LogoutIcon />, action: "logout" },
   ];
