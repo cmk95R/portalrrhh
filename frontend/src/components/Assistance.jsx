@@ -51,7 +51,7 @@ const AttendanceCalendar = () => {
   const [openExtraDialog, setOpenExtraDialog] = useState(false);
   const [extraData, setExtraData] = useState({
     horasExtras: '',
-    guardia: 'ninguna',
+    nota: '',
     horasFinDeSemana: ''
   });
 
@@ -115,7 +115,7 @@ const AttendanceCalendar = () => {
     const isHol = !!isHoliday(date);
 
     if (isWeekend || isHol) {
-      setExtraData({ horasExtras: '', guardia: 'ninguna', horasFinDeSemana: '' });
+      setExtraData({ horasExtras: '', nota: '', horasFinDeSemana: '' });
       setOpenExtraDialog(true);
     } else {
       executeMarkPresent(date);
@@ -126,7 +126,7 @@ const AttendanceCalendar = () => {
     const payload = {
       horasExtras: Number(extraData.horasExtras) || 0,
       horasFinDeSemana: Number(extraData.horasFinDeSemana) || 0,
-      guardia: extraData.guardia
+      nota: extraData.nota
     };
     executeMarkPresent(selectedDate, payload);
   };
@@ -227,7 +227,7 @@ const AttendanceCalendar = () => {
                   value={selectedDate}
                   onChange={setSelectedDate}
                   onMonthChange={setCurrentMonthView}
-                  // shouldDisableDate eliminado para permitir selección
+                  shouldDisableDate={(date) => date.day() === 0}
                   slots={{ day: CustomDay }}
                   sx={{ width: '100%', maxWidth: 400 }} // Evita que se deforme en pantallas grandes
                 />
@@ -403,16 +403,13 @@ const AttendanceCalendar = () => {
               />
 
               <TextField
-                select
-                label="Guardia"
-                value={extraData.guardia}
-                onChange={(e) => setExtraData({ ...extraData, guardia: e.target.value })}
+                label="Nota Opcional"
+                value={extraData.nota}
+                onChange={(e) => setExtraData({ ...extraData, nota: e.target.value })}
                 fullWidth
-              >
-                <MenuItem value="ninguna">Ninguna</MenuItem>
-                <MenuItem value="pasiva">Pasiva</MenuItem>
-                <MenuItem value="activa">Activa</MenuItem>
-              </TextField>
+                multiline
+                rows={2}
+              />
             </Box>
           </DialogContent>
           <DialogActions>

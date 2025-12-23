@@ -10,7 +10,8 @@ import {
   adminUpdateUser,
   adminResetUserPin,
   adminSetUserRole,
-  adminListUsers // <-- AÑADIDO: La función correcta para la grilla
+  adminListUsers, // <-- AÑADIDO: La función correcta para la grilla
+  adminDeleteUser
 } from "../controllers/user.controller.js";
 
 // --- Importa controlador del Dashboard ---
@@ -35,6 +36,7 @@ userRouter.patch("/:id/reset-pin", adminResetUserPin);
 userRouter.patch("/:id/revoke-admin", revokeAdmin);
 userRouter.patch("/:id/status", adminSetUserStatus);
 userRouter.patch("/:id/role", adminSetUserRole);
+userRouter.delete("/:id", adminDeleteUser);
 router.use("/users", userRouter);
 
 // --- Gestión de Asistencia --- (/api/admin/attendance)

@@ -41,6 +41,7 @@ import {
   adminSetUserStatusApi,
   adminUpdateUserApi,
   adminResetUserPinApi,
+  adminDeleteUserApi, // 👈 Asegúrate de agregar esto en tu archivo api/users.js
 } from "../api/users";
 import { registerApi } from "../api/auth";
 import { getClientsApi, createClientApi, deleteClientApi } from "../api/clients";
@@ -534,6 +535,25 @@ export default function AdminUsersGrid() {
       const msg =
         e?.response?.data?.message || "No se pudo resetear el PIN";
       setSnack({ open: true, severity: "error", msg });
+    }
+  };
+
+  // -------------------- Eliminar usuario --------------------
+  const handleDeleteUser = async (user) => {
+    if (!user) return false;
+    if (!window.confirm(`¿Estás seguro de que querés eliminar a ${user.nombre} ${user.apellido}? Esta acción no se puede deshacer.`)) {
+      return false;
+    }
+
+    try {
+      await adminDeleteUserApi(user.id);
+      setRows((prev) => prev.filter((r) => r.id !== user.id));
+      setSnack({ open: true, severity: "success", msg: "Usuario eliminado correctamente" });
+      return true;
+    } catch (e) {
+      console.error(e);
+      setSnack({ open: true, severity: "error", msg: e?.response?.data?.message || "Error al eliminar usuario" });
+      return false;
     }
   };
 
@@ -1142,15 +1162,26 @@ export default function AdminUsersGrid() {
             </FormControl>
           </Stack>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseEditModal}>Cancelar</Button>
+        <DialogActions sx={{ justifyContent: "space-between" }}>
           <Button
-            onClick={handleEditSubmit}
-            variant="contained"
-            disabled={editLoading}
+            color="error"
+            onClick={async () => {
+              const success = await handleDeleteUser(selectedUser);
+              if (success) handleCloseEditModal();
+            }}
           >
-            {editLoading ? "Guardando..." : "Guardar cambios"}
+            Eliminar Usuario
           </Button>
+          <Box>
+            <Button onClick={handleCloseEditModal} sx={{ mr: 1 }}>Cancelar</Button>
+            <Button
+              onClick={handleEditSubmit}
+              variant="contained"
+              disabled={editLoading}
+            >
+              {editLoading ? "Guardando..." : "Guardar cambios"}
+            </Button>
+          </Box>
         </DialogActions>
       </Dialog>
 

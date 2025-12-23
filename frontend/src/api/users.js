@@ -70,3 +70,6 @@ export const adminUpdateUserApi = (userId, data) =>
  */
 export const adminResetUserPinApi = (userId) =>
   api.patch(`/admin/users/${userId}/reset-pin`);
+
+export const adminDeleteUserApi = (userId) =>
+  api.delete(`/admin/users/${userId}`);

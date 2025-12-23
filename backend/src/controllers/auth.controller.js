@@ -186,11 +186,8 @@ export const login = async (req, res, next) => {
 
 // GET /auth/me
 export const me = async (req, res) => {
-  // Buscamos el usuario actualizado en la DB para asegurar que traemos campos nuevos (clientes)
-  const user = await User.findById(req.user._id);
-  if (!user) return res.status(404).json({ message: "Usuario no encontrado" });
-
-  const userObj = user.toObject();
+  // req.user es el documento completo de Mongoose (lo setea un middleware de auth)
+  const userObj = req.user.toObject();
 
   res.json({
     user: {
@@ -203,7 +200,7 @@ export const me = async (req, res) => {
       cliente: userObj.cliente,
       direccionCliente: userObj.direccionCliente,
       horarioLaboral: userObj.horarioLaboral,
-      clientes: userObj.clientes || [],
+      clientes: userObj.clientes,
       rol: userObj.rol,
       direccion: userObj.direccion,
       nacimiento: userObj.nacimiento,

@@ -349,3 +349,17 @@ export const adminResetUserPin = async (req, res, next) => {
     next(e);
   }
 };
+
+// DELETE /admin/users/:id
+export const adminDeleteUser = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const u = await User.findByIdAndDelete(id);
+
+    if (!u) return res.status(404).json({ message: "Usuario no encontrado" });
+
+    res.json({ message: "Usuario eliminado correctamente" });
+  } catch (e) {
+    next(e);
+  }
+};
