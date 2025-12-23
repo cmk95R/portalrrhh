@@ -101,6 +101,7 @@ export default function ProfileDashboard() {
     direccionCliente: "",
     horarioLaboral: "",
     rol: "",
+    clientes: [],
   });
 
   // --- Estado de dirección ---
@@ -133,6 +134,7 @@ export default function ProfileDashboard() {
         direccionCliente: u.direccionCliente || "",
         horarioLaboral: u.horarioLaboral || "",
         rol: u.rol || "",
+        clientes: Array.isArray(u.clientes) && u.clientes.length > 0 ? u.clientes : (u.cliente ? [{ nombre: u.cliente, direccion: u.direccionCliente, horario: u.horarioLaboral }] : []),
       });
 
       if (u.direccion) {
@@ -193,16 +195,14 @@ export default function ProfileDashboard() {
         nacimiento: userData.nacimiento,
         dni: userData.dni,
         foto: userData.foto,
-        cliente: userData.cliente,
-        direccionCliente: userData.direccionCliente,
-        horarioLaboral: userData.horarioLaboral,
         direccion: { ...addressData },
+        // No incluimos 'clientes' porque no se editan en esta pantalla.
+        // Los campos 'cliente', 'direccionCliente' y 'horarioLaboral' se eliminan
+        // porque son obsoletos.
       };
 
       if (!isAdminOrRRHH) {
-        delete payload.cliente;
-        delete payload.direccionCliente;
-        delete payload.horarioLaboral;
+        // Un usuario normal no puede cambiar su propio DNI.
         delete payload.dni;
       }
 
@@ -328,13 +328,13 @@ export default function ProfileDashboard() {
                     : "Usuario"}
                 </Typography>
 
-                {userData.cliente && (
+                {userData.clientes.length > 0 && (
                   <Typography
                     variant="body2"
                     color="text.secondary"
                     sx={{ mt: 0.5 }}
                   >
-                    Cliente asignado: <strong>{userData.cliente}</strong>
+                    Cliente asignado: <strong>{userData.clientes.map((c) => c.nombre).join(", ")}</strong>
                   </Typography>
                 )}
 
@@ -626,71 +626,67 @@ export default function ProfileDashboard() {
                     {tabValue === 2 && (
                       <Fade in timeout={400}>
                         <Grid container spacing={2}>
-                          <Grid item xs={12} sm={6}>
-                            <TextField
-                              fullWidth
-                              label="Cliente asignado"
-                              value={userData.cliente}
-                              onChange={(e) =>
-                                handleUserChange("cliente", e.target.value)
-                              }
-                              disabled={!isAdminOrRRHH}
-                              InputProps={{
-                                startAdornment: (
-                                  <InputAdornment position="start">
-                                    <BusinessIcon fontSize="small" />
-                                  </InputAdornment>
-                                ),
-                              }}
-                            />
+                          <Grid item xs={12}>
+                            <Typography variant="h6" gutterBottom sx={{ mt: 1 }}>
+                              Clientes Asignados
+                            </Typography>
+                            {userData.clientes.length === 0 && (
+                              <Alert severity="info" variant="outlined" sx={{ mb: 2 }}>
+                                No tenés clientes asignados actualmente.
+                              </Alert>
+                            )}
+                            {userData.clientes.map((cli, index) => (
+                              <Box key={index} sx={{ p: 2, mb: 2, border: '1px solid #e0e0e0', borderRadius: 2, bgcolor: '#fafafa' }}>
+                                <Grid container spacing={2}>
+                                  <Grid item xs={12} sm={4}>
+                                    <TextField
+                                      fullWidth
+                                      label="Cliente"
+                                      value={cli.nombre || ''}
+                                      disabled
+                                      InputProps={{
+                                        startAdornment: (
+                                          <InputAdornment position="start">
+                                            <BusinessIcon fontSize="small" />
+                                          </InputAdornment>
+                                        ),
+                                      }}
+                                      variant="outlined"
+                                      size="small"
+                                    />
+                                  </Grid>
+                                  <Grid item xs={12} sm={4}>
+                                    <TextField
+                                      fullWidth
+                                      label="Dirección"
+                                      value={cli.direccion || ''}
+                                      disabled
+                                      variant="outlined"
+                                      size="small"
+                                    />
+                                  </Grid>
+                                  <Grid item xs={12} sm={4}>
+                                    <TextField
+                                      fullWidth
+                                      label="Horario"
+                                      value={cli.horario || ''}
+                                      disabled
+                                      variant="outlined"
+                                      size="small"
+                                    />
+                                  </Grid>
+                                </Grid>
+                              </Box>
+                            ))}
                           </Grid>
 
-                          <Grid item xs={12} sm={6}>
-                            <TextField
-                              fullWidth
-                              label="Dirección del cliente"
-                              value={userData.direccionCliente}
-                              onChange={(e) =>
-                                handleUserChange(
-                                  "direccionCliente",
-                                  e.target.value
-                                )
-                              }
-                              disabled={!isAdminOrRRHH}
-                            />
-                          </Grid>
-
-                          <Grid item xs={12} sm={6}>
-                            <TextField
-                              fullWidth
-                              label="Horario laboral"
-                              placeholder="09:00 - 18:00"
-                              value={userData.horarioLaboral}
-                              onChange={(e) =>
-                                handleUserChange(
-                                  "horarioLaboral",
-                                  e.target.value
-                                )
-                              }
-                              disabled={!isAdminOrRRHH}
-                            />
-                          </Grid>
-
-                          <Grid item xs={12} sm={6}>
-                            <TextField
-                              fullWidth
-                              label="Rol en el sistema"
-                              value={userData.rol}
-                              disabled
-                              sx={{ bgcolor: "#f0f0f0" }}
-                            />
-                          </Grid>
+                          
                           <Grid item xs={12}>
                             <Alert severity="info" sx={{ mb: 2 }}>
                               Información laboral definida por la empresa.{" "}
                               {isAdminOrRRHH
-                                ? "Como admin / RRHH podés ajustarla desde aquí."
-                                : "Si necesitás cambios, contacta a RRHH."}
+                                ? "Como admin / RRHH podés ajustarla desde el panel de gestión."
+                                : "Si necesitás cambios, contacta a Recursos Humanos."}
                             </Alert>
                           </Grid>
                         </Grid>

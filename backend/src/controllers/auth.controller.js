@@ -40,6 +40,7 @@ export const register = async (req, res, next) => {
       direccionCliente,
       horarioLaboral,
       telefono,
+      clientes, // 👈 Capturamos el array de clientes del body
     } = req.body;
 
     // Email obligatorio (si así lo definiste)
@@ -89,6 +90,7 @@ export const register = async (req, res, next) => {
       direccionCliente: direccionCliente || "",
       horarioLaboral: horarioLaboral || "",
       telefono: telefono || "",
+      clientes: clientes || [], // 👈 Lo agregamos al payload de creación
     };
 
     if (direccionNorm) payload.direccion = direccionNorm;
@@ -105,6 +107,7 @@ export const register = async (req, res, next) => {
         dni: user.dni,
         rol: user.rol,
         cliente: user.cliente,
+        clientes: user.clientes,
       },
     });
   } catch (err) {
@@ -170,6 +173,7 @@ export const login = async (req, res, next) => {
         cliente: user.cliente,
         direccionCliente: user.direccionCliente,
         horarioLaboral: user.horarioLaboral,
+        clientes: user.clientes,
         rol: user.rol,
         estado: user.estado,
       },
@@ -182,8 +186,11 @@ export const login = async (req, res, next) => {
 
 // GET /auth/me
 export const me = async (req, res) => {
-  // req.user es el documento completo de Mongoose (lo setea un middleware de auth)
-  const userObj = req.user.toObject();
+  // Buscamos el usuario actualizado en la DB para asegurar que traemos campos nuevos (clientes)
+  const user = await User.findById(req.user._id);
+  if (!user) return res.status(404).json({ message: "Usuario no encontrado" });
+
+  const userObj = user.toObject();
 
   res.json({
     user: {
@@ -196,6 +203,7 @@ export const me = async (req, res) => {
       cliente: userObj.cliente,
       direccionCliente: userObj.direccionCliente,
       horarioLaboral: userObj.horarioLaboral,
+      clientes: userObj.clientes || [],
       rol: userObj.rol,
       direccion: userObj.direccion,
       nacimiento: userObj.nacimiento,

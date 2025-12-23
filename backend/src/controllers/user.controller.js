@@ -241,6 +241,7 @@ export const adminUpdateUser = async (req, res, next) => {
       cliente,
       direccionCliente,
       horarioLaboral,
+      clientes, // 👈 Capturamos el array de clientes
       // opcionales si querés permitir que el admin también toque esto acá:
       rol,
       estado,
@@ -260,6 +261,14 @@ export const adminUpdateUser = async (req, res, next) => {
     if (typeof cliente === "string")          update.cliente = cliente.trim();
     if (typeof direccionCliente === "string") update.direccionCliente = direccionCliente.trim();
     if (typeof horarioLaboral === "string")   update.horarioLaboral = horarioLaboral.trim();
+    
+    // 👈 Guardamos el array de clientes y limpiamos los campos viejos
+    if (Array.isArray(clientes)) {
+      update.clientes = clientes;
+      update.cliente = "";
+      update.direccionCliente = "";
+      update.horarioLaboral = "";
+    }
 
     if (nacimiento) update.nacimiento = nacimiento;
 
@@ -284,7 +293,7 @@ export const adminUpdateUser = async (req, res, next) => {
       update,
       { new: true, runValidators: true, context: "query" }
     ).select(
-      "_id nombre apellido dni email rol estado telefono foto cliente direccionCliente horarioLaboral nacimiento direccion"
+      "_id nombre apellido dni email rol estado telefono foto cliente direccionCliente horarioLaboral clientes nacimiento direccion"
     );
 
     if (!u) return res.status(404).json({ message: "Usuario no encontrado" });

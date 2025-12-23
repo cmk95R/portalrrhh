@@ -7,6 +7,7 @@ import passport from "passport";
 import cookieParser from "cookie-parser";
 
 import connectDB from "./db/db.js";
+import clientRoutes from './routes/client.routes.js';
 
 // --- 1. Importaciones de Rutas (Mantenemos todas por ahora) ---
 import authRoutes from "./routes/authRoutes.js";
@@ -82,6 +83,7 @@ app.get("/health", (_req, res) => {
 // --- 4. Montaje de Rutas API con prefijo /api ---
 const apiRouter = express.Router(); // Router principal para /api
 apiRouter.use("/users", userRoutes);  // 👈 NUEVO (para /api/users/me)
+apiRouter.use("/clients", clientRoutes); // Rutas de clientes
 
 // Montamos las rutas relevantes para usuarios bajo /api
 apiRouter.use("/auth", authRoutes);            // /api/auth/... (Registro, Login, Google, Verify, Me)
@@ -89,6 +91,7 @@ apiRouter.use("/auth", authRoutes);            // /api/auth/... (Registro, Login
 apiRouter.use("/geo", geoRoutes);              // /api/geo/... (Provincias, Localidades - públicas)
 apiRouter.use("/attendance", attendanceRoutes); // <-- NUEVO: /api/attendance/... (Clock-in, Clock-out, etc.)
 apiRouter.use("/holidays", holidaysRoutes);     // <-- AÑADIDO: /api/holidays/...
+
 // Montamos TODAS las rutas de admin bajo /api/admin
 apiRouter.use("/admin", adminRoutes);
 // Finalmente, montamos el router principal de la API en la app

@@ -31,6 +31,7 @@ import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import VpnKeyIcon from "@mui/icons-material/VpnKey";
 import DeleteIcon from "@mui/icons-material/Delete";
+import BusinessIcon from "@mui/icons-material/Business";
 
 import { DataGrid } from "@mui/x-data-grid";
 
@@ -42,6 +43,7 @@ import {
   adminResetUserPinApi,
 } from "../api/users";
 import { registerApi } from "../api/auth";
+import { getClientsApi, createClientApi, deleteClientApi } from "../api/clients";
 
 export default function AdminUsersGrid() {
   // -------------------- Estado general --------------------
@@ -66,11 +68,20 @@ export default function AdminUsersGrid() {
   // Usuario seleccionado (para detalles / editar / rol / pin)
   const [selectedUser, setSelectedUser] = React.useState(null);
 
+  // Lista de clientes disponibles desde la DB
+  const [availableClients, setAvailableClients] = React.useState([]);
+
   // -------------------- Modales --------------------
   const [roleModalOpen, setRoleModalOpen] = React.useState(false);
   const [detailsModalOpen, setDetailsModalOpen] = React.useState(false);
   const [editModalOpen, setEditModalOpen] = React.useState(false);
   const [createModalOpen, setCreateModalOpen] = React.useState(false);
+  const [clientManagerOpen, setClientManagerOpen] = React.useState(false);
+  const [clientForm, setClientForm] = React.useState({
+    nombre: "",
+    direccion: "",
+    horario: "",
+  });
   const [pinDialog, setPinDialog] = React.useState({
     open: false,
     pin: "",
@@ -156,6 +167,46 @@ export default function AdminUsersGrid() {
 
     return () => clearTimeout(timeoutId);
   }, [fetchUsers]);
+
+  // -------------------- Fetch Clientes --------------------
+  const loadClients = React.useCallback(async () => {
+    try {
+      const { data } = await getClientsApi();
+      setAvailableClients(data);
+    } catch (e) {
+      console.error("Error cargando clientes", e);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    loadClients();
+  }, [loadClients]);
+
+  // -------------------- Handlers Gestión Clientes --------------------
+  const handleClientSubmit = async () => {
+    if (!clientForm.nombre) return;
+    try {
+      await createClientApi(clientForm);
+      setSnack({ open: true, severity: "success", msg: "Cliente creado" });
+      setClientForm({ nombre: "", direccion: "", horario: "" });
+      loadClients();
+    } catch (e) {
+      console.error(e);
+      setSnack({ open: true, severity: "error", msg: e.response?.data?.message || "Error al crear cliente" });
+    }
+  };
+
+  const handleClientDelete = async (id) => {
+    if (!window.confirm("¿Eliminar este cliente?")) return;
+    try {
+      await deleteClientApi(id);
+      setSnack({ open: true, severity: "success", msg: "Cliente eliminado" });
+      loadClients();
+    } catch (e) {
+      console.error(e);
+      setSnack({ open: true, severity: "error", msg: e.response?.data?.message || "Error al eliminar cliente" });
+    }
+  };
 
   // -------------------- Modales: Rol --------------------
   const handleOpenRoleModal = (user) => {
@@ -271,6 +322,22 @@ export default function AdminUsersGrid() {
     setCreateForm((prev) => ({ ...prev, clientes: newClientes }));
   };
 
+  // Manejo especial para seleccionar cliente desde dropdown y autocompletar datos
+  const handleSelectCreateClient = (index, clientName) => {
+    const clientData = availableClients.find((c) => c.nombre === clientName);
+    const newClientes = [...createForm.clientes];
+    
+    newClientes[index] = {
+      ...newClientes[index],
+      nombre: clientName,
+      // Si el cliente seleccionado tiene datos, los usamos; si no, mantenemos lo que había o vacío
+      direccion: clientData?.direccion || newClientes[index].direccion,
+      horario: clientData?.horario || newClientes[index].horario,
+    };
+
+    setCreateForm((prev) => ({ ...prev, clientes: newClientes }));
+  };
+
   const handleAddCreateClient = () => {
     setCreateForm((prev) => ({
       ...prev,
@@ -373,6 +440,21 @@ export default function AdminUsersGrid() {
   const handleEditClientChange = (index, field, value) => {
     const newClientes = [...editForm.clientes];
     newClientes[index] = { ...newClientes[index], [field]: value };
+    setEditForm((prev) => ({ ...prev, clientes: newClientes }));
+  };
+
+  const handleSelectEditClient = (index, clientName) => {
+    const clientData = availableClients.find((c) => c.nombre === clientName);
+    const newClientes = [...editForm.clientes];
+    
+    newClientes[index] = {
+      ...newClientes[index],
+      nombre: clientName,
+      // Si el cliente seleccionado tiene datos, los usamos
+      direccion: clientData?.direccion || newClientes[index].direccion,
+      horario: clientData?.horario || newClientes[index].horario,
+    };
+
     setEditForm((prev) => ({ ...prev, clientes: newClientes }));
   };
 
@@ -630,13 +712,22 @@ export default function AdminUsersGrid() {
           Gestión de Empleados
         </Typography>
 
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={handleOpenCreateModal}
-        >
-          Nuevo empleado
-        </Button>
+        <Stack direction="row" spacing={2}>
+          <Button
+            variant="outlined"
+            startIcon={<BusinessIcon />}
+            onClick={() => setClientManagerOpen(true)}
+          >
+            Gestionar Clientes
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={handleOpenCreateModal}
+          >
+            Nuevo empleado
+          </Button>
+        </Stack>
       </Stack>
 
       <Paper sx={{ p: 2, mb: 2, borderRadius: 2 }} elevation={2}>
@@ -761,17 +852,22 @@ export default function AdminUsersGrid() {
               <Typography>
                 <strong>Email:</strong> {selectedUser.email}
               </Typography>
-              <Typography>
-                <strong>Cliente:</strong> {selectedUser.cliente || "-"}
+
+              <Typography variant="subtitle2" sx={{ mt: 1, fontWeight: 'bold' }}>
+                Clientes Asignados:
               </Typography>
-              <Typography>
-                <strong>Dirección cliente:</strong>{" "}
-                {selectedUser.direccionCliente || "-"}
-              </Typography>
-              <Typography>
-                <strong>Horario laboral:</strong>{" "}
-                {selectedUser.horarioLaboral || "-"}
-              </Typography>
+              {selectedUser.clientes && selectedUser.clientes.length > 0 ? (
+                selectedUser.clientes.map((cli, idx) => (
+                  <Box key={idx} sx={{ ml: 1, mb: 1, p: 1, bgcolor: 'grey.50', borderRadius: 1, border: '1px solid #eee' }}>
+                    <Typography variant="body2"><strong>Empresa:</strong> {cli.nombre}</Typography>
+                    <Typography variant="body2"><strong>Dirección:</strong> {cli.direccion || "-"}</Typography>
+                    <Typography variant="body2"><strong>Horario:</strong> {cli.horario || "-"}</Typography>
+                  </Box>
+                ))
+              ) : (
+                <Typography variant="body2" sx={{ ml: 1, fontStyle: 'italic', color: 'text.secondary' }}>Sin clientes asignados</Typography>
+              )}
+
               <Typography>
                 <strong>Rol:</strong>{" "}
                 <Chip
@@ -867,7 +963,7 @@ export default function AdminUsersGrid() {
             
             <Typography variant="subtitle2" sx={{ mt: 1 }}>Clientes Asignados</Typography>
             {createForm.clientes.map((client, index) => (
-              <Box key={index} sx={{ p: 2, border: '1px solid #e0e0e0', borderRadius: 2, position: 'relative' }}>
+              <Box key={index} sx={{ p: 1.5, border: '1px solid #e0e0e0', borderRadius: 2, position: 'relative', mb: 1 }}>
                 <IconButton 
                   size="small" 
                   onClick={() => handleRemoveCreateClient(index)}
@@ -876,14 +972,19 @@ export default function AdminUsersGrid() {
                 >
                   <DeleteIcon fontSize="small" />
                 </IconButton>
-                <Stack spacing={2}>
+                <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ mt: 1, pr: 4 }}>
                   <TextField
+                    select
                     label="Nombre Cliente"
                     value={client.nombre}
-                    onChange={(e) => handleCreateClientChange(index, "nombre", e.target.value)}
+                    onChange={(e) => handleSelectCreateClient(index, e.target.value)}
                     fullWidth
                     size="small"
-                  />
+                  >
+                    {availableClients.map((c) => (
+                      <MenuItem key={c._id} value={c.nombre}>{c.nombre}</MenuItem>
+                    ))}
+                  </TextField>
                   <TextField
                     label="Dirección"
                     value={client.direccion}
@@ -995,7 +1096,7 @@ export default function AdminUsersGrid() {
 
             <Typography variant="subtitle2" sx={{ mt: 1 }}>Clientes Asignados</Typography>
             {editForm.clientes.map((client, index) => (
-              <Box key={index} sx={{ p: 2, border: '1px solid #e0e0e0', borderRadius: 2, position: 'relative' }}>
+              <Box key={index} sx={{ p: 1.5, border: '1px solid #e0e0e0', borderRadius: 2, position: 'relative', mb: 1 }}>
                 <IconButton 
                   size="small" 
                   onClick={() => handleRemoveEditClient(index)}
@@ -1003,28 +1104,21 @@ export default function AdminUsersGrid() {
                 >
                   <DeleteIcon fontSize="small" />
                 </IconButton>
-                <Stack spacing={2}>
+                <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ mt: 1, pr: 4 }}>
                   <TextField
+                    select
                     label="Nombre Cliente"
                     value={client.nombre}
-                    onChange={(e) => handleEditClientChange(index, "nombre", e.target.value)}
+                    onChange={(e) => handleSelectEditClient(index, e.target.value)}
                     fullWidth
                     size="small"
-                  />
-                  <TextField
-                    label="Dirección"
-                    value={client.direccion}
-                    onChange={(e) => handleEditClientChange(index, "direccion", e.target.value)}
-                    fullWidth
-                    size="small"
-                  />
-                  <TextField
-                    label="Horario"
-                    value={client.horario}
-                    onChange={(e) => handleEditClientChange(index, "horario", e.target.value)}
-                    fullWidth
-                    size="small"
-                  />
+                  >
+                    {availableClients.map((c) => (
+                      <MenuItem key={c._id} value={c.nombre}>{c.nombre}</MenuItem>
+                    ))}
+                  </TextField>
+                  
+                    
                 </Stack>
               </Box>
             ))}
@@ -1094,6 +1188,106 @@ export default function AdminUsersGrid() {
           >
             Cerrar
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Modal Gestión de Clientes */}
+      <Dialog
+        open={clientManagerOpen}
+        onClose={() => setClientManagerOpen(false)}
+        fullWidth
+        maxWidth="md"
+      >
+        <DialogTitle>Gestión de Clientes</DialogTitle>
+        <DialogContent>
+          <Paper variant="outlined" sx={{ p: 2, mb: 3, bgcolor: "grey.50" }}>
+            <Typography variant="subtitle2" gutterBottom fontWeight="bold">
+              Agregar Nuevo Cliente
+            </Typography>
+            <Stack
+              direction={{ xs: "column", sm: "row" }}
+              spacing={2}
+              alignItems="flex-end"
+            >
+              <TextField
+                label="Nombre Empresa"
+                value={clientForm.nombre}
+                onChange={(e) =>
+                  setClientForm({ ...clientForm, nombre: e.target.value })
+                }
+                size="small"
+                fullWidth
+              />
+              <TextField
+                label="Dirección"
+                value={clientForm.direccion}
+                onChange={(e) =>
+                  setClientForm({ ...clientForm, direccion: e.target.value })
+                }
+                size="small"
+                fullWidth
+              />
+              <TextField
+                label="Horario"
+                value={clientForm.horario}
+                onChange={(e) =>
+                  setClientForm({ ...clientForm, horario: e.target.value })
+                }
+                size="small"
+                fullWidth
+              />
+              <Button
+                variant="contained"
+                onClick={handleClientSubmit}
+                disabled={!clientForm.nombre}
+                sx={{ minWidth: 100 }}
+              >
+                Agregar
+              </Button>
+            </Stack>
+          </Paper>
+
+          <Typography variant="h6" gutterBottom>
+            Listado de Clientes
+          </Typography>
+          <Stack spacing={1}>
+            {availableClients.map((client) => (
+              <Paper
+                key={client._id}
+                variant="outlined"
+                sx={{
+                  p: 1.5,
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
+                <Box>
+                  <Typography variant="subtitle1" fontWeight="bold">
+                    {client.nombre}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {client.direccion}
+                    {client.horario ? ` • ${client.horario}` : ""}
+                  </Typography>
+                </Box>
+                <IconButton
+                  color="error"
+                  onClick={() => handleClientDelete(client._id)}
+                >
+                  <DeleteIcon />
+                </IconButton>
+              </Paper>
+            ))}
+            {availableClients.length === 0 && (
+              <Typography color="text.secondary" align="center" sx={{ py: 2 }}>
+                No hay clientes registrados.
+              </Typography>
+            )}
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setClientManagerOpen(false)}>Cerrar</Button>
         </DialogActions>
       </Dialog>
     </Container>
