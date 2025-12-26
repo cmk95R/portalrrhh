@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useContext } from 'react';
 import {
   Box,
   Container,
@@ -31,6 +31,7 @@ import { getDashboardDataApi } from '../api/admin'; // Asegúrate que la ruta a 
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import dayjs from 'dayjs';
 import 'dayjs/locale/es';
+import { AuthContext } from '../context/AuthContext';
 
 dayjs.locale('es');
 
@@ -94,6 +95,7 @@ const DashboardSkeleton = () => (
 
 // --- COMPONENTE PRINCIPAL DEL DASHBOARD ---
 export default function AdminDashboard() {
+    const { user } = useContext(AuthContext);
     const [stats, setStats] = useState(null);
     const [employees, setEmployees] = useState([]);
     const [clients, setClients] = useState([]);
@@ -170,10 +172,10 @@ export default function AdminDashboard() {
         <Box sx={{ flexGrow: 1, p: 3, bgcolor: (theme) => theme.palette.grey[100] }}>
             {/* ENCABEZADO MEJORADO */}
             <Box sx={{ mb: 4 }}>
-                <Typography variant="h4" fontWeight="bold">Hola, Admin 👋</Typography>
+                <Typography variant="h4" fontWeight="bold">Hola, {user?.nombre} </Typography>
                 <Typography variant="body1" color="text.secondary">Hoy es {currentDate}. Aquí tienes un resumen de la actividad.</Typography>
             </Box>
-
+            
             {/* TARJETAS DE ESTADÍSTICAS */}
             <Grid container spacing={3} mb={3}>
                 <Grid item xs={12} sm={6} md={3}>
