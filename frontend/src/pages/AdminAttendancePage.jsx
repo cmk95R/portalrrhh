@@ -404,8 +404,9 @@ export default function AdminAttendancePage() {
     <Container maxWidth="xl" sx={{ py: 4 }}>
       <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems="center" mb={3} spacing={2} flexWrap="wrap">
         <Box>
-            <Typography variant="h4" fontWeight={800} color="primary.main">Gestión de Asistencia</Typography>
-            <Typography variant="body2" color="text.secondary">Panel de administración</Typography>
+             <Typography variant="h5" sx={{ fontWeight: 500 }}>
+                      Gestión de Asistencias
+                    </Typography>
         </Box>
         <Button variant="outlined" startIcon={<RefreshIcon />} onClick={fetchData} disabled={loading}>Actualizar</Button>
       </Stack>

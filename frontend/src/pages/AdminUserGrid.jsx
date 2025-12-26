@@ -64,7 +64,6 @@ export default function AdminUsersGrid() {
   // Filtros
   const [query, setQuery] = React.useState("");
   const [roleFilter, setRoleFilter] = React.useState("all");
-  const [queryTimeout, setQueryTimeout] = React.useState(null);
 
   // Usuario seleccionado (para detalles / editar / rol / pin)
   const [selectedUser, setSelectedUser] = React.useState(null);
@@ -162,10 +161,12 @@ export default function AdminUsersGrid() {
   }, [paginationModel, query, roleFilter]);
 
   React.useEffect(() => {
-    if (queryTimeout) clearTimeout(queryTimeout);
-    const timeoutId = setTimeout(() => fetchUsers(), 400);
-    setQueryTimeout(timeoutId);
+    // Resetear página a 0 cuando cambian los filtros
+    setPaginationModel((prev) => ({ ...prev, page: 0 }));
+  }, [query, roleFilter]);
 
+  React.useEffect(() => {
+    const timeoutId = setTimeout(() => fetchUsers(), 400);
     return () => clearTimeout(timeoutId);
   }, [fetchUsers]);
 
@@ -757,23 +758,29 @@ export default function AdminUsersGrid() {
           alignItems={{ xs: "stretch", sm: "center" }}
         >
           <TextField
+            id="search-input"
+            name="search"
             label="Buscar (nombre, apellido, email, DNI, cliente)"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             fullWidth
           />
-          <TextField
-            select
-            label="Rol"
-            value={roleFilter}
-            onChange={(e) => setRoleFilter(e.target.value)}
-            sx={{ width: 200 }}
-          >
-            <MenuItem value="all">Todos</MenuItem>
-            <MenuItem value="empleado">Empleado</MenuItem>
-            <MenuItem value="admin">Admin</MenuItem>
-            <MenuItem value="rrhh">RRHH</MenuItem>
-          </TextField>
+          <FormControl sx={{ width: 200 }}>
+            <InputLabel id="role-filter-label">Rol</InputLabel>
+            <Select
+              labelId="role-filter-label"
+              id="role-filter"
+              name="roleFilter"
+              value={roleFilter}
+              label="Rol"
+              onChange={(e) => setRoleFilter(e.target.value)}
+            >
+              <MenuItem value="all">Todos</MenuItem>
+              <MenuItem value="empleado">Empleado</MenuItem>
+              <MenuItem value="admin">Admin</MenuItem>
+              <MenuItem value="rrhh">RRHH</MenuItem>
+            </Select>
+          </FormControl>
         </Stack>
       </Paper>
 
@@ -789,6 +796,14 @@ export default function AdminUsersGrid() {
           pageSizeOptions={[5, 10, 25, 50]}
           disableRowSelectionOnClick
           getRowId={(row) => row.id}
+          slotProps={{
+            pagination: {
+              labelRowsPerPage: "Filas por página",
+              SelectProps: {
+                inputProps: { id: "rows-per-page-select", name: "pageSize" },
+              },
+            },
+          }}
         />
       </Paper>
 
@@ -823,6 +838,7 @@ export default function AdminUsersGrid() {
             <InputLabel id="role-select-label">Rol</InputLabel>
             <Select
               labelId="role-select-label"
+              id="role-select"
               value={newRole}
               label="Rol"
               onChange={(e) => setNewRole(e.target.value)}
@@ -942,6 +958,7 @@ export default function AdminUsersGrid() {
           <Stack spacing={2} sx={{ mt: 2 }}>
             <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
               <TextField
+                id="create-nombre"
                 label="Nombre"
                 name="nombre"
                 value={createForm.nombre}
@@ -951,6 +968,7 @@ export default function AdminUsersGrid() {
                 fullWidth
               />
               <TextField
+                id="create-apellido"
                 label="Apellido"
                 name="apellido"
                 value={createForm.apellido}
@@ -962,6 +980,7 @@ export default function AdminUsersGrid() {
             </Stack>
             <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
               <TextField
+                id="create-dni"
                 label="DNI"
                 name="dni"
                 value={createForm.dni}
@@ -971,6 +990,7 @@ export default function AdminUsersGrid() {
                 fullWidth
               />
               <TextField // <-- CORRECCIÓN: El campo de email estaba duplicado
+                id="create-email"
                 label="Email"
                 name="email"
                 value={createForm.email}
@@ -995,6 +1015,8 @@ export default function AdminUsersGrid() {
                 <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ mt: 1, pr: 4 }}>
                   <TextField
                     select
+                    id={`create-client-nombre-${index}`}
+                    name={`create-client-nombre-${index}`}
                     label="Nombre Cliente"
                     value={client.nombre}
                     onChange={(e) => handleSelectCreateClient(index, e.target.value)}
@@ -1006,6 +1028,8 @@ export default function AdminUsersGrid() {
                     ))}
                   </TextField>
                   <TextField
+                    id={`create-client-direccion-${index}`}
+                    name={`create-client-direccion-${index}`}
                     label="Dirección"
                     value={client.direccion}
                     onChange={(e) => handleCreateClientChange(index, "direccion", e.target.value)}
@@ -1013,6 +1037,8 @@ export default function AdminUsersGrid() {
                     size="small"
                   />
                   <TextField
+                    id={`create-client-horario-${index}`}
+                    name={`create-client-horario-${index}`}
                     label="Horario"
                     value={client.horario}
                     onChange={(e) => handleCreateClientChange(index, "horario", e.target.value)}
@@ -1030,6 +1056,7 @@ export default function AdminUsersGrid() {
               <InputLabel id="create-rol-label">Rol</InputLabel>
               <Select
                 labelId="create-rol-label"
+                id="create-rol-select"
                 label="Rol"
                 name="rol"
                 value={createForm.rol}
@@ -1075,6 +1102,7 @@ export default function AdminUsersGrid() {
           <Stack spacing={2} sx={{ mt: 2 }}>
             <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
               <TextField
+                id="edit-nombre"
                 label="Nombre"
                 name="nombre"
                 value={editForm.nombre}
@@ -1084,6 +1112,7 @@ export default function AdminUsersGrid() {
                 fullWidth
               />
               <TextField
+                id="edit-apellido"
                 label="Apellido"
                 name="apellido"
                 value={editForm.apellido}
@@ -1095,6 +1124,7 @@ export default function AdminUsersGrid() {
             </Stack>
             <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
               <TextField
+                id="edit-dni"
                 label="DNI"
                 name="dni"
                 value={editForm.dni}
@@ -1104,6 +1134,7 @@ export default function AdminUsersGrid() {
                 fullWidth
               />
               <TextField
+                id="edit-email"
                 label="Email"
                 name="email"
                 value={editForm.email}
@@ -1127,6 +1158,8 @@ export default function AdminUsersGrid() {
                 <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ mt: 1, pr: 4 }}>
                   <TextField
                     select
+                    id={`edit-client-nombre-${index}`}
+                    name={`edit-client-nombre-${index}`}
                     label="Nombre Cliente"
                     value={client.nombre}
                     onChange={(e) => handleSelectEditClient(index, e.target.value)}
@@ -1150,6 +1183,7 @@ export default function AdminUsersGrid() {
               <InputLabel id="edit-rol-label">Rol</InputLabel>
               <Select
                 labelId="edit-rol-label"
+                id="edit-rol-select"
                 label="Rol"
                 name="rol"
                 value={editForm.rol}
@@ -1241,6 +1275,8 @@ export default function AdminUsersGrid() {
               alignItems="flex-end"
             >
               <TextField
+                id="client-nombre"
+                name="clientNombre"
                 label="Nombre Empresa"
                 value={clientForm.nombre}
                 onChange={(e) =>
@@ -1250,6 +1286,8 @@ export default function AdminUsersGrid() {
                 fullWidth
               />
               <TextField
+                id="client-direccion"
+                name="clientDireccion"
                 label="Dirección"
                 value={clientForm.direccion}
                 onChange={(e) =>
@@ -1259,6 +1297,8 @@ export default function AdminUsersGrid() {
                 fullWidth
               />
               <TextField
+                id="client-horario"
+                name="clientHorario"
                 label="Horario"
                 value={clientForm.horario}
                 onChange={(e) =>

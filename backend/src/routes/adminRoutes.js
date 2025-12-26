@@ -15,6 +15,7 @@ import {
 } from "../controllers/user.controller.js";
 
 // --- Importa controlador del Dashboard ---
+import { getDashboardData } from "../controllers/dashboard.controller.js";
 
 // --- Importa las rutas de admin para asistencia ---
 import adminAttendanceRoutes from "./adminAttendance.routes.js";
@@ -26,6 +27,7 @@ const router = Router();
 router.use(requireAuth, requireRole("admin", "rrhh"));
 
 // --- GET /api/admin/dashboard - Datos generales ---
+router.get("/dashboard", getDashboardData);
 
 // --- Gestión de Usuarios --- (/api/admin/users)
 const userRouter = Router();

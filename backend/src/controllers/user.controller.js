@@ -65,34 +65,9 @@ export const editUser = async (req, res, next) => {
 // GET /users (Básico)
 export const listUsers = async (_req, res, next) => {
   try {
-    const users = await User.aggregate([
-      { 
-        $lookup: { 
-          from: 'cvs', 
-          localField: '_id', 
-          foreignField: 'user', 
-          as: 'cv' 
-        } 
-      },
-      { 
-        $unwind: { 
-          path: '$cv', 
-          preserveNullAndEmptyArrays: true 
-        } 
-      },
-      { 
-        $project: { 
-          nombre: 1,
-          apellido: 1,
-          dni: 1,
-          email: 1,
-          rol: 1,
-          cliente: 1, 
-          createdAt: 1,
-          'cv.cvFile.providerId': 1 
-        } 
-      }
-    ]);
+    const users = await User.find({})
+      .select("nombre apellido dni email rol cliente createdAt")
+      .lean();
 
     res.json({ users });
   } catch (e) {
@@ -146,11 +121,15 @@ const SAFE_SORT = new Set([
 
 export const adminListUsers = async (req, res, next) => {
   try {
-    const { sort, order, page, pageSize, search } = req.query;
+    const { sort, order, page, pageSize, limit, search, q, rol } = req.query;
+
+    const pageNum = parseInt(page || 1);
+    const limitNum = parseInt(limit || pageSize || 10);
+    const searchTerm = search || q;
 
     const filter = {};
-    if (search) {
-      const rx = new RegExp(search.trim(), "i");
+    if (searchTerm) {
+      const rx = new RegExp(searchTerm.trim(), "i");
       filter.$or = [
         { nombre: rx },
         { apellido: rx },
@@ -158,13 +137,18 @@ export const adminListUsers = async (req, res, next) => {
         { dni: rx },
         { rol: rx },
         { cliente: rx },
+        { "clientes.nombre": rx },
       ];
     }
 
+    if (rol && rol !== 'all') {
+      filter.rol = rol;
+    }
+
     const items = await User.find(filter)
-      .sort({ [sort]: order === "asc" ? 1 : -1 })
-      .skip((page - 1) * pageSize)  // Paginación
-      .limit(pageSize)              // Paginación
+      .sort({ [sort || 'createdAt']: order === "asc" ? 1 : -1 })
+      .skip((pageNum - 1) * limitNum)
+      .limit(limitNum)
       .lean();
 
     const total = await User.countDocuments(filter);
