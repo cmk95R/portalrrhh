@@ -47,6 +47,13 @@ const AttendanceCalendar = () => {
   const [absenceReason, setAbsenceReason] = useState('');
   const [absenceNote, setAbsenceNote] = useState('');
 
+  // --- Estados para el Diálogo de Presente ---
+  const [openPresentDialog, setOpenPresentDialog] = useState(false);
+  const [presentNote, setPresentNote] = useState('');
+
+  // --- Estado para Diálogo de Error de Fecha ---
+  const [openDateErrorDialog, setOpenDateErrorDialog] = useState(false);
+
   // --- Estados para Trabajo en Feriado/Fin de Semana ---
   const [openExtraDialog, setOpenExtraDialog] = useState(false);
   const [extraData, setExtraData] = useState({
@@ -102,6 +109,7 @@ const AttendanceCalendar = () => {
       setAttendances((prev) => ({ ...prev, [dateKey]: 'presente' }));
       setSnack({ open: true, msg: 'Asistencia marcada como presente', severity: 'success' });
       setOpenExtraDialog(false);
+      setOpenPresentDialog(false);
     } catch (error) {
       const errorMsg = error.response?.data?.message || 'Error al marcar asistencia.';
       setSnack({ open: true, msg: errorMsg, severity: 'error' });
@@ -110,7 +118,21 @@ const AttendanceCalendar = () => {
     }
   };
 
+  const validateDate = (date) => {
+    const today = dayjs();
+    // Rango permitido: 60 días atrás y 60 días adelante (ajustable según necesidad)
+    const minDate = today.subtract(60, 'day');
+    const maxDate = today.add(60, 'day');
+
+    if (date.isBefore(minDate, 'day') || date.isAfter(maxDate, 'day')) {
+      setOpenDateErrorDialog(true);
+      return false;
+    }
+    return true;
+  };
+
   const markPresent = (date) => {
+    if (!validateDate(date)) return;
     const isWeekend = date.day() === 0 || date.day() === 6;
     const isHol = !!isHoliday(date);
 
@@ -118,7 +140,8 @@ const AttendanceCalendar = () => {
       setExtraData({ horasExtras: '', nota: '', horasFinDeSemana: '' });
       setOpenExtraDialog(true);
     } else {
-      executeMarkPresent(date);
+      setPresentNote(''); // Reset note
+      setOpenPresentDialog(true);
     }
   };
 
@@ -131,7 +154,15 @@ const AttendanceCalendar = () => {
     executeMarkPresent(selectedDate, payload);
   };
 
+  const submitPresent = () => {
+    const payload = {
+      nota: presentNote
+    };
+    executeMarkPresent(selectedDate, payload);
+  }
+
   const handleAbsentClick = () => {
+    if (!validateDate(selectedDate)) return;
     setAbsenceReason('');
     setAbsenceNote('');
     setOpenAbsenceDialog(true);
@@ -150,6 +181,7 @@ const AttendanceCalendar = () => {
       setAttendances((prev) => ({ ...prev, [dateKey]: 'ausente' }));
       setSnack({ open: true, msg: 'Ausencia registrada correctamente', severity: 'success' });
       setOpenAbsenceDialog(false);
+      setOpenPresentDialog(false);
     } catch (error) {
       const errorMsg = error.response?.data?.message || 'Error al registrar ausencia.';
       setSnack({ open: true, msg: errorMsg, severity: 'error' });
@@ -162,6 +194,12 @@ const AttendanceCalendar = () => {
   const isHoliday = (date) => holidays[date.format('YYYY-MM-DD')];
   const isDateHighlighted = (date) => attendances[date.format('YYYY-MM-DD')];
   const isWeekday = (date) => date.day() >= 1 && date.day() <= 5;
+
+  const isDayDisabled = (date) => {
+    const isWeekend = date.day() === 0 || date.day() === 6;
+    const isHol = !!isHoliday(date);
+    return isWeekend || isHol;
+  };
 
   const CustomDay = (props) => {
     const { day, selected, ...other } = props;
@@ -227,7 +265,7 @@ const AttendanceCalendar = () => {
                   value={selectedDate}
                   onChange={setSelectedDate}
                   onMonthChange={setCurrentMonthView}
-                  shouldDisableDate={(date) => date.day() === 0}
+                  shouldDisableDate={isDayDisabled}
                   slots={{ day: CustomDay }}
                   sx={{ width: '100%', maxWidth: 400 }} // Evita que se deforme en pantallas grandes
                 />
@@ -247,7 +285,7 @@ const AttendanceCalendar = () => {
                     color="success"
                     fullWidth
                     startIcon={<CheckCircle />}
-                    disabled={loading}
+                    disabled={loading || isDayDisabled(selectedDate)}
                     onClick={() => markPresent(selectedDate)}
                   >
                     Presente
@@ -257,7 +295,7 @@ const AttendanceCalendar = () => {
                     color="error"
                     fullWidth
                     startIcon={<Cancel />}
-                    disabled={loading}
+                    disabled={loading || isDayDisabled(selectedDate)}
                     onClick={handleAbsentClick}
                   >
                     Ausente
@@ -376,6 +414,30 @@ const AttendanceCalendar = () => {
           </DialogActions>
         </Dialog>
 
+        {/* Diálogo para Confirmar Presente (con nota) */}
+        <Dialog open={openPresentDialog} onClose={() => setOpenPresentDialog(false)} maxWidth="xs" fullWidth>
+          <DialogTitle>Confirmar Asistencia</DialogTitle>
+          <DialogContent>
+            <Box sx={{ mt: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <Typography variant="body2" color="text.secondary">
+                Fecha: {selectedDate.format('DD/MM/YYYY')}
+              </Typography>
+              <TextField
+                label="Nota / Observación (Opcional)"
+                value={presentNote}
+                onChange={(e) => setPresentNote(e.target.value)}
+                multiline
+                rows={3}
+                fullWidth
+              />
+            </Box>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setOpenPresentDialog(false)} color="inherit">Cancelar</Button>
+            <Button onClick={submitPresent} variant="contained" color="success">Confirmar Presente</Button>
+          </DialogActions>
+        </Dialog>
+
         {/* Diálogo para Trabajo en Feriado/Fin de Semana */}
         <Dialog open={openExtraDialog} onClose={() => setOpenExtraDialog(false)} maxWidth="xs" fullWidth>
           <DialogTitle>Registro de Horas </DialogTitle>
@@ -415,6 +477,19 @@ const AttendanceCalendar = () => {
           <DialogActions>
             <Button onClick={() => setOpenExtraDialog(false)} color="inherit">Cancelar</Button>
             <Button onClick={submitExtraWork} variant="contained" color="success">Confirmar</Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Diálogo de Error de Fecha (Rango no permitido) */}
+        <Dialog open={openDateErrorDialog} onClose={() => setOpenDateErrorDialog(false)} maxWidth="xs" fullWidth>
+          <DialogTitle sx={{ color: 'error.main', display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Cancel /> Acción no permitida
+          </DialogTitle>
+          <DialogContent>
+            <Typography>No es posible registrar asistencias con fechas demasiado antiguas o con demasiada antelación.</Typography>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setOpenDateErrorDialog(false)} variant="contained" color="primary">Entendido</Button>
           </DialogActions>
         </Dialog>
 

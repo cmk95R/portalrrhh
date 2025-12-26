@@ -18,7 +18,8 @@ export const getDashboardData = async (req, res, next) => {
       clients,
       attendanceTrend,
       clientDistribution,
-      latestAttendances
+      latestAttendances,
+      latestUsers
     ] = await Promise.all([
       // Total usuarios (excluyendo admins)
       User.countDocuments({ rol: { $ne: 'admin' } }),
@@ -104,6 +105,13 @@ export const getDashboardData = async (req, res, next) => {
         .sort({ createdAt: -1 })
         .limit(6)
         .select('nombre apellido fecha estado')
+        .lean(),
+
+      // Últimos usuarios creados
+      User.find({ rol: { $ne: 'admin' } })
+        .sort({ createdAt: -1 })
+        .limit(6)
+        .select('nombre apellido email foto rol createdAt')
         .lean()
     ]);
 
@@ -118,7 +126,8 @@ export const getDashboardData = async (req, res, next) => {
       clients,
       attendanceTrend,
       clientDistribution,
-      latestAttendances
+      latestAttendances,
+      latestUsers
     });
   } catch (error) {
     next(error);

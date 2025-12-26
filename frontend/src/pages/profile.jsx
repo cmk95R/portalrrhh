@@ -22,7 +22,6 @@ import { styled } from "@mui/material/styles";
 import {
   WorkOutline as WorkIcon,
   Person as PersonIcon,
-  Home as HomeIcon,
   PhotoCamera as PhotoCameraIcon,
   Email as EmailIcon,
   Badge as BadgeIcon,
@@ -411,12 +410,6 @@ export default function ProfileDashboard() {
                       sx={{ fontWeight: "bold", minHeight: 48 }}
                     />
                     <Tab
-                      label="Domicilio"
-                      iconPosition="start"
-                      icon={<HomeIcon />}
-                      sx={{ fontWeight: "bold", minHeight: 48 }}
-                    />
-                    <Tab
                       label="Laboral"
                       iconPosition="start"
                       icon={<WorkIcon />}
@@ -445,6 +438,7 @@ export default function ProfileDashboard() {
                           <Grid item xs={12} sm={6}>
                             <TextField
                               fullWidth
+                              disabled
                               label="Nombre"
                               value={userData.nombre}
                               onChange={(e) =>
@@ -454,6 +448,7 @@ export default function ProfileDashboard() {
                           </Grid>
                           <Grid item xs={12} sm={6}>
                             <TextField
+                              disabled
                               fullWidth
                               label="Apellido"
                               value={userData.apellido}
@@ -524,6 +519,7 @@ export default function ProfileDashboard() {
 
                           <Grid item xs={12} sm={6}>
                             <TextField
+                              
                               fullWidth
                               type="date"
                               label="Fecha de nacimiento"
@@ -554,76 +550,8 @@ export default function ProfileDashboard() {
                       </Fade>
                     )}
 
-                    {/* TAB 1: DOMICILIO */}
+                    {/* TAB 1: DATOS LABORALES */}
                     {tabValue === 1 && (
-                      <Fade in timeout={400}>
-                        <Grid container spacing={2}>
-                          <Grid item xs={12} sm={6}>
-                            <TextField
-                              fullWidth
-                              label="Calle"
-                              value={addressData.calle}
-                              onChange={(e) =>
-                                handleAddressChange("calle", e.target.value)
-                              }
-                            />
-                          </Grid>
-                          <Grid item xs={6} sm={3}>
-                            <TextField
-                              fullWidth
-                              label="Número"
-                              value={addressData.numero}
-                              onChange={(e) =>
-                                handleAddressChange("numero", e.target.value)
-                              }
-                            />
-                          </Grid>
-                          <Grid item xs={6} sm={3}>
-                            <TextField
-                              fullWidth
-                              label="CP"
-                              value={addressData.cp}
-                              onChange={(e) =>
-                                handleAddressChange("cp", e.target.value)
-                              }
-                            />
-                          </Grid>
-                          <Grid item xs={12} sm={6}>
-                            <TextField
-                              fullWidth
-                              label="Localidad"
-                              value={addressData.localidad}
-                              onChange={(e) =>
-                                handleAddressChange("localidad", e.target.value)
-                              }
-                            />
-                          </Grid>
-                          <Grid item xs={12} sm={6}>
-                            <TextField
-                              fullWidth
-                              label="Provincia"
-                              value={addressData.provincia}
-                              onChange={(e) =>
-                                handleAddressChange("provincia", e.target.value)
-                              }
-                            />
-                          </Grid>
-                          <Grid item xs={12} sm={6}>
-                            <TextField
-                              fullWidth
-                              label="País"
-                              value={addressData.pais}
-                              onChange={(e) =>
-                                handleAddressChange("pais", e.target.value)
-                              }
-                            />
-                          </Grid>
-                        </Grid>
-                      </Fade>
-                    )}
-
-                    {/* TAB 2: DATOS LABORALES */}
-                    {tabValue === 2 && (
                       <Fade in timeout={400}>
                         <Grid container spacing={2}>
                           <Grid item xs={12}>

@@ -102,6 +102,7 @@ export default function AdminDashboard() {
     const [attendanceTrend, setAttendanceTrend] = useState([]);
     const [clientDistribution, setClientDistribution] = useState([]);
     const [latestAttendances, setLatestAttendances] = useState([]);
+    const [latestUsers, setLatestUsers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const currentDate = new Date().toLocaleDateString('es-AR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
@@ -119,6 +120,7 @@ export default function AdminDashboard() {
                 setAttendanceTrend(data.attendanceTrend || []);
                 setClientDistribution(data.clientDistribution || []);
                 setLatestAttendances(data.latestAttendances || []);
+                setLatestUsers(data.latestUsers || []);
             } catch (err) {
                 setError(err.response?.data?.message || 'Error al cargar los datos del dashboard.');
             } finally {
@@ -302,33 +304,33 @@ export default function AdminDashboard() {
                 {/* LISTA DE EMPLEADOS */}
                 <Grid item xs={12} lg={4}>
                     <Card sx={{ borderRadius: 4, height: '100%', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.1)' }}>
-                        <CardHeader titleTypographyProps={{ fontWeight: 'bold' }} title="Nómina de Empleados" />
+                        <CardHeader titleTypographyProps={{ fontWeight: 'bold' }} title="Últimos Usuarios" />
                         <List sx={{ p: 0 }}>
-                            {employees.slice(0, 6).map((emp, index) => (
-                                <React.Fragment key={emp._id}>
+                            {latestUsers.map((user, index) => (
+                                <React.Fragment key={user._id}>
                                     <ListItem
                                         sx={{ py: 1.5, px: 3 }}
                                     >
                                         <ListItemAvatar>
                                             <Avatar sx={{ bgcolor: 'secondary.light' }}>
-                                                {emp.nombre ? emp.nombre[0] : 'U'}
+                                                {user.nombre ? user.nombre[0] : 'U'}
                                             </Avatar>
                                         </ListItemAvatar>
                                         <ListItemText
                                             primary={
                                                 <Typography variant="body1" fontWeight="500">
-                                                    {emp.nombre} {emp.apellido}
+                                                    {user.nombre} {user.apellido}
                                                 </Typography>
                                             }
-                                            secondary={emp.email}
+                                            secondary={user.email}
                                         />
                                         <Box>
                                             <Typography variant="caption" sx={{ bgcolor: 'grey.200', px: 1, py: 0.5, borderRadius: 1 }}>
-                                                {emp.rol}
+                                                {user.rol}
                                             </Typography>
                                         </Box>
                                     </ListItem>
-                                    {index < employees.length - 1 && <Divider component="li" variant="inset" />}
+                                    {index < latestUsers.length - 1 && <Divider component="li" variant="inset" />}
                                 </React.Fragment>
                             ))}
                         </List>

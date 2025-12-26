@@ -93,7 +93,7 @@ export const createAttendanceRecord = async (req, res, next) => {
             apellido: userExists.apellido,
             autoGenerado: false, // Es un registro manual
             motivo: estado === 'ausente' ? motivo : null,
-            nota: estado === 'ausente' ? nota : null,
+            nota: nota,
         });
 
         res.status(201).json({ message: "Registro de asistencia creado manualmente.", record: newRecord });

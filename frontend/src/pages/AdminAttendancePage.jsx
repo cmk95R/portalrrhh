@@ -387,7 +387,15 @@ export default function AdminAttendancePage() {
         />
       )
     },
-    { field: 'motivo', headerName: 'Motivo', width: 200 },
+    { 
+      field: 'motivo', 
+      headerName: 'Motivo | Nota', 
+      width: 200,
+      valueGetter: (v, row) => {
+        if (row.estado === 'presente') return row.nota || '';
+        return row.motivo || '';
+      }
+    },
     { field: 'actions', headerName: 'Acciones', width: 180, sortable: false,
       renderCell: (params) => (
         <Stack direction="row" spacing={0.5}>

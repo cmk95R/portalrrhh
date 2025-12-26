@@ -232,6 +232,16 @@ export const setDailyAttendance = async (req, res, next) => {
         const { fecha, estado, motivo, nota, horasExtras, guardia, horasFinDeSemana } = req.body; // <-- CORRECCIÓN
         const { _id: userId, nombre, apellido } = req.user;
 
+        // --- VALIDACIÓN DE REGLA DE NEGOCIO ---
+        // Calcular el lunes de la semana actual
+        // (day() devuelve 0 para domingo, 1 lunes... ajustamos para que lunes sea el inicio)
+        const today = dayjs();
+        const currentMonday = today.subtract((today.day() + 6) % 7, 'day').startOf('day');
+        
+        if (dayjs(fecha).isBefore(currentMonday)) {
+            return res.status(403).json({ message: 'No se pueden registrar asistencias de semanas anteriores.' });
+        }
+
         if (!fecha || !['presente', 'ausente'].includes(estado)) { // <-- CORRECCIÓN
             return res.status(400).json({ message: 'Fecha y estado (presente/ausente) son requeridos.' });
         }
@@ -246,7 +256,7 @@ export const setDailyAttendance = async (req, res, next) => {
                     nombre: nombre, // <-- AÑADIDO: Asegura que siempre esté presente
                     apellido: apellido, // <-- AÑADIDO: Asegura que siempre esté presente
                     motivo: estado === 'ausente' ? motivo : null,
-                    nota: estado === 'ausente' ? nota : null,
+                    nota: nota,
                     ...(typeof horasExtras === 'number' && { horasExtras }),
                     ...(guardia && ['ninguna', 'pasiva', 'activa'].includes(guardia) && { guardia }),
                     ...(typeof horasFinDeSemana === 'number' && { horasFinDeSemana }),
@@ -288,6 +298,9 @@ export const getMyMonthlyAttendance = async (req, res, next) => {
             return res.status(400).json({ message: 'Año y mes son requeridos.' });
         }
 
+        // --- AUTO-COMPLETAR AUSENCIAS ---
+        await fillMissingAbsences(userId, year, month, req.user);
+
         const records = await Asistencia.find({
             usuario: userId,
             fecha: { $regex: `^${year}-${String(month).padStart(2, '0')}` }
@@ -299,6 +312,62 @@ export const getMyMonthlyAttendance = async (req, res, next) => {
         next(error);
     }
 };
+
+// --- HELPER: Rellenar ausencias de días pasados ---
+async function fillMissingAbsences(userId, year, month, userData) {
+    try {
+        const today = dayjs();
+
+        // --- VALIDACIÓN ---
+        // Solo ejecutar esta lógica si el mes y año solicitados son los actuales.
+        if (parseInt(year) !== today.year() || parseInt(month) !== (today.month() + 1)) {
+            return; // No hacer nada si se consulta un mes pasado o futuro.
+        }
+
+        // Lunes de la semana actual (límite para considerar "pasado cerrado")
+        const currentMonday = today.subtract((today.day() + 6) % 7, 'day').startOf('day');
+
+        // Iteramos desde el día 1 del mes solicitado
+        let cursor = dayjs(`${year}-${month}-01`);
+        const endOfMonth = cursor.endOf('month');
+
+        // Solo procesamos hasta ayer o hasta fin de mes, lo que ocurra primero
+        // Y estrictamente antes del lunes actual (semanas cerradas)
+        const limitDate = today.isBefore(endOfMonth) ? today : endOfMonth;
+
+        const missingRecords = [];
+
+        while (cursor.isBefore(limitDate, 'day') && cursor.isBefore(currentMonday, 'day')) {
+            // Si es Lunes(1) a Viernes(5)
+            if (cursor.day() >= 1 && cursor.day() <= 5) {
+                const dateStr = cursor.format('YYYY-MM-DD');
+                
+                // Verificar si ya existe registro
+                const exists = await Asistencia.exists({ usuario: userId, fecha: dateStr });
+                
+                if (!exists) {
+                    missingRecords.push({
+                        usuario: userId,
+                        nombre: userData.nombre,
+                        apellido: userData.apellido,
+                        fecha: dateStr,
+                        diaSemana: diasSemana[cursor.day()],
+                        estado: 'ausente',
+                        autoGenerado: true,
+                        motivo: 'Falta de registro (Cierre de semana)'
+                    });
+                }
+            }
+            cursor = cursor.add(1, 'day');
+        }
+
+        if (missingRecords.length > 0) {
+            await Asistencia.insertMany(missingRecords);
+        }
+    } catch (error) {
+        console.error("Error autofilling absences:", error);
+    }
+}
 
 /**
  * @desc    Actualizar un registro de asistencia propio (ej. para horas extras, guardias).
