@@ -36,7 +36,10 @@ app.use(cookieParser());
 const allowedOrigins = [];
 if (IS_PROD) {
     if (process.env.FRONTEND_URL) {
-        allowedOrigins.push(process.env.FRONTEND_URL);
+        // Separa por comas para permitir varios dominios y limpia espacios
+        const origins = process.env.FRONTEND_URL.split(',').map(url => url.trim());
+        allowedOrigins.push(...origins);
+        console.log("🔒 CORS Allowed Origins:", allowedOrigins);
     } else {
         console.warn("⚠️ Advertencia: FRONTEND_URL no definida para producción.");
     }
