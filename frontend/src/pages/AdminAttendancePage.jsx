@@ -49,6 +49,7 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { DateCalendar } from '@mui/x-date-pickers/DateCalendar';
 import { PickersDay } from '@mui/x-date-pickers/PickersDay';
 import { getAllAttendanceApi, deleteAttendanceApi, createAttendanceApi, updateAttendanceApi } from '../api/adminAttendanceApi';
+import Swal from 'sweetalert2';
 
 // Configuración global de Dayjs
 dayjs.locale('es');
@@ -85,13 +86,15 @@ function ViewModal({ open, onClose, employee }) {
   const [currentMonth, setCurrentMonth] = useState(dayjs());
 
   useEffect(() => {
-    if (open && employee?.usuario) {
+    const userId = employee?.usuario?._id || employee?.usuario;
+    if (open && userId) {
       const fetchUserAttendance = async (date) => {
-        const year = date.year();
-        const month = date.month() + 1;
-        const { data } = await getAllAttendanceApi({ usuarioId: employee.usuario, page: 1, limit: 100, dateFrom: `${year}-${month}-01`, dateTo: date.endOf('month').format('YYYY-MM-DD') });
+        const dateFrom = date.startOf('month').format('YYYY-MM-DD');
+        const dateTo = date.endOf('month').format('YYYY-MM-DD');
+        const { data } = await getAllAttendanceApi({ usuarioId: userId, page: 1, limit: 100, dateFrom, dateTo });
         const mapped = (data.items || []).reduce((acc, rec) => {
-          acc[rec.fecha] = rec.estado;
+          const dateKey = dayjs(rec.fecha).format('YYYY-MM-DD');
+          acc[dateKey] = rec.estado;
           return acc;
         }, {});
         setAsistencias(mapped);
@@ -243,11 +246,12 @@ function ApplyAttendanceModal({ open, onClose, employee, onApplied }) {
   const [estado, setEstado] = useState('presente');
 
   const handleApply = async () => {
+    const userId = employee?.usuario?._id || employee?.usuario;
     try {
       if (estado === 'quitar') {
         // 1. Buscar si existe un registro ese día para el usuario
         const { data } = await getAllAttendanceApi({ 
-            usuarioId: employee.usuario, 
+            usuarioId: userId, 
             dateFrom: fecha, 
             dateTo: fecha 
         });
@@ -256,7 +260,7 @@ function ApplyAttendanceModal({ open, onClose, employee, onApplied }) {
             await deleteAttendanceApi(data.items[0]._id);
         }
       } else {
-        await createAttendanceApi({ usuario: employee.usuario, fecha, estado });
+        await createAttendanceApi({ usuario: userId, fecha, estado });
       }
       onApplied();
       onClose();
@@ -346,11 +350,37 @@ export default function AdminAttendancePage() {
     setPaginationModel(prev => ({ ...prev, page: 0 }));
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm('¿Eliminar registro?')) {
-      await deleteAttendanceApi(id);
-      fetchData();
-    }
+  const handleDelete = (id) => {
+    Swal.fire({
+      title: '¿Eliminar registro?',
+      text: "¿Estás seguro de que deseas eliminar este registro? Esta acción no se puede deshacer.",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d32f2f',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar',
+      showLoaderOnConfirm: true,
+      preConfirm: async () => {
+        try {
+          await deleteAttendanceApi(id);
+          return true;
+        } catch (error) {
+          Swal.showValidationMessage(`Error: ${error.message || 'No se pudo eliminar'}`);
+        }
+      }
+    }).then((result) => {
+      if (result.isConfirmed) {
+        fetchData();
+        Swal.fire({
+          title: '¡Eliminado!',
+          text: 'El registro ha sido eliminado.',
+          icon: 'success',
+          timer: 2000,
+          showConfirmButton: false
+        });
+      }
+    });
   };
 
   const handleOpenModal = (row, type) => {

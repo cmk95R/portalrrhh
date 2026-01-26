@@ -238,8 +238,14 @@ export const setDailyAttendance = async (req, res, next) => {
         const today = dayjs();
         const currentMonday = today.subtract((today.day() + 6) % 7, 'day').startOf('day');
         
-        if (dayjs(fecha).isBefore(currentMonday)) {
-            return res.status(403).json({ message: 'No se pueden registrar asistencias de semanas anteriores.' });
+        // Permitir carga hasta el miércoles de la semana siguiente
+        let lockDate = currentMonday;
+        if (today.day() >= 1 && today.day() <= 3) { // Lunes(1), Martes(2), Miércoles(3)
+            lockDate = currentMonday.subtract(1, 'week');
+        }
+
+        if (dayjs(fecha).isBefore(lockDate)) {
+            return res.status(403).json({ message: 'El tiempo para cargar esta asistencia ha expirado (Cierre: Miércoles).' });
         }
 
         if (!fecha || !['presente', 'ausente'].includes(estado)) { // <-- CORRECCIÓN
@@ -327,17 +333,23 @@ async function fillMissingAbsences(userId, year, month, userData) {
         // Lunes de la semana actual (límite para considerar "pasado cerrado")
         const currentMonday = today.subtract((today.day() + 6) % 7, 'day').startOf('day');
 
+        // Definir fecha de corte: Si es Lun-Mie, la semana anterior sigue abierta
+        let cutoffDate = currentMonday;
+        if (today.day() >= 1 && today.day() <= 3) {
+            cutoffDate = currentMonday.subtract(1, 'week');
+        }
+
         // Iteramos desde el día 1 del mes solicitado
         let cursor = dayjs(`${year}-${month}-01`);
         const endOfMonth = cursor.endOf('month');
 
         // Solo procesamos hasta ayer o hasta fin de mes, lo que ocurra primero
-        // Y estrictamente antes del lunes actual (semanas cerradas)
+        // Y estrictamente antes de la fecha de corte (semanas cerradas)
         const limitDate = today.isBefore(endOfMonth) ? today : endOfMonth;
 
         const missingRecords = [];
 
-        while (cursor.isBefore(limitDate, 'day') && cursor.isBefore(currentMonday, 'day')) {
+        while (cursor.isBefore(limitDate, 'day') && cursor.isBefore(cutoffDate, 'day')) {
             // Si es Lunes(1) a Viernes(5)
             if (cursor.day() >= 1 && cursor.day() <= 5) {
                 const dateStr = cursor.format('YYYY-MM-DD');
@@ -386,6 +398,19 @@ export const updateMyAttendance = async (req, res, next) => {
 
         if (!record) {
             return res.status(404).json({ message: "Registro de asistencia no encontrado o no te pertenece." });
+        }
+
+        // --- VALIDACIÓN DE FECHA ---
+        // Aplicar la misma regla: se puede editar hasta el miércoles de la semana siguiente
+        const today = dayjs();
+        const currentMonday = today.subtract((today.day() + 6) % 7, 'day').startOf('day');
+        let lockDate = currentMonday;
+        if (today.day() >= 1 && today.day() <= 3) {
+            lockDate = currentMonday.subtract(1, 'week');
+        }
+
+        if (dayjs(record.fecha).isBefore(lockDate)) {
+            return res.status(403).json({ message: "No se puede modificar una asistencia de una semana cerrada." });
         }
 
         // Aplicar actualizaciones de forma segura

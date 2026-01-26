@@ -36,22 +36,24 @@ app.use(cookieParser());
 const allowedOrigins = [];
 if (IS_PROD) {
     if (process.env.FRONTEND_URL) {
-        // Separa por comas para permitir varios dominios y limpia espacios
-        const origins = process.env.FRONTEND_URL.split(',').map(url => url.trim());
+        // Separa por comas y limpia espacios. Si falta protocolo, agrega https://
+        const origins = process.env.FRONTEND_URL.split(',').map(url => {
+            const u = url.trim();
+            return u.startsWith('http') ? u : `https://${u}`;
+        });
         allowedOrigins.push(...origins);
         console.log("🔒 CORS Allowed Origins:", allowedOrigins);
-    } else {
-        console.warn("⚠️ Advertencia: FRONTEND_URL no definida para producción.");
     }
 } else {
-    allowedOrigins.push("http://localhost:5173"); // Tu frontend de desarrollo
+    allowedOrigins.push("http://localhost:5173"); // En desarrollo, solo el local.
 }
+
 const corsOptions = {
     origin: function (origin, callback) {
         if (!origin || allowedOrigins.includes(origin)) {
             callback(null, true);
         } else {
-            console.error(`CORS bloqueado para el origen: ${origin}`);
+            console.error(`CORS bloqueado para el origen: ${origin}. Permitidos: ${allowedOrigins.join(', ')}`);
             callback(new Error('Not allowed by CORS'));
         }
     },
