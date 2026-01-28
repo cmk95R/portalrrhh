@@ -257,11 +257,11 @@ const AttendanceCalendar = () => {
         <Grid container spacing={3}>
 
           {/* === COLUMNA IZQUIERDA: Calendario y Controles === */}
-          <Grid size={{ xs: 12, md: 7, lg: 8 }}>
+          <Grid size={{ xs: 12, md: 7, lg: 6 }}>
             <Stack spacing={3}>
 
               {/* Calendario */}
-              <Paper elevation={2} sx={{ p: 2, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <Paper elevation={2} sx={{ p: 2, display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
                 <DateCalendar
                   value={selectedDate}
                   onChange={setSelectedDate}
@@ -274,7 +274,7 @@ const AttendanceCalendar = () => {
 
               {/* Controles de Acción */}
               <Paper elevation={2} sx={{ p: 3 }}>
-                <Typography variant="h6" gutterBottom display="flex" alignItems="center" gap={1}>
+                <Typography variant="h6" gutterBottom display="flex" alignItems="center" gap={1} sx={{ textTransform: 'uppercase' }}>
                   <Today /> {selectedDate.format('dddd, DD [de] MMMM')}
                 </Typography>
                 <Divider sx={{ mb: 2 }} />
@@ -311,11 +311,11 @@ const AttendanceCalendar = () => {
           </Grid>
 
           {/* === COLUMNA DERECHA: Listados e Información === */}
-          <Grid size={{ xs: 12, md: 5, lg: 4 }}>
+          <Grid size={{ xs: 12, md: 5, lg: 5 }}>
             <Stack spacing={3}>
 
               {/* Estado del Mes */}
-              <Paper elevation={2} sx={{ p: 2, maxHeight: 400, overflow: 'auto' }}>
+              <Paper elevation={2} sx={{ p: 2, maxHeight: 368, overflow: 'auto'}}>
                 <Typography variant="h6" gutterBottom stickyHeader>
                   Resumen Mensual
                 </Typography>

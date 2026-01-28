@@ -137,21 +137,14 @@ export default function AdminDashboard() {
     }
 
     // --- Procesamiento de datos para gráficos ---
-    const roleData = employees.reduce((acc, emp) => {
-        const role = emp.rol || 'desconocido';
-        acc[role] = (acc[role] || 0) + 1;
-        return acc;
-    }, {});
-
-    const pieChartData = Object.keys(roleData).map(key => ({
-        name: key.charAt(0).toUpperCase() + key.slice(1),
-        value: roleData[key]
-    }));
+    const pieChartData = [
+        { name: 'PRESENTES', value: stats?.attendanceToday || 0 },
+        { name: 'AUSENTES', value: stats?.absentToday || 0 }
+    ];
 
     const PIE_COLORS = {
-        'Empleado': theme.palette.primary.main,
-        'Rrhh': theme.palette.primary.light,
-        'Admin': theme.palette.success.main,
+        'PRESENTES': theme.palette.primary.light,
+        'AUSENTES': theme.palette.primary.dark,
     };
 
     const processAttendanceTrend = (trendData) => {
@@ -197,7 +190,7 @@ export default function AdminDashboard() {
             {/* SECCIÓN DE GRÁFICOS */}
             <Grid container spacing={3} mb={3}>
                 {/* Gráfico de Asistencias */}
-                <Grid size={{ xs: 12, lg: 8 }}>
+                <Grid size={{ xs: 12, lg: 4 }}>
                     <Card sx={{ borderRadius: 4, height: '100%', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.1)' }}>
                         <CardHeader titleTypographyProps={{ fontWeight: 'bold' }} title="Asistencias de la Última Semana" />
                         <CardContent>
@@ -214,10 +207,10 @@ export default function AdminDashboard() {
                     </Card>
                 </Grid>
 
-                {/* Gráfico de Roles */}
+                {/* Gráfico de Asistencia Hoy (Reemplaza a Roles) */}
                 <Grid size={{ xs: 12, lg: 4 }}>
                     <Card sx={{ borderRadius: 4, height: '100%', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.1)' }}>
-                        <CardHeader titleTypographyProps={{ fontWeight: 'bold' }} title="Distribución de Roles" />
+                        <CardHeader titleTypographyProps={{ fontWeight: 'bold' }} title="Estado de Asistencia Hoy" />
                         <CardContent>
                             <ResponsiveContainer width="100%" height={300}>
                                 <PieChart>
@@ -229,14 +222,14 @@ export default function AdminDashboard() {
                                         outerRadius={110}
                                         fill="#8884d8"
                                         dataKey="value"
-                                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                                        label={({ name, percent }) => `${name.toUpperCase()} ${(percent * 100).toFixed(0)}%`}
                                     >
                                         {pieChartData.map((entry, index) => (
                                             <Cell key={`cell-${index}`} fill={PIE_COLORS[entry.name] || '#8884d8'} />
                                         ))}
                                     </Pie>
                                     <Tooltip />
-                                    <Legend />
+                                    <Legend formatter={(value) => value.toUpperCase()} />
                                 </PieChart>
                             </ResponsiveContainer>
                         </CardContent>
@@ -244,7 +237,7 @@ export default function AdminDashboard() {
                 </Grid>
 
                 {/* Gráfico de Distribución por Cliente */}
-                <Grid size={{ xs: 12 }}>
+                <Grid size={{ xs: 12 ,lg:4}}>
                     <Card sx={{ borderRadius: 4, height: '100%', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.1)' }}>
                         <CardHeader titleTypographyProps={{ fontWeight: 'bold' }} title="Distribución por Cliente" />
                         <CardContent>
@@ -265,7 +258,7 @@ export default function AdminDashboard() {
             {/* SECCIÓN PRINCIPAL */}
             <Grid container spacing={3}>
                 {/* ÚLTIMAS ASISTENCIAS */}
-                <Grid size={{ xs: 12, lg: 4 }}>
+                <Grid size={{ xs: 12, md: 4  }}>
                     <Card sx={{ borderRadius: 4, height: '100%', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.1)' }}>
                         <CardHeader titleTypographyProps={{ fontWeight: 'bold' }} title="Últimas Asistencias" />
                         <List sx={{ p: 0 }}>
@@ -341,7 +334,7 @@ export default function AdminDashboard() {
                 </Grid>
 
                 {/* ACCIONES RÁPIDAS */}
-                <Grid size={{ xs: 12, lg: 4 }}>
+                <Grid size={{ xs: 12, lg:4 }} height={"50%"}>
                     <Card sx={{ borderRadius: 4, height: '100%', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.1)' }}>
                         <CardHeader titleTypographyProps={{ fontWeight: 'bold' }} title="Acciones Rápidas" />
                         <CardContent>

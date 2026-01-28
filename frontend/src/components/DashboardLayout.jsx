@@ -11,6 +11,8 @@ import { AuthContext } from "../context/AuthContext";
 import { ColorModeContext } from "../context/ColorModeContext";
 
 // Iconos
+import HowToRegIcon from '@mui/icons-material/HowToReg';
+import FactCheckIcon from '@mui/icons-material/FactCheck';
 import MenuIcon from "@mui/icons-material/Menu";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
@@ -162,8 +164,9 @@ export default function DashboardLayout() {
   const adminMenu = [
     { text: "Dashboard", icon: <HomeIcon />, path: "/admin/dashboard" },
     { text: "Mi Perfil", icon: <PersonIcon />, path: "/profile" },
+    { text: "Mi Asistencia", icon: <CoPresentIcon />, path: "/my-attendance" },
     { text: "Gestión de Usuarios", icon: <AdminPanelSettingsIcon />, path: "/admin/users" },
-    { text: "Gestión de Asistencias", icon: <CoPresentIcon />, path: "/admin/attendance" },
+    { text: "Gestión de Asistencias", icon: <HowToRegIcon />, path: "/admin/attendance" },
     { text: "Cerrar Sesión", icon: <LogoutIcon />, action: "logout" },
   ];
 
@@ -173,7 +176,7 @@ export default function DashboardLayout() {
     { text: "Mi Perfil", icon: <PersonIcon />, path: "/profile" },
     { text: "Mi Asistencia", icon: <CoPresentIcon />, path: "/my-attendance" },
     { text: "Gestión de Usuarios", icon: <AdminPanelSettingsIcon />, path: "/admin/users" },
-    { text: "Gestión de Asistencias", icon: <CoPresentIcon />, path: "/admin/attendance" },
+    { text: "Gestión de Asistencias", icon: <HowToRegIcon />, path: "/admin/attendance" },
     { text: "Cerrar Sesión", icon: <LogoutIcon />, action: "logout" },
   ];
 
