@@ -8,7 +8,6 @@ import AdminUsersGrid from './pages/AdminUserGrid';
 
 import Profile from './pages/profile';
 
-import LoginSso from "./pages/LoginSso";
 import AttendancePage from './pages/AttendancePage'; // <-- 1. Importa la nueva página
 import ProtectedRoute from './components/ProtectedRoute'; // ¡Importa el nuevo componente!
 
@@ -25,23 +24,21 @@ function App() {
       <Route element={<DashboardLayout />}>
         <Route path="/" element={<Home />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/admin/users" element={<AdminUsersGrid />} />
         <Route path="/login/sso" element={<GoogleAuthCallback />} />
-        <Route path="/admin/dashboard" element={<Dashboard   />} />
-        {/* 👇 AQUÍ APLICAMOS LA PROTECCIÓN 👇 */}
-          <Route 
-            path="/my-attendance" 
-            element={
-              <ProtectedRoute>
-                <AttendancePage />
-              </ProtectedRoute>
-            } 
-          />
-        <Route path="/profile" element={<Profile />} />
-        {/* <Route path="/login" element={<Login />} /> */}
-        <Route path="/admin/attendance" element={<AdminAttendancePage />} />
-        <Route path="/my-attendance" element={<AttendancePage />} /> {/* <-- 2. Añade la ruta */}
-        <Route path="/login/sso" element={<LoginSso />} />
+
+        {/* --- RUTAS PROTEGIDAS PARA ADMIN Y RRHH --- */}
+        {/* Si un empleado intenta entrar aquí, ProtectedRoute lo redirige a /profile */}
+        <Route element={<ProtectedRoute allowedRoles={['admin', 'rrhh']} />}>
+          <Route path="/admin/dashboard" element={<Dashboard />} />
+          <Route path="/admin/users" element={<AdminUsersGrid />} />
+          <Route path="/admin/attendance" element={<AdminAttendancePage />} />
+        </Route>
+
+        {/* --- RUTAS PROTEGIDAS GENERALES (Cualquier usuario logueado) --- */}
+        <Route element={<ProtectedRoute />}>
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/my-attendance" element={<AttendancePage />} />
+        </Route>
         
       </Route>
 

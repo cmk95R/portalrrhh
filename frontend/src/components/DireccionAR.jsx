@@ -53,7 +53,7 @@ export default function DireccionAR({ value, onChange, required }) {
     return (
         <Grid container spacing={2.5}>
             {/* --- Autocomplete de Provincia (ahora usa el estado) --- */}
-            <Grid item xs={12} sm={6} width={225}>
+            <Grid size={{ xs: 12, sm: 6 }} width={225}>
                 <Autocomplete
                     
                     options={provincias} // <-- 5. Usa el estado 'provincias'
@@ -83,7 +83,7 @@ export default function DireccionAR({ value, onChange, required }) {
             </Grid>
 
             {/* --- TextField de Localidad (sin cambios) --- */}
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
                 <TextField
                     width={150}
                     label="Localidad"

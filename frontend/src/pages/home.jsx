@@ -186,7 +186,7 @@ const Home = () => {
           <Typography variant="h4" gutterBottom textAlign="center"></Typography>
           <Grid container spacing={3} sx={{ display: { xs: "grid", width: "max-content", justifyContent: "space-around", lg: "flex" } }}>
             {valores.map((v, i) => (
-              <Grid item xs={12} sm={6} md={3} key={i}>
+              <Grid size={{ xs: 12, sm: 6, md: 3 }} key={i}>
                 <motion.div variants={cardVariants} whileHover={{ y: -6 }}>
                   <Card sx={{ borderRadius: 3, boxShadow: 3, width: "360px", height: "300px", display: 'flex', flexDirection: 'column' }}>
                     <CardActionArea>
@@ -241,7 +241,7 @@ const Home = () => {
           </Typography>
           <Grid container spacing={3} sx={{ display: { xs: "grid" , lg: "flex"}, justifyContent: "center"}}>
             {areas.map((a, i) => (
-              <Grid item xs={12} sm={6} md={3} key={i}>
+              <Grid size={{ xs: 12, sm: 6, md: 3 }} key={i}>
                 <motion.div variants={cardVariants} whileHover={{ y: -6, scale: 1.01 }}>
                   <Card
                     sx={{

@@ -21,14 +21,6 @@ import {
   Select,
   MenuItem,
   Avatar,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TablePagination,
-  Paper
 } from '@mui/material';
 
 // --- ICONOS ---
@@ -38,18 +30,20 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import MessageIcon from '@mui/icons-material/Message';
 import EventIcon from '@mui/icons-material/Event';
+import AddIcon from '@mui/icons-material/Add';
 
 import dayjs from 'dayjs';
 import 'dayjs/locale/es';
 
 import { DataGrid, GridToolbar } from '@mui/x-data-grid';
 import { esES } from '@mui/x-data-grid/locales';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import { DateCalendar } from '@mui/x-date-pickers/DateCalendar';
-import { PickersDay } from '@mui/x-date-pickers/PickersDay';
-import { getAllAttendanceApi, deleteAttendanceApi, createAttendanceApi, updateAttendanceApi } from '../api/adminAttendanceApi';
+import { getAllAttendanceApi, deleteAttendanceApi } from '../api/adminAttendanceApi';
 import Swal from 'sweetalert2';
+
+// --- Componentes Reutilizables ---
+import ViewAttendanceModal from '../components/admin/ViewAttendanceModal';
+import EditAttendanceModal from '../components/admin/EditAttendanceModal';
+import CreateAttendanceModal from '../components/admin/CreateAttendanceModal';
 
 // Configuración global de Dayjs
 dayjs.locale('es');
@@ -80,130 +74,6 @@ const formatTime = (dateStr) => {
 };
 
 // --- Componentes Modales ---
-
-function ViewModal({ open, onClose, employee }) {
-  const [asistencias, setAsistencias] = useState({});
-  const [currentMonth, setCurrentMonth] = useState(dayjs());
-
-  useEffect(() => {
-    const userId = employee?.usuario?._id || employee?.usuario;
-    if (open && userId) {
-      const fetchUserAttendance = async (date) => {
-        const dateFrom = date.startOf('month').format('YYYY-MM-DD');
-        const dateTo = date.endOf('month').format('YYYY-MM-DD');
-        const { data } = await getAllAttendanceApi({ usuarioId: userId, page: 1, limit: 100, dateFrom, dateTo });
-        const mapped = (data.items || []).reduce((acc, rec) => {
-          const dateKey = dayjs(rec.fecha).format('YYYY-MM-DD');
-          acc[dateKey] = rec.estado;
-          return acc;
-        }, {});
-        setAsistencias(mapped);
-      };
-      fetchUserAttendance(currentMonth);
-    }
-  }, [open, employee, currentMonth]);
-
-  if (!employee) return null;
-
-  const CustomDay = (props) => {
-    const { day, ...other } = props;
-    const dateStr = day.format('YYYY-MM-DD');
-    const estado = asistencias[dateStr];
-    
-    let backgroundColor = 'transparent';
-    let textColor = 'inherit';
-
-    if (estado) {
-      if (estado === 'presente') {
-          backgroundColor = '#2e7d32'; 
-          textColor = 'white';
-      } else if (estado === 'ausente') {
-          backgroundColor = '#d32f2f'; 
-          textColor = 'white';
-      } else {
-          backgroundColor = '#ed6c02';
-          textColor = 'white';
-      }
-    }
-
-    return (
-      <PickersDay
-        {...other}
-        day={day}
-        sx={{
-          backgroundColor,
-          color: textColor,
-          '&:hover': { backgroundColor },
-        }}
-      />
-    );
-  };
-
-  return (
-    <Modal open={open} onClose={onClose}>
-      <Box sx={modalStyle}>
-        <Stack direction="row" alignItems="center" spacing={2} mb={3}>
-            <Avatar sx={{ bgcolor: 'primary.main', width: 56, height: 56 }}>
-                {employee.nombre ? employee.nombre[0] : 'U'}
-            </Avatar>
-            <Box>
-                <Typography variant="h5" fontWeight="bold">
-                    {employee.nombre} {employee.apellido}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                    Historial de Asistencias
-                </Typography>
-            </Box>
-        </Stack>
-
-        <Grid container spacing={4}>
-          <Grid item xs={12} md={6}>
-            <Card variant="outlined">
-                <CardContent>
-                    <Stack direction="row" alignItems="center" spacing={1} mb={2}>
-                        <EventIcon color="action" />
-                        <Typography variant="subtitle1" fontWeight="bold">Vista Calendario</Typography>
-                    </Stack>
-                    <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="es">
-                    <DateCalendar
-                        slots={{ day: CustomDay }}
-                        readOnly
-                        onMonthChange={(newMonth) => setCurrentMonth(newMonth)}
-                    />
-                    </LocalizationProvider>
-                </CardContent>
-            </Card>
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <Card variant="outlined" sx={{ height: '100%' }}>
-                <CardContent>
-                    <Typography variant="subtitle1" fontWeight="bold" gutterBottom>Últimos registros</Typography>
-                    <List sx={{ maxHeight: 300, overflow: 'auto' }}>
-                    {Object.entries(asistencias).map(([fecha, estado]) => (
-                        <ListItem key={fecha} divider>
-                        <ListItemText
-                            primary={dayjs(fecha).format('dddd, DD [de] MMMM')}
-                            secondary={
-                                <Chip 
-                                    label={estado} 
-                                    size="small" 
-                                    color={estado === 'presente' ? 'success' : 'error'} 
-                                    sx={{ mt: 0.5 }}
-                                />
-                            }
-                            secondaryTypographyProps={{ component: 'div' }}
-                        />
-                        </ListItem>
-                    ))}
-                    </List>
-                </CardContent>
-            </Card>
-          </Grid>
-        </Grid>
-      </Box>
-    </Modal>
-  );
-}
 
 function MessageModal({ open, onClose, employee, onSent }) {
   const [message, setMessage] = useState('');
@@ -241,71 +111,6 @@ function MessageModal({ open, onClose, employee, onSent }) {
   );
 }
 
-function ApplyAttendanceModal({ open, onClose, employee, onApplied }) {
-  const [fecha, setFecha] = useState(dayjs().format('YYYY-MM-DD'));
-  const [estado, setEstado] = useState('presente');
-
-  const handleApply = async () => {
-    const userId = employee?.usuario?._id || employee?.usuario;
-    try {
-      if (estado === 'quitar') {
-        // 1. Buscar si existe un registro ese día para el usuario
-        const { data } = await getAllAttendanceApi({ 
-            usuarioId: userId, 
-            dateFrom: fecha, 
-            dateTo: fecha 
-        });
-        // 2. Si existe, eliminarlo
-        if (data.items && data.items.length > 0) {
-            await deleteAttendanceApi(data.items[0]._id);
-        }
-      } else {
-        await createAttendanceApi({ usuario: userId, fecha, estado });
-      }
-      onApplied();
-      onClose();
-    } catch (error) {
-      console.error("Error al aplicar asistencia:", error);
-      alert(error.response?.data?.message || "No se pudo aplicar la asistencia.");
-    }
-  };
-
-  if (!employee) return null;
-
-  return (
-    <Modal open={open} onClose={onClose}>
-      <Box sx={{ ...modalStyle, width: 400 }}>
-        <Typography variant="h6" gutterBottom>Corrección Manual</Typography>
-        <Typography variant="body2" color="text.secondary" paragraph>
-            Empleado: {employee.nombre} {employee.apellido}
-        </Typography>
-        <Stack spacing={3} mt={2}>
-            <TextField
-                fullWidth type="date" label="Fecha"
-                value={fecha} onChange={(e) => setFecha(e.target.value)}
-                InputLabelProps={{ shrink: true }}
-            />
-            <FormControl fullWidth>
-            <InputLabel>Nuevo Estado</InputLabel>
-            <Select value={estado} label="Nuevo Estado" onChange={(e) => setEstado(e.target.value)}>
-                <MenuItem value="presente">Presente</MenuItem>
-                <MenuItem value="ausente">Ausente</MenuItem>
-                <MenuItem value="no-aplica">No Aplica</MenuItem>
-                <MenuItem value="quitar" sx={{ color: 'error.main', borderTop: '1px solid #e0e0e0' }}>
-                  Quitar Asistencia (Limpiar día)
-                </MenuItem>
-            </Select>
-            </FormControl>
-            <Stack direction="row" spacing={2} justifyContent="flex-end">
-                <Button onClick={onClose} color="inherit">Cancelar</Button>
-                <Button variant="contained" color="warning" onClick={handleApply}>Guardar</Button>
-            </Stack>
-        </Stack>
-      </Box>
-    </Modal>
-  );
-}
-
 // --- Componente Principal ---
 export default function AdminAttendancePage() {
   const [rows, setRows] = useState([]);
@@ -319,6 +124,7 @@ export default function AdminAttendancePage() {
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [messageModalOpen, setMessageModalOpen] = useState(false);
   const [applyModalOpen, setApplyModalOpen] = useState(false);
+  const [createModalOpen, setCreateModalOpen] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -348,6 +154,12 @@ export default function AdminAttendancePage() {
 
   const handleFilterSubmit = () => {
     setPaginationModel(prev => ({ ...prev, page: 0 }));
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      handleFilterSubmit();
+    }
   };
 
   const handleDelete = (id) => {
@@ -446,24 +258,36 @@ export default function AdminAttendancePage() {
                       Gestión de Asistencias
                     </Typography>
         </Box>
-        <Button variant="outlined" startIcon={<RefreshIcon />} onClick={fetchData} disabled={loading}>Actualizar</Button>
+        <Stack direction="row" spacing={2}>
+            <Button variant="contained" startIcon={<AddIcon />} onClick={() => setCreateModalOpen(true)}>Crear Asistencia</Button>
+            <Button variant="outlined" startIcon={<RefreshIcon />} onClick={fetchData} disabled={loading}>Actualizar</Button>
+        </Stack>
       </Stack>
 
       <Card sx={{ mb: 3, borderRadius: 2 }}>
         <CardContent>
           <Typography variant="subtitle2" gutterBottom fontWeight="bold">FILTROS</Typography>
           <Stack direction="row" spacing={2}>
-            <TextField label="Buscar..." size="small" value={filters.q} onChange={(e) => setFilters(p => ({ ...p, q: e.target.value }))} fullWidth />
+            <TextField 
+              label="Buscar..." 
+              size="small" 
+              value={filters.q} 
+              onChange={(e) => setFilters(p => ({ ...p, q: e.target.value }))} 
+              onKeyDown={handleKeyDown}
+              fullWidth 
+            />
             <TextField
               label="Desde" type="date" size="small"
               value={filters.dateFrom}
               onChange={(e) => setFilters(p => ({ ...p, dateFrom: e.target.value }))}
+              onKeyDown={handleKeyDown}
               InputLabelProps={{ shrink: true }}
             />
             <TextField
               label="Hasta" type="date" size="small"
               value={filters.dateTo}
               onChange={(e) => setFilters(p => ({ ...p, dateTo: e.target.value }))}
+              onKeyDown={handleKeyDown}
               InputLabelProps={{ shrink: true }}
             />
             <Button variant="contained" onClick={handleFilterSubmit}>BUSCAR</Button>
@@ -487,9 +311,10 @@ export default function AdminAttendancePage() {
         />
       </Card>
 
-      <ViewModal open={viewModalOpen} onClose={() => setViewModalOpen(false)} employee={selectedEmployee} />
+      <ViewAttendanceModal open={viewModalOpen} onClose={() => setViewModalOpen(false)} employee={selectedEmployee} />
       <MessageModal open={messageModalOpen} onClose={() => setMessageModalOpen(false)} employee={selectedEmployee} />
-      <ApplyAttendanceModal open={applyModalOpen} onClose={() => setApplyModalOpen(false)} employee={selectedEmployee} onApplied={fetchData} />
+      <EditAttendanceModal open={applyModalOpen} onClose={() => setApplyModalOpen(false)} employee={selectedEmployee} onApplied={fetchData} />
+      <CreateAttendanceModal open={createModalOpen} onClose={() => setCreateModalOpen(false)} onCreated={fetchData} />
     </Container>
   );
 }

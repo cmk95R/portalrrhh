@@ -79,14 +79,14 @@ const DashboardSkeleton = () => (
         <Skeleton variant="text" width="40%" height={60} />
         <Grid container spacing={3} mt={1}>
             {Array.from(new Array(4)).map((_, index) => (
-                <Grid item xs={12} sm={6} md={4} key={index}>
+                <Grid size={{ xs: 12, sm: 6, md: 4 }} key={index}>
                     <Skeleton variant="rectangular" height={110} sx={{ borderRadius: 4 }} />
                 </Grid>
             ))}
-            <Grid item xs={12} lg={8}>
+            <Grid size={{ xs: 12, lg: 8 }}>
                 <Skeleton variant="rectangular" height={400} sx={{ borderRadius: 4 }} />
             </Grid>
-            <Grid item xs={12} lg={4}>
+            <Grid size={{ xs: 12, lg: 4 }}>
                 <Skeleton variant="rectangular" height={400} sx={{ borderRadius: 4 }} />
             </Grid>
         </Grid>
@@ -150,7 +150,7 @@ export default function AdminDashboard() {
 
     const PIE_COLORS = {
         'Empleado': theme.palette.primary.main,
-        'Rrhh': theme.palette.info.main,
+        'Rrhh': theme.palette.primary.light,
         'Admin': theme.palette.success.main,
     };
 
@@ -180,16 +180,16 @@ export default function AdminDashboard() {
             
             {/* TARJETAS DE ESTADÍSTICAS */}
             <Grid container spacing={3} mb={3}>
-                <Grid item xs={12} sm={6} md={3}>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                     <StatCard title="Asistencias Hoy" value={stats.attendanceToday} icon={<CoPresentIcon />} color="success" />
                 </Grid>
-                <Grid item xs={12} sm={6} md={3}>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                     <StatCard title="Ausentes Hoy" value={stats.absentToday} icon={<PersonOffIcon />} color="error" />
                 </Grid>
-                <Grid item xs={12} sm={6} md={3}>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                     <StatCard title="Clientes Totales" value={stats.totalClients} icon={<BusinessIcon />} color="info" />
                 </Grid>
-                <Grid item xs={12} sm={6} md={3}>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                     <StatCard title="Empleados" value={stats.totalUsers} icon={<PeopleIcon />} color="primary" />
                 </Grid>
             </Grid>
@@ -197,7 +197,7 @@ export default function AdminDashboard() {
             {/* SECCIÓN DE GRÁFICOS */}
             <Grid container spacing={3} mb={3}>
                 {/* Gráfico de Asistencias */}
-                <Grid item xs={12} lg={8}>
+                <Grid size={{ xs: 12, lg: 8 }}>
                     <Card sx={{ borderRadius: 4, height: '100%', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.1)' }}>
                         <CardHeader titleTypographyProps={{ fontWeight: 'bold' }} title="Asistencias de la Última Semana" />
                         <CardContent>
@@ -215,7 +215,7 @@ export default function AdminDashboard() {
                 </Grid>
 
                 {/* Gráfico de Roles */}
-                <Grid item xs={12} lg={4}>
+                <Grid size={{ xs: 12, lg: 4 }}>
                     <Card sx={{ borderRadius: 4, height: '100%', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.1)' }}>
                         <CardHeader titleTypographyProps={{ fontWeight: 'bold' }} title="Distribución de Roles" />
                         <CardContent>
@@ -244,7 +244,7 @@ export default function AdminDashboard() {
                 </Grid>
 
                 {/* Gráfico de Distribución por Cliente */}
-                <Grid item xs={12}>
+                <Grid size={{ xs: 12 }}>
                     <Card sx={{ borderRadius: 4, height: '100%', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.1)' }}>
                         <CardHeader titleTypographyProps={{ fontWeight: 'bold' }} title="Distribución por Cliente" />
                         <CardContent>
@@ -265,7 +265,7 @@ export default function AdminDashboard() {
             {/* SECCIÓN PRINCIPAL */}
             <Grid container spacing={3}>
                 {/* ÚLTIMAS ASISTENCIAS */}
-                <Grid item xs={12} lg={4}>
+                <Grid size={{ xs: 12, lg: 4 }}>
                     <Card sx={{ borderRadius: 4, height: '100%', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.1)' }}>
                         <CardHeader titleTypographyProps={{ fontWeight: 'bold' }} title="Últimas Asistencias" />
                         <List sx={{ p: 0 }}>
@@ -302,7 +302,7 @@ export default function AdminDashboard() {
                 </Grid>
 
                 {/* LISTA DE EMPLEADOS */}
-                <Grid item xs={12} lg={4}>
+                <Grid size={{ xs: 12, lg: 4 }}>
                     <Card sx={{ borderRadius: 4, height: '100%', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.1)' }}>
                         <CardHeader titleTypographyProps={{ fontWeight: 'bold' }} title="Últimos Usuarios" />
                         <List sx={{ p: 0 }}>
@@ -341,7 +341,7 @@ export default function AdminDashboard() {
                 </Grid>
 
                 {/* ACCIONES RÁPIDAS */}
-                <Grid item xs={12} lg={4}>
+                <Grid size={{ xs: 12, lg: 4 }}>
                     <Card sx={{ borderRadius: 4, height: '100%', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.1)' }}>
                         <CardHeader titleTypographyProps={{ fontWeight: 'bold' }} title="Acciones Rápidas" />
                         <CardContent>

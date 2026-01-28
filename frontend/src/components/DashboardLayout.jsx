@@ -25,6 +25,7 @@ import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
 
 const drawerWidth = 280;
+const API_URL = import.meta.env.VITE_API_URL || "";
 
 // === MIXINS PARA ESCRITORIO ===
 const openedMixin = (theme) => ({
@@ -133,6 +134,16 @@ export default function DashboardLayout() {
   const handleMenuOpen = (e) => setAnchorEl(e.currentTarget);
   const handleMenuClose = () => setAnchorEl(null);
 
+  const getPhotoUrl = (path) => {
+    if (!path) return "";
+    if (path.startsWith("http") || path.startsWith("data:")) return path;
+    if (path.startsWith("/api")) {
+      const base = API_URL.endsWith('/api') ? API_URL.slice(0, -4) : API_URL;
+      return `${base}${path}`;
+    }
+    return path;
+  };
+
   const isAdmin = user?.rol === "admin";
 
   // === DEFINICIÓN DE MENÚS ===
@@ -149,14 +160,18 @@ export default function DashboardLayout() {
   ];
 
   const adminMenu = [
-    { text: "Inicio", icon: <HomeIcon />, path: "/admin/dashboard" },
+    { text: "Dashboard", icon: <HomeIcon />, path: "/admin/dashboard" },
+    { text: "Mi Perfil", icon: <PersonIcon />, path: "/profile" },
     { text: "Gestión de Usuarios", icon: <AdminPanelSettingsIcon />, path: "/admin/users" },
     { text: "Gestión de Asistencias", icon: <CoPresentIcon />, path: "/admin/attendance" },
     { text: "Cerrar Sesión", icon: <LogoutIcon />, action: "logout" },
   ];
 
   const rrhhMenu = [
-    { text: "Inicio", icon: <HomeIcon />, path: "/" },
+    
+    { text: "Dashboard", icon: <HomeIcon />, path: "/admin/dashboard" },
+    { text: "Mi Perfil", icon: <PersonIcon />, path: "/profile" },
+    { text: "Mi Asistencia", icon: <CoPresentIcon />, path: "/my-attendance" },
     { text: "Gestión de Usuarios", icon: <AdminPanelSettingsIcon />, path: "/admin/users" },
     { text: "Gestión de Asistencias", icon: <CoPresentIcon />, path: "/admin/attendance" },
     { text: "Cerrar Sesión", icon: <LogoutIcon />, action: "logout" },
@@ -285,13 +300,14 @@ export default function DashboardLayout() {
           </IconButton>
 
           <Box
-            component={Link}
-            to="/"
+            {...((user?.rol === 'admin' || user?.rol === 'rrhh') ? { component: Link, to: "/admin/dashboard" } : {})}
             sx={{
               flexGrow: 1,
               display: 'flex',
               alignItems: 'center',
               textDecoration: "none",
+              cursor: (user?.rol === 'admin' || user?.rol === 'rrhh') ? 'pointer' : 'default',
+              color: 'inherit'
             }}
           >
             <Box component="img" src="/logo_blanco.png" alt="logo" sx={{ height: '35px', width: 'auto' }} />
@@ -325,7 +341,7 @@ export default function DashboardLayout() {
               </Typography>
               <Tooltip title="Cuenta">
                 <IconButton onClick={handleMenuOpen} sx={{ p: 0 }}>
-                  <Avatar alt={user.nombre} src={user.avatarUrl || ""} sx={{ bgcolor: theme.palette.primary.light }} />
+                  <Avatar alt={user.nombre} src={getPhotoUrl(user.foto)} sx={{ bgcolor: theme.palette.primary.light }} />
                 </IconButton>
               </Tooltip>
               <Menu

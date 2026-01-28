@@ -74,7 +74,7 @@ const AttendanceCalendar = () => {
       ]);
 
       const newAttendances = (data || []).reduce((acc, record) => {
-        acc[record.fecha] = record.estado;
+        acc[record.fecha] = record;
         return acc;
       }, {});
       setAttendances(newAttendances);
@@ -106,7 +106,7 @@ const AttendanceCalendar = () => {
         estado: 'presente',
         ...extraFields
       });
-      setAttendances((prev) => ({ ...prev, [dateKey]: 'presente' }));
+      setAttendances((prev) => ({ ...prev, [dateKey]: { estado: 'presente', ...extraFields } }));
       setSnack({ open: true, msg: 'Asistencia marcada como presente', severity: 'success' });
       setOpenExtraDialog(false);
       setOpenPresentDialog(false);
@@ -178,7 +178,7 @@ const AttendanceCalendar = () => {
         motivo: absenceReason || 'Sin especificar',
         nota: absenceNote
       });
-      setAttendances((prev) => ({ ...prev, [dateKey]: 'ausente' }));
+      setAttendances((prev) => ({ ...prev, [dateKey]: { estado: 'ausente', motivo: absenceReason || 'Sin especificar', nota: absenceNote } }));
       setSnack({ open: true, msg: 'Ausencia registrada correctamente', severity: 'success' });
       setOpenAbsenceDialog(false);
       setOpenPresentDialog(false);
@@ -204,7 +204,8 @@ const AttendanceCalendar = () => {
   const CustomDay = (props) => {
     const { day, selected, ...other } = props;
     const holidayName = isHoliday(day);
-    const status = isDateHighlighted(day);
+    const record = isDateHighlighted(day);
+    const status = record?.estado;
 
     if (holidayName) {
       return (
@@ -256,7 +257,7 @@ const AttendanceCalendar = () => {
         <Grid container spacing={3}>
 
           {/* === COLUMNA IZQUIERDA: Calendario y Controles === */}
-          <Grid item xs={12} md={7} lg={8}>
+          <Grid size={{ xs: 12, md: 7, lg: 8 }}>
             <Stack spacing={3}>
 
               {/* Calendario */}
@@ -310,7 +311,7 @@ const AttendanceCalendar = () => {
           </Grid>
 
           {/* === COLUMNA DERECHA: Listados e Información === */}
-          <Grid item xs={12} md={5} lg={4}>
+          <Grid size={{ xs: 12, md: 5, lg: 4 }}>
             <Stack spacing={3}>
 
               {/* Estado del Mes */}
@@ -323,15 +324,31 @@ const AttendanceCalendar = () => {
                   {Object.entries(attendances).length > 0 ? (
                     Object.entries(attendances)
                       .sort(([a], [b]) => dayjs(b).diff(dayjs(a))) // Ordenar descendente
-                      .map(([date, status]) => (
+                      .map(([date, record]) => (
                         <ListItem key={date} divider>
                           <ListItemText
                             primary={dayjs(date).format('dddd DD')}
-                            secondary={dayjs(date).format('MMMM YYYY')}
+                            secondary={
+                              <>
+                                <Typography variant="body2" component="span">
+                                  {dayjs(date).format('MMMM YYYY')}
+                                </Typography>
+                                {record.estado === 'ausente' && record.motivo && (
+                                  <Typography variant="caption" display="block" color="error">
+                                    <Box component="span" fontWeight="bold">Motivo:</Box> {record.motivo.charAt(0).toUpperCase() + record.motivo.slice(1)}
+                                  </Typography>
+                                )}
+                                {record.nota && (
+                                  <Typography variant="caption" display="block" color="text.secondary" sx={{ fontStyle: 'italic ' }}>
+                                    <Box component="span" fontWeight="bold">Nota :</Box> "{record.nota.charAt(0).toUpperCase() + record.nota.slice(1)}"
+                                  </Typography>
+                                )}
+                              </>
+                            }
                           />
                           <Chip
-                            label={status.toUpperCase()}
-                            color={status === 'presente' ? 'success' : 'error'}
+                            label={record.estado.toUpperCase()}
+                            color={record.estado === 'presente' ? 'success' : 'error'}
                             size="small"
                             variant="outlined"
                           />

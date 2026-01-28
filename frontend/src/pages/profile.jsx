@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useContext } from "react";
 import {
   Box,
   Container,
@@ -17,6 +17,10 @@ import {
   Zoom,
   Divider,
   InputAdornment,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import {
@@ -32,6 +36,9 @@ import {
 // APIs (Simuladas o importadas según tu proyecto)
 import { profileApi } from "../api/auth";
 import { editUserApi } from "../api/users";
+import { AuthContext } from "../context/AuthContext";
+
+const API_URL = import.meta.env.VITE_API_URL || "";
 
 const VisuallyHiddenInput = styled("input")({
   clip: "rect(0 0 0 0)",
@@ -77,6 +84,7 @@ const AnimatedButton = styled(Button)(({ theme }) => ({
 }));
 
 export default function ProfileDashboard() {
+  const { setUser } = useContext(AuthContext);
   const [loading, setLoading] = useState(true);
   const [snack, setSnack] = useState({
     open: false,
@@ -85,6 +93,8 @@ export default function ProfileDashboard() {
   });
   const [isSaving, setIsSaving] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState(null);
+  const [tempPhoto, setTempPhoto] = useState(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const [tabValue, setTabValue] = useState(0);
 
   // --- Estado de datos del usuario ---
@@ -171,21 +181,65 @@ export default function ProfileDashboard() {
     setAddressData((prev) => ({ ...prev, [field]: value }));
   };
 
+  const getPhotoUrl = (path) => {
+    if (!path) return "";
+    if (path.startsWith("http") || path.startsWith("data:")) return path;
+    if (path.startsWith("/api")) {
+      const base = API_URL.endsWith('/api') ? API_URL.slice(0, -4) : API_URL;
+      return `${base}${path}`;
+    }
+    return path;
+  };
+
+  const convertToBase64 = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = (error) => reject(error);
+    });
+  };
+
   const handlePhotoChange = (event) => {
     const file = event.target.files[0];
     if (file) {
-      setSelectedPhoto(file);
-      setSnack({
-        open: true,
-        severity: "info",
-        msg: "Foto seleccionada (falta implementar subida).",
-      });
+      // Validar que sea una imagen JPG o PNG
+      if (!['image/jpeg', 'image/png'].includes(file.type)) {
+        setSnack({ open: true, severity: "warning", msg: "Solo se permiten imágenes JPG o PNG." });
+        return;
+      }
+
+      if (file.size > 5 * 1024 * 1024) {
+        setSnack({ open: true, severity: "warning", msg: "La imagen es demasiado grande (máx 5MB)." });
+        return;
+      }
+      
+      setTempPhoto(file);
+      setPreviewOpen(true);
+      event.target.value = ''; // Limpiar input para permitir re-selección si cancela
     }
+  };
+
+  const handleConfirmPhoto = () => {
+    setSelectedPhoto(tempPhoto);
+    setPreviewOpen(false);
+    setTempPhoto(null);
+  };
+
+  const handleCancelPhoto = () => {
+    setTempPhoto(null);
+    setPreviewOpen(false);
   };
 
   const handleFinalSave = async () => {
     setIsSaving(true);
     try {
+      let finalFoto = userData.foto;
+
+      if (selectedPhoto) {
+        finalFoto = await convertToBase64(selectedPhoto);
+      }
+
       const payload = {
         nombre: userData.nombre,
         apellido: userData.apellido,
@@ -193,7 +247,7 @@ export default function ProfileDashboard() {
         telefono: userData.telefono,
         nacimiento: userData.nacimiento,
         dni: userData.dni,
-        foto: userData.foto,
+        foto: finalFoto,
         direccion: { ...addressData },
         // No incluimos 'clientes' porque no se editan en esta pantalla.
         // Los campos 'cliente', 'direccionCliente' y 'horarioLaboral' se eliminan
@@ -205,7 +259,11 @@ export default function ProfileDashboard() {
         delete payload.dni;
       }
 
-      await editUserApi(payload);
+      // 1. Capturamos la respuesta del backend con el usuario actualizado
+      const { data } = await editUserApi(payload);
+      
+      // 2. Actualizamos el contexto global para que el Header se entere del cambio
+      setUser(data.user);
 
       setSnack({
         open: true,
@@ -258,7 +316,7 @@ export default function ProfileDashboard() {
           alignItems="stretch"
         >
           {/* LADO IZQUIERDO: Card de usuario */}
-          <Grid item xs={12} md={5} lg={4}>
+          <Grid size={{ xs: 12, md: 5, lg: 4 }}>
             <Zoom in={true} timeout={700}>
               <AnimatedBox sx={{ textAlign: "center", height: "100%" }}>
                 <Box
@@ -272,7 +330,7 @@ export default function ProfileDashboard() {
                     src={
                       selectedPhoto instanceof File
                         ? URL.createObjectURL(selectedPhoto)
-                        : userData.foto
+                        : getPhotoUrl(userData.foto)
                     }
                     sx={{
                       width: 120,
@@ -303,7 +361,7 @@ export default function ProfileDashboard() {
                     <PhotoCameraIcon color="primary" />
                     <VisuallyHiddenInput
                       type="file"
-                      accept="image/*"
+                      accept="image/png, image/jpeg"
                       onChange={handlePhotoChange}
                     />
                   </IconButton>
@@ -373,7 +431,7 @@ export default function ProfileDashboard() {
           </Grid>
 
           {/* LADO DERECHO: Tabs + formulario */}
-          <Grid item xs={12} md={7} lg={8}>
+          <Grid size={{ xs: 12, md: 7, lg: 8 }}>
             <Fade in={true} timeout={900}>
               <AnimatedBox
                 sx={{
@@ -435,10 +493,10 @@ export default function ProfileDashboard() {
                     {tabValue === 0 && (
                       <Fade in timeout={400}>
                         <Grid container spacing={2}>
-                          <Grid item xs={12} sm={6}>
+                          <Grid size={{ xs: 12, sm: 6 }}>
                             <TextField
                               fullWidth
-                              disabled
+                              disabled={!isAdminOrRRHH}
                               label="Nombre"
                               value={userData.nombre}
                               onChange={(e) =>
@@ -446,9 +504,9 @@ export default function ProfileDashboard() {
                               }
                             />
                           </Grid>
-                          <Grid item xs={12} sm={6}>
+                          <Grid size={{ xs: 12, sm: 6 }}>
                             <TextField
-                              disabled
+                              disabled={!isAdminOrRRHH}
                               fullWidth
                               label="Apellido"
                               value={userData.apellido}
@@ -458,7 +516,7 @@ export default function ProfileDashboard() {
                             />
                           </Grid>
 
-                          <Grid item xs={12} sm={6}>
+                          <Grid size={{ xs: 12, sm: 6 }}>
                             <TextField
                               fullWidth
                               label="DNI"
@@ -482,13 +540,16 @@ export default function ProfileDashboard() {
                             />
                           </Grid>
 
-                          <Grid item xs={12} sm={6}>
+                          <Grid size={{ xs: 12, sm: 6 }}>
                             <TextField
                               fullWidth
                               label="Email"
                               value={userData.email}
-                              disabled
-                              sx={{ bgcolor: "#f5f5f5" }}
+                              onChange={(e) =>
+                                handleUserChange("email", e.target.value)
+                              }
+                              disabled={!isAdminOrRRHH}
+                              sx={!isAdminOrRRHH ? { bgcolor: "#f5f5f5" } : {}}
                               InputProps={{
                                 startAdornment: (
                                   <InputAdornment position="start">
@@ -499,7 +560,7 @@ export default function ProfileDashboard() {
                             />
                           </Grid>
 
-                          <Grid item xs={12} sm={6}>
+                          <Grid size={{ xs: 12, sm: 6 }}>
                             <TextField
                               fullWidth
                               label="Teléfono"
@@ -517,7 +578,7 @@ export default function ProfileDashboard() {
                             />
                           </Grid>
 
-                          <Grid item xs={12} sm={6}>
+                          <Grid size={{ xs: 12, sm: 6 }}>
                             <TextField
                               
                               fullWidth
@@ -531,7 +592,8 @@ export default function ProfileDashboard() {
                             />
                           </Grid>
 
-                          <Grid item xs={12}>
+                          {!isAdminOrRRHH && (
+                          <Grid size={{ xs: 12 }}>
                             <Divider sx={{ my: 1 }}>
                               <Typography
                                 variant="caption"
@@ -546,6 +608,7 @@ export default function ProfileDashboard() {
                               administrador.
                             </Alert>
                           </Grid>
+                          )}
                         </Grid>
                       </Fade>
                     )}
@@ -554,7 +617,7 @@ export default function ProfileDashboard() {
                     {tabValue === 1 && (
                       <Fade in timeout={400}>
                         <Grid container spacing={2}>
-                          <Grid item xs={12}>
+                          <Grid size={{ xs: 12 }}>
                             <Typography variant="h6" gutterBottom sx={{ mt: 1 }}>
                               Clientes Asignados
                             </Typography>
@@ -566,7 +629,7 @@ export default function ProfileDashboard() {
                             {userData.clientes.map((cli, index) => (
                               <Box key={index} sx={{ p: 2, mb: 2, border: '1px solid #e0e0e0', borderRadius: 2, bgcolor: '#fafafa' }}>
                                 <Grid container spacing={2}>
-                                  <Grid item xs={12} sm={4}>
+                                  <Grid size={{ xs: 12, sm: 4 }}>
                                     <TextField
                                       fullWidth
                                       label="Cliente"
@@ -583,7 +646,7 @@ export default function ProfileDashboard() {
                                       size="small"
                                     />
                                   </Grid>
-                                  <Grid item xs={12} sm={4}>
+                                  <Grid size={{ xs: 12, sm: 4 }}>
                                     <TextField
                                       fullWidth
                                       label="Dirección"
@@ -593,7 +656,7 @@ export default function ProfileDashboard() {
                                       size="small"
                                     />
                                   </Grid>
-                                  <Grid item xs={12} sm={4}>
+                                  <Grid size={{ xs: 12, sm: 4 }}>
                                     <TextField
                                       fullWidth
                                       label="Horario"
@@ -609,7 +672,7 @@ export default function ProfileDashboard() {
                           </Grid>
 
                           
-                          <Grid item xs={12}>
+                          <Grid size={{ xs: 12 }}>
                             <Alert severity="info" sx={{ mb: 2 }}>
                               Información laboral definida por la empresa.{" "}
                               {isAdminOrRRHH
@@ -657,6 +720,31 @@ export default function ProfileDashboard() {
           </Grid>
         </Grid>
       </Container>
+
+      {/* Modal de Previsualización de Foto */}
+      <Dialog open={previewOpen} onClose={handleCancelPhoto} maxWidth="sm" fullWidth>
+        <DialogTitle>Vista previa de foto de perfil</DialogTitle>
+        <DialogContent sx={{ display: 'flex', justifyContent: 'center', p: 3, bgcolor: 'grey.100' }}>
+          {tempPhoto && (
+            <Box
+              component="img"
+              src={URL.createObjectURL(tempPhoto)}
+              alt="Vista previa"
+              sx={{
+                maxWidth: '100%',
+                maxHeight: 400,
+                borderRadius: 2,
+                boxShadow: 3,
+                objectFit: 'contain'
+              }}
+            />
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCancelPhoto} color="inherit">Cancelar</Button>
+          <Button onClick={handleConfirmPhoto} variant="contained" color="primary">Confirmar</Button>
+        </DialogActions>
+      </Dialog>
 
       <Snackbar
         open={snack.open}

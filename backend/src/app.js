@@ -10,8 +10,11 @@ import connectDB from "./db/db.js";
 import clientRoutes from './routes/client.routes.js';
 
 // --- 1. Importaciones de Rutas (Mantenemos todas por ahora) ---
+import { requireAuth } from "./middleware/auth.middleware.js";
+import { requireRole } from "./middleware/role.middleware.js";
 import authRoutes from "./routes/authRoutes.js";
 import userRoutes from "./routes/userRoutes.js";   // 👈 NUEVO
+import { getProfilePhoto } from "./controllers/user.controller.js"; // 👈 Importamos el controlador de fotos
 
 import adminRoutes from "./routes/adminRoutes.js"; // <-- CORRECCIÓN: Importamos el router de admin centralizado
 import geoRoutes from "./routes/geoRoutes.js"; // Rutas públicas
@@ -26,7 +29,7 @@ const IS_PROD = process.env.NODE_ENV === "production";
 
 app.set("trust proxy", IS_PROD ? 1 : 0);
 
-app.use(express.json({ limit: "5mb" }));
+app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
@@ -87,6 +90,10 @@ app.get("/health", (_req, res) => {
 
 // --- 4. Montaje de Rutas API con prefijo /api ---
 const apiRouter = express.Router(); // Router principal para /api
+
+// 📸 Ruta para servir fotos de perfil desde OneDrive (Proxy/Redirect)
+apiRouter.get("/users/photo/:fileId", getProfilePhoto);
+
 apiRouter.use("/users", userRoutes);  // 👈 NUEVO (para /api/users/me)
 apiRouter.use("/clients", clientRoutes); // Rutas de clientes
 
@@ -98,7 +105,7 @@ apiRouter.use("/attendance", attendanceRoutes); // <-- NUEVO: /api/attendance/..
 apiRouter.use("/holidays", holidaysRoutes);     // <-- AÑADIDO: /api/holidays/...
 
 // Montamos TODAS las rutas de admin bajo /api/admin
-apiRouter.use("/admin", adminRoutes);
+apiRouter.use("/admin", requireAuth, requireRole("admin", "rrhh"), adminRoutes);
 // Finalmente, montamos el router principal de la API en la app
 app.use("/api", apiRouter);
 

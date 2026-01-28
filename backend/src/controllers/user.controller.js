@@ -1,6 +1,33 @@
 import User from "../models/User.js";
 import { normalizeDireccion } from "../utils/normalize.js";
 import bcrypt from "bcryptjs";
+import { uploadFileToOneDrive, getDownloadUrlForFile } from "../services/oneDrive.service.js";
+
+// --- Helper para subir foto a OneDrive ---
+async function handlePhotoUpload(fotoBase64, userId) {
+  // Verificamos si es una cadena Base64 de imagen válida
+  if (!fotoBase64 || !fotoBase64.startsWith("data:image")) return null;
+
+  try {
+    const matches = fotoBase64.match(/^data:image\/([a-zA-Z0-9]+);base64,(.+)$/);
+    if (!matches || matches.length !== 3) return null;
+
+    const ext = matches[1];
+    const data = matches[2];
+    const buffer = Buffer.from(data, 'base64');
+    const fileName = `profile_${userId}_${Date.now()}.${ext}`;
+
+    const response = await uploadFileToOneDrive(buffer, fileName, "ProfilePhotos");
+    // Si la subida es exitosa, devolvemos la URL proxy con el ID del archivo
+    if (response && response.id) {
+      return `/api/users/photo/${response.id}`;
+    }
+  } catch (error) {
+    console.error("Error subiendo foto a OneDrive:", error);
+  }
+  return null;
+}
+
 // --- PATCH /users/me ---
 // El usuario logueado edita SUS propios datos
 export const editUser = async (req, res, next) => {
@@ -33,7 +60,14 @@ export const editUser = async (req, res, next) => {
     // comentá esta línea y dejá el cambio de DNI solo para un endpoint admin.
     if (typeof dni === "string")              update.dni = dni.trim();
 
-    if (typeof foto === "string")             update.foto = foto.trim();
+    // --- Manejo de Foto (OneDrive) ---
+    if (foto && foto.startsWith("data:image")) {
+      const photoUrl = await handlePhotoUpload(foto, userId);
+      if (photoUrl) update.foto = photoUrl;
+    } else if (typeof foto === "string") {
+      update.foto = foto.trim();
+    }
+
     if (typeof cliente === "string")          update.cliente = cliente.trim();
     if (typeof direccionCliente === "string") update.direccionCliente = direccionCliente.trim();
     if (typeof horarioLaboral === "string")   update.horarioLaboral = horarioLaboral.trim();
@@ -149,6 +183,7 @@ export const adminListUsers = async (req, res, next) => {
       .sort({ [sort || 'createdAt']: order === "asc" ? 1 : -1 })
       .skip((pageNum - 1) * limitNum)
       .limit(limitNum)
+      .select("-foto") // ⚡ Optimización: No traer la foto Base64 en el listado para no saturar la red
       .lean();
 
     const total = await User.countDocuments(filter);
@@ -241,7 +276,15 @@ export const adminUpdateUser = async (req, res, next) => {
 
     // --- Campos laborales / extra ---
     if (typeof dni === "string")              update.dni = dni.trim();
-    if (typeof foto === "string")             update.foto = foto.trim();
+    
+    // --- Manejo de Foto (OneDrive) ---
+    if (foto && foto.startsWith("data:image")) {
+      const photoUrl = await handlePhotoUpload(foto, id); // Usamos el ID del usuario editado
+      if (photoUrl) update.foto = photoUrl;
+    } else if (typeof foto === "string") {
+      update.foto = foto.trim();
+    }
+
     if (typeof cliente === "string")          update.cliente = cliente.trim();
     if (typeof direccionCliente === "string") update.direccionCliente = direccionCliente.trim();
     if (typeof horarioLaboral === "string")   update.horarioLaboral = horarioLaboral.trim();
@@ -293,6 +336,43 @@ export const adminUpdateUser = async (req, res, next) => {
         return res.status(409).json({ message: "El DNI ya está registrado" });
       }
     }
+    next(e);
+  }
+};
+
+// Cache simple en memoria para las URLs de fotos
+const photoCache = new Map();
+const CACHE_TTL = 1000 * 60 * 45; // 45 minutos (las URLs de OneDrive suelen durar 1h)
+
+// GET /users/photo/:fileId
+// Redirige a la URL de descarga temporal de OneDrive
+export const getProfilePhoto = async (req, res, next) => {
+  try {
+    const { fileId } = req.params;
+    if (!fileId) return res.status(404).send("File ID missing");
+
+    // 1. Verificar caché
+    const cached = photoCache.get(fileId);
+    if (cached && cached.expires > Date.now()) {
+      return res.redirect(cached.url);
+    }
+
+    const downloadUrl = await getDownloadUrlForFile(fileId);
+    if (downloadUrl) {
+      // 2. Guardar en caché
+      photoCache.set(fileId, {
+        url: downloadUrl,
+        expires: Date.now() + CACHE_TTL
+      });
+      
+      // Limpieza preventiva simple para evitar fugas de memoria
+      if (photoCache.size > 2000) photoCache.clear();
+
+      return res.redirect(downloadUrl);
+    } else {
+      return res.status(404).send("Image not found or OneDrive error");
+    }
+  } catch (e) {
     next(e);
   }
 };

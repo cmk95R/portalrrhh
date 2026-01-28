@@ -21,7 +21,7 @@ const Footer = () => {
         <Grid container spacing={4} display={'flex'} justifyContent={'space-between'}>
 
           {/* Columna contacto */}
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <Typography variant="h6" gutterBottom>Contacto</Typography>
             <Typography variant="body2">Congreso 2171 Piso 8° Of. A - (C1428BVE) </Typography>
             <Typography variant="body2">Tel: +54 11 5367-8000</Typography>
@@ -29,7 +29,7 @@ const Footer = () => {
           </Grid>
 
           {/* Columna redes sociales */}
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <Typography variant="h6" gutterBottom>Seguinos</Typography>
             <Stack direction="row" spacing={2}>
               <IconButton color="inherit" href="https://www.linkedin.com/company/asytec/" target="_blank"><LinkedInIcon /></IconButton>

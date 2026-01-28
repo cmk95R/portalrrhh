@@ -46,7 +46,7 @@ export default function AceptasElDesafioCards() {
 
       <Grid container spacing={3} justifyContent="center">
         {items.map((item, idx) => (
-          <Grid item xs={12} sm={6} md={4} key={idx} sx={{ display: "flex", justifyContent: "center" }}>
+          <Grid size={{ xs: 12, sm: 6, md: 4 }} key={idx} sx={{ display: "flex", justifyContent: "center" }}>
             <motion.div initial="rest" whileHover="hover" animate="rest" style={{ width: 300 }}>
               <Card sx={{ maxWidth: 300, width: "100%", borderRadius: 3, overflow: "hidden", position: "relative", boxShadow: 6 }}>
                 <Box sx={{ position: "relative", height: 220 }}>

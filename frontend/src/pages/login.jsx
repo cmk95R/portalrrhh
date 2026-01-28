@@ -1,4 +1,4 @@
-import React, { useState, useContext, useEffect, useCallback } from "react";
+import React, { useState, useContext, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   Container,
@@ -22,10 +22,6 @@ import AccountCircle from "@mui/icons-material/AccountCircle";
 import Lock from "@mui/icons-material/Lock";
 
 import { loginApi } from "../api/auth";
-
-// --- 1. IMPORTACIONES PARA PARTÍCULAS ---
-import Particles from "react-tsparticles";
-import { loadFull } from "tsparticles";
 
 import { AuthContext } from "../context/AuthContext";
 
@@ -56,8 +52,6 @@ const styles = {
     py: 8,
     // --- 2. VOLVEMOS AL GRADIENTE ORIGINAL ---
     background: "linear-gradient(180deg, #e3e8f7 0%, #d2d8e8 100%)",
-    position: "relative", // Necesario para que las partículas queden de fondo
-    overflow: "hidden",
   },
   logo: {
     height: 80,
@@ -82,8 +76,10 @@ const styles = {
     fontWeight: 700,
     fontSize: "1rem",
     transition: "background-color 0.3s, box-shadow 0.3s",
+    backgroundColor: "#173487", // 👈 Movido aquí desde la prop del componente
     "&:hover": {
       boxShadow: "0px 4px 20px -5px rgba(71, 98, 189, 0.8)",
+      backgroundColor: "#122a6b", // Color un poco más oscuro para el hover
     },
     // Efecto de pulsación al hacer clic
     "&:active": {
@@ -106,14 +102,6 @@ export default function Login() {
   const redirectTo =
     new URLSearchParams(location.search).get("redirectTo") || "/";
 
-  // --- 3. INICIALIZADOR PARA LAS PARTÍCULAS ---
-  const particlesInit = useCallback(async (engine) => {
-    await loadFull(engine);
-  }, []);
-
-  const particlesLoaded = useCallback(async (container) => {
-    // Puedes hacer algo cuando las partículas se cargan, si es necesario
-  }, []);
   // Efecto para la animación de entrada
   useEffect(() => {
     const timer = setTimeout(() => setAnimate(true), 100);
@@ -211,90 +199,8 @@ export default function Login() {
 
   return (
     <Box sx={styles.rootBox}>
-      {/* --- 4. AÑADIMOS EL COMPONENTE DE PARTÍCULAS --- */}
-      <Particles
-        id="tsparticles"
-        init={particlesInit}
-        loaded={particlesLoaded}
-        options={{
-          background: {
-            color: {
-              value: "transparent", // El fondo del canvas es transparente
-            },
-          },
-          fpsLimit: 60,
-          interactivity: {
-            events: {
-              onHover: {
-                enable: true,
-                mode: "grab",
-              },
-              resize: true,
-            },
-            modes: {
-              grab: {
-                distance: 140,
-                links: {
-                  opacity: 0.7,
-                },
-              },
-            },
-          },
-          particles: {
-            color: {
-              value: "#5A7E9E", // Color de las partículas
-            },
-            links: {
-              color: "#6A8EAE", // Color de las líneas
-              distance: 150,
-              enable: true,
-              opacity: 0.3,
-              width: 1,
-            },
-            collisions: {
-              enable: true,
-            },
-            move: {
-              direction: "none",
-              enable: true,
-              outModes: {
-                default: "bounce",
-              },
-              random: false,
-              speed: 0.5, // Velocidad de movimiento
-              straight: false,
-            },
-            number: {
-              density: {
-                enable: true,
-                area: 800,
-              },
-              value: 50, // Cantidad de partículas
-            },
-            opacity: {
-              value: 0.4,
-            },
-            shape: {
-              type: "circle",
-            },
-            size: {
-              value: { min: 1, max: 3 },
-            },
-          },
-          detectRetina: true,
-        }}
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          width: "100%",
-          height: "100%",
-          zIndex: 0, // Detrás de todo
-        }}
-      />
       <style>{`@keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-8px); } 100% { transform: translateY(0px); } } @keyframes shake { 10%, 90% { transform: translateX(-1px); } 20%, 80% { transform: translateX(2px); } 30%, 50%, 70% { transform: translateX(-4px); } 40%, 60% { transform: translateX(4px); } }`}</style>
-      {/* Contenedor principal con zIndex para que esté por delante de las partículas */}
-      <Container maxWidth="sm" sx={{ position: 'relative', zIndex: 1 }}>
+      <Container maxWidth="sm">
         <Stack
           direction="column"
           alignItems="center"
@@ -395,7 +301,6 @@ export default function Login() {
           <Button
             type="submit"
             variant="contained"
-            backgroundColor="#173487"
             fullWidth
             disabled={loading}
             sx={styles.submitButton}

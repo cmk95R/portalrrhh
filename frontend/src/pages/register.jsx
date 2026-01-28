@@ -150,19 +150,19 @@ export default function RegisterForm() {
 
           <form id="register-form" onSubmit={handleSubmit} style={{ width: "100%" }}>
             <Grid container spacing={2.5}>
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }}>
                   <TextField label="Nombre" name="nombre" value={form.nombre} onChange={handleChange} fullWidth required error={!!errors.nombre} helperText={errors.nombre} FormHelperTextProps={{ style: { fontSize: '0.70rem' } }} />
                 </motion.div>
               </Grid>
 
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.15 }}>
                   <TextField label="Apellido" name="apellido" value={form.apellido} onChange={handleChange} fullWidth required error={!!errors.apellido} helperText={errors.apellido} FormHelperTextProps={{ style: { fontSize: '0.75rem' } }} />
                 </motion.div>
               </Grid>
 
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
                   <DireccionAR value={form.direccion} onChange={handleDireccionChange} required />
                 </motion.div>
@@ -170,13 +170,13 @@ export default function RegisterForm() {
               
               </Grid>
               <br />
-              <Grid item xs={12} spacing={8}>
+              <Grid size={{ xs: 12 }} spacing={8}>
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.25 }}>
                   <TextField label="Correo electrónico" type="email" name="email" value={form.email} onChange={handleChange} fullWidth required error={!!errors.email} helperText={errors.email} FormHelperTextProps={{ style: { fontSize: '0.75rem' } }} />
                 </motion.div>
               </Grid>
               <br />  
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}>
                   <TextField
                     label="Contraseña"
@@ -201,21 +201,21 @@ export default function RegisterForm() {
                 </motion.div>
               
 
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.35 }}>
                   <FormControlLabel control={<Checkbox checked={form.remember} onChange={handleChange} name="remember" />} label="Recordarme" />
                 </motion.div>
               </Grid>
 
               {errors.general && (
-                <Grid item xs={12}>
+                <Grid size={{ xs: 12 }}>
                   <Alert severity="error" sx={{ width: '100%' }}>
                     {errors.general}
                   </Alert>
                 </Grid>
               )}
 
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} style={{ width: '100%' }}>
                   <Button
                     type="submit"
