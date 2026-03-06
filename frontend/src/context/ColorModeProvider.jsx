@@ -23,6 +23,13 @@ export default function ColorModeProvider({ children }) {
     const theme = useMemo(
         () =>
             createTheme({
+                typography: {
+                    fontFamily: '"Poppins", "Raleway", sans-serif',
+                    h1: { fontWeight: 700 },
+                    h2: { fontWeight: 700 },
+                    h3: { fontWeight: 500 },
+                    button: { fontWeight: 500 },
+                },
                 palette: {
                     mode,
                     ...(mode === "light"

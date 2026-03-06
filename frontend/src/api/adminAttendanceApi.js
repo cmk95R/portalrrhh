@@ -36,3 +36,19 @@ export const updateAttendanceApi = (id, data) => {
 export const deleteAttendanceApi = (id) => {
     return api.delete(`${API_URL}/${id}`);
 };
+
+/** Empleados activos sin registro de asistencia en la fecha (YYYY-MM-DD). */
+export const getWithoutRegistrationApi = (fecha) => {
+    return api.get(`${API_URL}/without-registration`, { params: { fecha } });
+};
+
+/** Envía recordatorio de asistencia. Opcional: subject, body (texto con {{nombre}}, {{fecha}}, {{fecha_desde}}, {{fecha_hasta}}). */
+export const sendAttendanceReminderApi = (fechaDesde, fechaHasta, userIds, options = {}) => {
+    return api.post(`${API_URL}/send-reminder`, {
+        fechaDesde,
+        fechaHasta,
+        userIds,
+        subject: options.subject,
+        body: options.body,
+    });
+};

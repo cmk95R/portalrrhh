@@ -18,11 +18,13 @@ import { getHolidaysApi } from '../api/apiCalendar';
 
 dayjs.locale('es');
 
+const capitalizeFirst = (str) => str ? str.charAt(0).toUpperCase() + str.slice(1) : str;
+
 const absenceTypes = [
   { value: 'Sin justificación', label: 'Sin justificación' },
-  { value: 'Día de estudio', label: 'Dia de estudio' },
+  { value: 'Día de estudio', label: 'Día de estudio' },
   { value: 'Maternidad / Paternidad', label: 'Por Maternidad / Paternidad' },
-  { value: 'Enfermedad', label: 'Enfermedad / Certificado Medico' },
+  { value: 'Enfermedad', label: 'Enfermedad / Certificado Médico' },
   { value: 'Mudanza', label: 'Mudanza' },
   { value: 'Vacaciones', label: 'Vacaciones' },
   { value: 'Fallecimiento Familiar', label: 'Fallecimiento Familiar' },
@@ -210,9 +212,11 @@ const AttendanceCalendar = () => {
     if (holidayName) {
       return (
         <Tooltip title={holidayName} arrow>
-          <PickersDay {...other} day={day}
-            sx={{ backgroundColor: '#ff980030', color: 'warning.main', border: '1px solid #ff9800' }}
-          />
+          <Box component="span" sx={{ display: 'inline-block' }}>
+            <PickersDay {...other} day={day}
+              sx={{ backgroundColor: '#ff980030', color: 'warning.main', border: '1px solid #ff9800' }}
+            />
+          </Box>
         </Tooltip>
       );
     }
@@ -261,7 +265,7 @@ const AttendanceCalendar = () => {
             <Stack spacing={3}>
 
               {/* Calendario */}
-              <Paper elevation={2} sx={{ p: 2, display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
+              <Paper elevation={2} sx={{ p: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', '& .MuiPickersCalendarHeader-label': { textTransform: 'capitalize' } }}>
                 <DateCalendar
                   value={selectedDate}
                   onChange={setSelectedDate}
@@ -274,8 +278,8 @@ const AttendanceCalendar = () => {
 
               {/* Controles de Acción */}
               <Paper elevation={2} sx={{ p: 3 }}>
-                <Typography variant="h6" gutterBottom display="flex" alignItems="center" gap={1} sx={{ textTransform: 'uppercase' }}>
-                  <Today /> {selectedDate.format('dddd, DD [de] MMMM')}
+                <Typography variant="h6" gutterBottom display="flex" alignItems="center" gap={1}>
+                  <Today /> {`${capitalizeFirst(selectedDate.format('dddd'))}, ${selectedDate.format('DD')} de ${capitalizeFirst(selectedDate.format('MMMM'))}`}
                 </Typography>
                 <Divider sx={{ mb: 2 }} />
 
@@ -316,7 +320,7 @@ const AttendanceCalendar = () => {
 
               {/* Estado del Mes */}
               <Paper elevation={2} sx={{ p: 2, maxHeight: 368, overflow: 'auto'}}>
-                <Typography variant="h6" gutterBottom stickyHeader>
+                <Typography variant="h6" gutterBottom sx={{ position: 'sticky', top: 0, bgcolor: 'background.paper', zIndex: 1 }}>
                   Resumen Mensual
                 </Typography>
                 <Divider />
@@ -327,11 +331,11 @@ const AttendanceCalendar = () => {
                       .map(([date, record]) => (
                         <ListItem key={date} divider>
                           <ListItemText
-                            primary={dayjs(date).format('dddd DD')}
+                            primary={`${capitalizeFirst(dayjs(date).format('dddd'))} ${dayjs(date).format('DD')}`}
                             secondary={
                               <>
                                 <Typography variant="body2" component="span">
-                                  {dayjs(date).format('MMMM YYYY')}
+                                  {`${capitalizeFirst(dayjs(date).format('MMMM'))} ${dayjs(date).format('YYYY')}`}
                                 </Typography>
                                 {record.estado === 'ausente' && record.motivo && (
                                   <Typography variant="caption" display="block" color="error">
@@ -340,7 +344,7 @@ const AttendanceCalendar = () => {
                                 )}
                                 {record.nota && (
                                   <Typography variant="caption" display="block" color="text.secondary" sx={{ fontStyle: 'italic ' }}>
-                                    <Box component="span" fontWeight="bold">Nota :</Box> "{record.nota.charAt(0).toUpperCase() + record.nota.slice(1)}"
+                                    <Box component="span" fontWeight="bold">Nota :</Box> "{record.nota.startsWith('Solicitud aprobada') ? 'Solicitud aprobada' : record.nota.charAt(0).toUpperCase() + record.nota.slice(1)}"
                                   </Typography>
                                 )}
                               </>
@@ -374,7 +378,7 @@ const AttendanceCalendar = () => {
                       <ListItem key={date}>
                         <ListItemText
                           primary={name}
-                          secondary={dayjs(date).format('dddd DD')}
+                          secondary={`${capitalizeFirst(dayjs(date).format('dddd'))} ${dayjs(date).format('DD')}`}
                           primaryTypographyProps={{ fontWeight: 500 }}
                         />
                       </ListItem>
@@ -510,14 +514,19 @@ const AttendanceCalendar = () => {
           </DialogActions>
         </Dialog>
 
-        {/* Snackbar */}
+        {/* Snackbar: arriba al centro, un poco más grande */}
         <Snackbar
           open={snack.open}
           autoHideDuration={4000}
           onClose={() => setSnack(prev => ({ ...prev, open: false }))}
-          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+          anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+          sx={{ mt: 2 }}
         >
-          <Alert onClose={() => setSnack(prev => ({ ...prev, open: false }))} severity={snack.severity} sx={{ width: '100%' }}>
+          <Alert
+            onClose={() => setSnack(prev => ({ ...prev, open: false }))}
+            severity={snack.severity}
+            sx={{ width: '100%', minWidth: 320, fontSize: '1rem', py: 1.25, '& .MuiAlert-message': { fontSize: '1rem' } }}
+          >
             {snack.msg}
           </Alert>
         </Snackbar>

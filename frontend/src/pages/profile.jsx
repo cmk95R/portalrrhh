@@ -303,6 +303,7 @@ export default function ProfileDashboard() {
         flexGrow: 1,
         py: { xs: 2, md: 4 }, // Padding vertical responsivo
         minHeight: "100vh",
+        fontFamily: '"Poppins", "Raleway", sans-serif',
       }}
     >
       {/* Container fluido pero con limite maximo 'lg' (aprox 1200px) */}

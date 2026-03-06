@@ -20,6 +20,9 @@ import { getDashboardData } from "../controllers/dashboard.controller.js";
 // --- Importa las rutas de admin para asistencia ---
 import adminAttendanceRoutes from "./adminAttendance.routes.js";
 
+// --- Importa las rutas de admin para solicitudes ---
+import adminRequestRoutes from "./adminRequest.routes.js";
+
 const router = Router();
 
 // --- Middleware Global para Rutas de Admin ---
@@ -44,5 +47,8 @@ router.use("/users", userRouter);
 // --- Gestión de Asistencia --- (/api/admin/attendance)
 // Se monta el router importado que maneja toda la lógica de asistencia admin
 router.use("/attendance", adminAttendanceRoutes);
+
+// --- Gestión de Solicitudes --- (/api/admin/requests)
+router.use("/requests", adminRequestRoutes);
 
 export default router;

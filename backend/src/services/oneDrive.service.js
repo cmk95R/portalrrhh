@@ -102,3 +102,34 @@ export const deleteFileFromOneDrive = async (fileId) => {
     return false;
   }
 };
+
+/**
+ * Mueve un archivo a una nueva carpeta (Descarga -> Sube -> Borra anterior).
+ * @param {string} fileId - ID del archivo actual en OneDrive.
+ * @param {string} newName - Nuevo nombre del archivo.
+ * @param {string} newFolder - Nueva carpeta destino.
+ * @returns {Promise<object>} - Metadatos del nuevo archivo subido.
+ */
+export const moveFileInOneDrive = async (fileId, newName, newFolder) => {
+  try {
+    // 1. Obtener URL de descarga
+    const downloadUrl = await getDownloadUrlForFile(fileId);
+    if (!downloadUrl) throw new Error("No se pudo obtener la URL de descarga del archivo original.");
+
+    // 2. Descargar el contenido
+    const res = await fetch(downloadUrl);
+    const arrayBuffer = await res.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    // 3. Subir a la nueva ubicación
+    const uploadResult = await uploadFileToOneDrive(buffer, newName, newFolder);
+
+    // 4. Eliminar el archivo viejo
+    await deleteFileFromOneDrive(fileId);
+
+    return uploadResult;
+  } catch (error) {
+    console.error("Error moviendo archivo en OneDrive:", error);
+    throw error;
+  }
+};

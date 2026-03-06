@@ -3,14 +3,15 @@ import {
     getAllAttendance,
     createAttendanceRecord,
     updateAttendanceRecord,
-    deleteAttendanceRecord
+    deleteAttendanceRecord,
+    getWithoutRegistration,
+    sendAttendanceReminder
 } from '../controllers/adminAttendance.controller.js';
-
-// Los middlewares de autenticación y rol ya se aplican en 'adminRoutes.js'
-// por lo que no es necesario volver a ponerlos aquí.
 
 const router = express.Router();
 
+router.get('/without-registration', getWithoutRegistration);
+router.post('/send-reminder', sendAttendanceReminder);
 router.get('/', getAllAttendance);
 router.post('/', createAttendanceRecord);
 router.patch('/:id', updateAttendanceRecord);

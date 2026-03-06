@@ -158,6 +158,7 @@ export default function DashboardLayout() {
     { text: "Inicio", icon: <HomeIcon />, path: "/" },
     { text: "Mi Perfil", icon: <PersonIcon />, path: "/profile" },
     { text: "Mi Asistencia", icon: <CoPresentIcon />, path: "/my-attendance" },
+    { text: "Mis Solicitudes", icon: <FactCheckIcon />, path: "/my-requests" },
     { text: "Cerrar Sesión", icon: <LogoutIcon />, action: "logout" },
   ];
 
@@ -167,6 +168,7 @@ export default function DashboardLayout() {
     { text: "Mi Asistencia", icon: <CoPresentIcon />, path: "/my-attendance" },
     { text: "Gestión de Usuarios", icon: <AdminPanelSettingsIcon />, path: "/admin/users" },
     { text: "Gestión de Asistencias", icon: <HowToRegIcon />, path: "/admin/attendance" },
+    { text: "Gestión de Solicitudes", icon: <FactCheckIcon />, path: "/admin/requests" },
     { text: "Cerrar Sesión", icon: <LogoutIcon />, action: "logout" },
   ];
 
@@ -177,6 +179,7 @@ export default function DashboardLayout() {
     { text: "Mi Asistencia", icon: <CoPresentIcon />, path: "/my-attendance" },
     { text: "Gestión de Usuarios", icon: <AdminPanelSettingsIcon />, path: "/admin/users" },
     { text: "Gestión de Asistencias", icon: <HowToRegIcon />, path: "/admin/attendance" },
+    { text: "Gestión de Solicitudes", icon: <FactCheckIcon />, path: "/admin/requests" },
     { text: "Cerrar Sesión", icon: <LogoutIcon />, action: "logout" },
   ];
 

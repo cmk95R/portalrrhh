@@ -8,10 +8,11 @@ const storage = multer.memoryStorage();
 
 // Filtro para aceptar solo archivos PDF
 const fileFilter = (req, file, cb) => {
-    if (file.mimetype === "application/pdf") {
+    const allowedTypes = ["application/pdf", "image/jpeg", "image/png", "image/jpg"];
+    if (allowedTypes.includes(file.mimetype)) {
         cb(null, true); // Aceptar el archivo
     } else {
-        cb(new Error("Solo se permiten archivos PDF."), false); // Rechazar el archivo
+        cb(new Error("Solo se permiten archivos PDF, JPG y PNG."), false); // Rechazar el archivo
     }
 };
 

@@ -77,9 +77,8 @@ const cardVariants = {
 // ===== Datos =====
 const valores = [
   { icon: AccessTimeFilledIcon, title: 'Registración de Asistencia', text: 'Facilita el registro y seguimiento de las asistencias diarias, garantizando , eficiencia y calidad en el trabajo.', path: '/my-attendance' },
-  { icon: SchoolIcon, title: 'Solicitud Días de Estudios y Vacaciones', text: 'Gestioná los días de estudio y vacaciones fácilmente desde un mismo lugar.' },
-  { icon: Diversity3Icon, title: 'Licencias Médicas', text: 'Cargá las licencias médicas y hacé el seguimiento de tus ausencias de manera sencilla.' },
-
+  { icon: SchoolIcon, title: 'Solicitud Días de Estudios y Vacaciones', text: 'Gestioná los días de estudio y vacaciones fácilmente desde un mismo lugar.', path: '/my-requests?filter=estudios_vacaciones' },
+  { icon: Diversity3Icon, title: 'Licencias Médicas', text: 'Cargá las licencias médicas y hacé el seguimiento de tus ausencias de manera sencilla.', path: '/my-requests?filter=licencias_medicas' },
 ];
 const testimonios = [
   {

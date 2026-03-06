@@ -11,16 +11,17 @@ import {
   Button,
   Tooltip,
   IconButton,
-  Modal,
-  Grid,
-  List,
-  ListItem,
-  ListItemText,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   Avatar,
+  Snackbar,
+  Alert,
+  Autocomplete,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Switch,
+  FormControlLabel,
+  Grid,
 } from '@mui/material';
 
 // --- ICONOS ---
@@ -28,16 +29,19 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import VisibilityIcon from '@mui/icons-material/Visibility';
-import MessageIcon from '@mui/icons-material/Message';
 import EventIcon from '@mui/icons-material/Event';
 import AddIcon from '@mui/icons-material/Add';
+import EmailIcon from '@mui/icons-material/Email';
+import DateRange from '@mui/icons-material/DateRange';
+import EventNote from '@mui/icons-material/EventNote';
 
 import dayjs from 'dayjs';
 import 'dayjs/locale/es';
 
 import { DataGrid, GridToolbar } from '@mui/x-data-grid';
 import { esES } from '@mui/x-data-grid/locales';
-import { getAllAttendanceApi, deleteAttendanceApi } from '../api/adminAttendanceApi';
+import { getAllAttendanceApi, deleteAttendanceApi, sendAttendanceReminderApi } from '../api/adminAttendanceApi';
+import { listUsersApi } from '../api/users';
 import Swal from 'sweetalert2';
 
 // --- Componentes Reutilizables ---
@@ -48,21 +52,6 @@ import CreateAttendanceModal from '../components/admin/CreateAttendanceModal';
 // Configuración global de Dayjs
 dayjs.locale('es');
 
-const modalStyle = {
-  position: 'absolute',
-  top: '50%',
-  left: '50%',
-  transform: 'translate(-50%, -50%)',
-  width: 900,
-  maxWidth: '95vw',
-  bgcolor: 'background.paper',
-  boxShadow: 24,
-  p: 4,
-  borderRadius: 2,
-  maxHeight: '90vh',
-  overflowY: 'auto'
-};
-
 const formatDate = (dateStr) => {
   if (!dateStr) return 'N/A';
   return dayjs(dateStr).format('DD/MM/YYYY');
@@ -72,44 +61,6 @@ const formatTime = (dateStr) => {
   if (!dateStr) return 'N/A';
   return dayjs(dateStr).utc().format('HH:mm');
 };
-
-// --- Componentes Modales ---
-
-function MessageModal({ open, onClose, employee, onSent }) {
-  const [message, setMessage] = useState('');
-
-  const handleSend = () => {
-    console.log(`Enviando notificación a ${employee.nombre}: ${message}`);
-    setMessage('');
-    onClose();
-    onSent();
-  };
-
-  if (!employee) return null;
-
-  return (
-    <Modal open={open} onClose={onClose}>
-      <Box sx={{ ...modalStyle, width: 500 }}>
-        <Typography variant="h6" gutterBottom>Enviar Notificación</Typography>
-        <Typography variant="body2" color="text.secondary" mb={2}>
-            Empleado: {employee.nombre} {employee.apellido}
-        </Typography>
-        <TextField
-          fullWidth multiline rows={4}
-          label="Mensaje"
-          placeholder="Escribe el motivo..."
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          sx={{ mb: 3 }}
-        />
-        <Stack direction="row" spacing={2} justifyContent="flex-end">
-             <Button onClick={onClose} color="inherit">Cancelar</Button>
-             <Button variant="contained" endIcon={<MessageIcon />} onClick={handleSend}>Enviar</Button>
-        </Stack>
-      </Box>
-    </Modal>
-  );
-}
 
 // --- Componente Principal ---
 export default function AdminAttendancePage() {
@@ -122,9 +73,23 @@ export default function AdminAttendancePage() {
   
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [viewModalOpen, setViewModalOpen] = useState(false);
-  const [messageModalOpen, setMessageModalOpen] = useState(false);
   const [applyModalOpen, setApplyModalOpen] = useState(false);
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+
+  const DEFAULT_REMINDER_SUBJECT = 'Recordatorio: registrar asistencia del {{fecha_desde}} al {{fecha_hasta}}';
+  const DEFAULT_REMINDER_BODY = 'Hola {{nombre}},\n\nTe recordamos que registres tu asistencia desde el día {{fecha_desde}} hasta el {{fecha_hasta}}.\n\nIngresá al portal de colaboradores y marcá presente o ausente según corresponda.';
+
+  const [reminderModalOpen, setReminderModalOpen] = useState(false);
+  const [reminderDateFrom, setReminderDateFrom] = useState(dayjs().format('YYYY-MM-DD'));
+  const [reminderDateTo, setReminderDateTo] = useState(dayjs().format('YYYY-MM-DD'));
+  const [reminderRangeMode, setReminderRangeMode] = useState(false);
+  const [usersList, setUsersList] = useState([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [selectedUsersReminder, setSelectedUsersReminder] = useState([]);
+  const [sendingReminder, setSendingReminder] = useState(false);
+  const [reminderSubject, setReminderSubject] = useState(DEFAULT_REMINDER_SUBJECT);
+  const [reminderBody, setReminderBody] = useState(DEFAULT_REMINDER_BODY);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -198,8 +163,50 @@ export default function AdminAttendancePage() {
   const handleOpenModal = (row, type) => {
     setSelectedEmployee(row);
     if (type === 'view') setViewModalOpen(true);
-    if (type === 'message') setMessageModalOpen(true);
     if (type === 'apply') setApplyModalOpen(true);
+  };
+
+  const handleOpenReminderModal = () => {
+    const today = dayjs().format('YYYY-MM-DD');
+    setReminderModalOpen(true);
+    setSelectedUsersReminder([]);
+    setReminderDateFrom(today);
+    setReminderDateTo(today);
+    setReminderRangeMode(false);
+    setReminderSubject(DEFAULT_REMINDER_SUBJECT);
+    setReminderBody(DEFAULT_REMINDER_BODY);
+    setUsersList([]);
+    setLoadingUsers(true);
+    listUsersApi({ limit: 500, rol: 'empleado' })
+      .then(({ data }) => setUsersList(data.items || []))
+      .catch(() => setSnackbar({ open: true, message: 'Error al cargar empleados.', severity: 'error' }))
+      .finally(() => setLoadingUsers(false));
+  };
+
+  const handleSendAttendanceReminder = async () => {
+    const userIds = selectedUsersReminder.map((u) => u._id);
+    if (!userIds.length) {
+      setSnackbar({ open: true, message: 'Seleccioná al menos un empleado.', severity: 'warning' });
+      return;
+    }
+
+    const fechaHasta = reminderRangeMode ? reminderDateTo : reminderDateFrom;
+    if (reminderRangeMode && dayjs(reminderDateTo).isBefore(dayjs(reminderDateFrom), 'day')) {
+      setSnackbar({ open: true, message: 'La fecha "hasta" no puede ser anterior a la fecha "desde".', severity: 'warning' });
+      return;
+    }
+
+    setSendingReminder(true);
+    try {
+      const { data } = await sendAttendanceReminderApi(reminderDateFrom, fechaHasta, userIds, { subject: reminderSubject, body: reminderBody });
+      setSnackbar({ open: true, message: data.message || 'Recordatorios enviados.', severity: 'success' });
+      setReminderModalOpen(false);
+      setSelectedUsersReminder([]);
+    } catch (error) {
+      setSnackbar({ open: true, message: error.response?.data?.message || 'Error al enviar recordatorios.', severity: 'error' });
+    } finally {
+      setSendingReminder(false);
+    }
   };
 
   const columns = [
@@ -242,7 +249,6 @@ export default function AdminAttendancePage() {
       renderCell: (params) => (
         <Stack direction="row" spacing={0.5}>
           <Tooltip title="Ver"><IconButton size="small" color="primary" onClick={() => handleOpenModal(params.row, 'view')}><VisibilityIcon fontSize="small" /></IconButton></Tooltip>
-          <Tooltip title="Mensaje"><IconButton size="small" color="info" onClick={() => handleOpenModal(params.row, 'message')}><MessageIcon fontSize="small" /></IconButton></Tooltip>
           <Tooltip title="Corregir"><IconButton size="small" color="warning" onClick={() => handleOpenModal(params.row, 'apply')}><EditIcon fontSize="small" /></IconButton></Tooltip>
           <Tooltip title="Eliminar"><IconButton size="small" color="error" onClick={() => handleDelete(params.row._id)}><DeleteIcon fontSize="small" /></IconButton></Tooltip>
         </Stack>
@@ -259,8 +265,33 @@ export default function AdminAttendancePage() {
                     </Typography>
         </Box>
         <Stack direction="row" spacing={2}>
-            <Button variant="contained" startIcon={<AddIcon />} onClick={() => setCreateModalOpen(true)}>Crear Asistencia</Button>
-            <Button variant="outlined" startIcon={<RefreshIcon />} onClick={fetchData} disabled={loading}>Actualizar</Button>
+        <Button
+              variant="contained"
+              startIcon={<RefreshIcon />}
+              onClick={fetchData}
+              disabled={loading}
+              sx={{ bgcolor: "theme.pallete.primary.main", '&:hover': { bgcolor: 'theme.pallete.primary.dark' } }}
+            >
+              Actualizar
+            </Button>
+            <Button
+              variant="contained"
+              startIcon={<EmailIcon />}
+              onClick={handleOpenReminderModal}
+              sx={{ bgcolor: "theme.pallete.primary.main", '&:hover': { bgcolor: 'theme.pallete.primary.dark' } }}
+            >
+              Enviar Recordatorio
+            </Button>
+           
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              
+              onClick={() => setCreateModalOpen(true)}
+              sx={{ bgcolor: "theme.pallete.primary.main", '&:hover': { bgcolor: 'theme.pallete.primary.dark' } }}
+            >
+              Crear Asistencia
+            </Button>
         </Stack>
       </Stack>
 
@@ -312,9 +343,121 @@ export default function AdminAttendancePage() {
       </Card>
 
       <ViewAttendanceModal open={viewModalOpen} onClose={() => setViewModalOpen(false)} employee={selectedEmployee} />
-      <MessageModal open={messageModalOpen} onClose={() => setMessageModalOpen(false)} employee={selectedEmployee} />
       <EditAttendanceModal open={applyModalOpen} onClose={() => setApplyModalOpen(false)} employee={selectedEmployee} onApplied={fetchData} />
-      <CreateAttendanceModal open={createModalOpen} onClose={() => setCreateModalOpen(false)} onCreated={fetchData} />
+      <CreateAttendanceModal
+        open={createModalOpen}
+        onClose={() => setCreateModalOpen(false)}
+        onCreated={fetchData}
+        showNotification={(msg, severity = 'success') => setSnackbar({ open: true, message: msg, severity })}
+      />
+
+      <Dialog open={reminderModalOpen} onClose={() => !sendingReminder && setReminderModalOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Enviar recordatorio de asistencia</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <Autocomplete
+              multiple
+              options={usersList}
+              getOptionLabel={(u) => `${u.nombre || ''} ${u.apellido || ''}`.trim() || u.email || ''}
+              value={selectedUsersReminder}
+              onChange={(_, newValue) => setSelectedUsersReminder(newValue)}
+              isOptionEqualToValue={(a, b) => a._id === b._id}
+              loading={loadingUsers}
+              renderInput={(params) => (
+                <TextField {...params} label="Empleados" placeholder="Seleccionar uno o más" />
+              )}
+              filterSelectedOptions
+            />
+            <Grid container spacing={2}>
+              <Grid size={12}>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={reminderRangeMode}
+                      onChange={(e) => setReminderRangeMode(e.target.checked)}
+                    />
+                  }
+                  label={
+                    <Box display="flex" alignItems="center">
+                      <DateRange sx={{ mr: 1, color: 'action.active' }} />
+                      Rango de fechas (desde / hasta)
+                    </Box>
+                  }
+                />
+              </Grid>
+              <Grid size={{ xs: 12, sm: reminderRangeMode ? 6 : 12 }}>
+                <TextField
+                  label={reminderRangeMode ? 'Desde' : 'Fecha a recordar'}
+                  type="date"
+                  fullWidth
+                  value={reminderDateFrom}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setReminderDateFrom(v);
+                    if (!reminderRangeMode) setReminderDateTo(v);
+                  }}
+                  InputLabelProps={{ shrink: true }}
+                  InputProps={{
+                    startAdornment: <EventNote sx={{ mr: 1, color: 'action.active' }} />,
+                  }}
+                />
+              </Grid>
+              {reminderRangeMode && (
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <TextField
+                    label="Hasta"
+                    type="date"
+                    fullWidth
+                    value={reminderDateTo}
+                    onChange={(e) => setReminderDateTo(e.target.value)}
+                    InputLabelProps={{ shrink: true }}
+                    InputProps={{
+                      startAdornment: <EventNote sx={{ mr: 1, color: 'action.active' }} />,
+                    }}
+                  />
+                </Grid>
+              )}
+            </Grid>
+            <TextField
+              label="Asunto del correo"
+              fullWidth
+              value={reminderSubject}
+              onChange={(e) => setReminderSubject(e.target.value)}
+              placeholder="Podés usar {{fecha_desde}} y {{fecha_hasta}}"
+              inputProps={{ spellCheck: false }}
+            />
+            <TextField
+              label="Cuerpo del mensaje"
+              fullWidth
+              multiline
+              minRows={4}
+              value={reminderBody}
+              onChange={(e) => setReminderBody(e.target.value)}
+              placeholder="Podés usar {{nombre}}, {{fecha}}, {{fecha_desde}} y {{fecha_hasta}}"
+              helperText="{{nombre}}, {{fecha}}, {{fecha_desde}} y {{fecha_hasta}} se reemplazan por cada destinatario."
+              inputProps={{ spellCheck: false }}
+            />
+            
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setReminderModalOpen(false)} disabled={sendingReminder}>Cancelar</Button>
+          <Button variant="contained" startIcon={<EmailIcon />} onClick={handleSendAttendanceReminder} disabled={sendingReminder || selectedUsersReminder.length === 0}>
+            {sendingReminder ? 'Enviando...' : 'Enviar recordatorio'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={() => setSnackbar((s) => ({ ...s, open: false }))}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert onClose={() => setSnackbar((s) => ({ ...s, open: false }))} severity={snackbar.severity} sx={{ width: '100%' }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Container>
   );
 }

@@ -3,6 +3,7 @@ import User from '../models/User.js';
 import createError from 'http-errors';
 import mongoose from 'mongoose';
 import dayjs from 'dayjs';
+import { sendAttendanceReminderEmail } from '../services/email.services.js';
 
 // --- Helper para obtener el día de la semana en español ---
 const diasSemana = ["domingo", "lunes", "martes", "miercoles", "jueves", "viernes", "sabado"];
@@ -222,6 +223,98 @@ export const getAttendanceSummary = async (req, res, next) => {
             total,
             page: _page,
             pages: Math.ceil(total / _limit)
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// @desc    Empleados que NO registraron asistencia en una fecha (para recordatorio)
+// @route   GET /api/admin/attendance/without-registration
+// @access  Private (Admin/RRHH)
+export const getWithoutRegistration = async (req, res, next) => {
+    try {
+        const { fecha } = req.query;
+        if (!fecha) {
+            throw createError(400, 'Parámetro fecha (YYYY-MM-DD) es obligatorio.');
+        }
+        const dateStr = dayjs(fecha).format('YYYY-MM-DD');
+        if (dateStr !== fecha) {
+            throw createError(400, 'Fecha inválida.');
+        }
+
+        const conRegistro = await Asistencia.distinct('usuario', { fecha: dateStr });
+        const users = await User.find({
+            rol: 'empleado',
+            estado: 'activo',
+            _id: { $nin: conRegistro }
+        })
+            .select('_id nombre apellido email')
+            .sort({ apellido: 1, nombre: 1 })
+            .lean();
+
+        res.json({ fecha: dateStr, users });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// @desc    Enviar recordatorio de asistencia a uno o más empleados (Admin/RRHH)
+// @route   POST /api/admin/attendance/send-reminder
+// @access  Private (Admin/RRHH)
+export const sendAttendanceReminder = async (req, res, next) => {
+    try {
+        const { fecha, fechaDesde, fechaHasta, userIds, subject, body } = req.body;
+
+        const fromRaw = fechaDesde || fecha;
+        const toRaw = fechaHasta || fechaDesde || fecha;
+
+        if (!fromRaw || !Array.isArray(userIds) || userIds.length === 0) {
+            throw createError(400, 'fechaDesde (o fecha) y userIds (array) son obligatorios.');
+        }
+
+        const from = dayjs(fromRaw);
+        const to = dayjs(toRaw);
+        if (!from.isValid() || !to.isValid()) {
+            throw createError(400, 'Fechas inválidas para el recordatorio.');
+        }
+        if (to.isBefore(from, 'day')) {
+            throw createError(400, 'La fecha \"hasta\" no puede ser anterior a la fecha \"desde\".');
+        }
+
+        const fechaDesdeLegible = from.format('DD/MM/YYYY');
+        const fechaHastaLegible = to.format('DD/MM/YYYY');
+
+        const emailOptions = {};
+        if (subject != null && String(subject).trim()) emailOptions.subject = String(subject).trim();
+        if (body != null && String(body).trim()) emailOptions.body = String(body).trim();
+
+        const users = await User.find({ _id: { $in: userIds } })
+            .select('email nombre apellido')
+            .lean();
+
+        const results = { sent: 0, failed: [] };
+        for (const u of users) {
+            if (!u.email) {
+                results.failed.push({ userId: u._id, reason: 'Sin email' });
+                continue;
+            }
+            const nombreEmpleado = [u.nombre, u.apellido].filter(Boolean).join(' ') || 'Empleado/a';
+            const { success } = await sendAttendanceReminderEmail(
+                u.email,
+                nombreEmpleado,
+                fechaDesdeLegible,
+                fechaHastaLegible,
+                Object.keys(emailOptions).length ? emailOptions : undefined
+            );
+            if (success) results.sent++;
+            else results.failed.push({ userId: u._id, reason: 'Error envío' });
+        }
+
+        res.json({
+            message: `Recordatorio enviado a ${results.sent} empleado(s).`,
+            sent: results.sent,
+            failed: results.failed.length
         });
     } catch (error) {
         next(error);

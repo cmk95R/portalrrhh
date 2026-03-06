@@ -9,10 +9,12 @@ import AdminUsersGrid from './pages/AdminUserGrid';
 import Profile from './pages/profile';
 
 import AttendancePage from './pages/AttendancePage'; // <-- 1. Importa la nueva página
+import MyRequests from './pages/MyRequests'; // <-- Importamos la página de solicitudes
 import ProtectedRoute from './components/ProtectedRoute'; // ¡Importa el nuevo componente!
 
 import GoogleAuthCallback from './pages/GoogleAuthCallback';
 import AdminAttendancePage from './pages/AdminAttendancePage';
+import RequestsAdmin from './pages/RequestsAdmin';
 import ColorModeProvider from './context/ColorModeProvider'; 
 
 function App() {
@@ -32,12 +34,14 @@ function App() {
           <Route path="/admin/dashboard" element={<Dashboard />} />
           <Route path="/admin/users" element={<AdminUsersGrid />} />
           <Route path="/admin/attendance" element={<AdminAttendancePage />} />
+          <Route path="/admin/requests" element={<RequestsAdmin />} />
         </Route>
 
         {/* --- RUTAS PROTEGIDAS GENERALES (Cualquier usuario logueado) --- */}
         <Route element={<ProtectedRoute />}>
           <Route path="/profile" element={<Profile />} />
           <Route path="/my-attendance" element={<AttendancePage />} />
+          <Route path="/my-requests" element={<MyRequests />} />
         </Route>
         
       </Route>

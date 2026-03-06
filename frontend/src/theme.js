@@ -3,7 +3,7 @@ import { createTheme } from '@mui/material/styles';
 
 const theme = createTheme({
   typography: {
-    fontFamily: '"Poppins", sans-serif', // Set Poppins as the default
+    fontFamily: '"Poppins", "Raleway", sans-serif',
     // Optional: Adjust weights for specific elements
     h1: { fontWeight: 700 },
     h2: { fontWeight: 700 },
