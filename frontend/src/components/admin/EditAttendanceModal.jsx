@@ -170,7 +170,12 @@ export default function EditAttendanceModal({ open, onClose, employee, onApplied
             />
 
             <Stack direction="row" spacing={2} justifyContent="flex-end">
-              <Button onClick={onClose} color="inherit">
+              <Button 
+              
+              onClick={onClose} 
+              variant="outlined"
+              sx={{color: "#2A4DB8"} }
+              >
                 Cancelar
               </Button>
               <Button

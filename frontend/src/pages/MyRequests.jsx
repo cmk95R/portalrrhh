@@ -150,6 +150,11 @@ export default function MyRequests() {
   // Estado para notificaciones
   const [notification, setNotification] = useState({ open: false, message: '', severity: 'success' });
 
+  // Estado para diálogo de eliminación
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [requestToDelete, setRequestToDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+
   // Cálculos de estadísticas simples
   const pendingCount = useMemo(() => requests.filter(r => r.estado === 'pendiente').length, [requests]);
 
@@ -300,37 +305,31 @@ export default function MyRequests() {
     }
   };
 
-  const handleDeleteRequest = (id) => {
-    Swal.fire({
-      title: '¿Eliminar solicitud?',
-      text: "¿Estás seguro de que deseas eliminar esta solicitud? Esta acción no se puede deshacer.",
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#d32f2f',
-      cancelButtonColor: '#3085d6',
-      confirmButtonText: 'Sí, eliminar',
-      cancelButtonText: 'Cancelar',
-      showLoaderOnConfirm: true,
-      preConfirm: async () => {
-        try {
-          await deleteRequestApi(id);
-          return true;
-        } catch (error) {
-          Swal.showValidationMessage(`Error: ${error.response?.data?.message || 'No se pudo eliminar'}`);
-        }
-      }
-    }).then((result) => {
-      if (result.isConfirmed) {
-        Swal.fire({
-          title: '¡Eliminado!',
-          text: 'La solicitud ha sido eliminada correctamente.',
-          icon: 'success',
-          timer: 2000,
-          showConfirmButton: false
-        });
-        fetchRequests();
-      }
-    });
+  const handleDeleteRequest = (req) => {
+    setRequestToDelete(req);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!requestToDelete) return;
+    setDeleting(true);
+    try {
+      await deleteRequestApi(requestToDelete._id);
+      showNotification('La solicitud ha sido eliminada correctamente.', 'success');
+      fetchRequests();
+      setDeleteDialogOpen(false);
+      setRequestToDelete(null);
+    } catch (error) {
+      showNotification(error.response?.data?.message || 'No se pudo eliminar la solicitud.', 'error');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleCancelDelete = () => {
+    if (deleting) return;
+    setDeleteDialogOpen(false);
+    setRequestToDelete(null);
   };
 
   const showNotification = (message, severity = 'success') => {
@@ -633,7 +632,7 @@ export default function MyRequests() {
              <Tooltip title="Eliminar">
                 <IconButton 
                   size="small" 
-                  onClick={() => handleDeleteRequest(req._id)}
+                  onClick={() => handleDeleteRequest(req)}
                   sx={{ '&:hover': { color: 'error.main' } }}
                   disabled={req.estado !== 'pendiente'}
                 >
@@ -773,6 +772,57 @@ export default function MyRequests() {
         showNotification={showNotification}
         requestToEdit={editingRequest}
       />
+
+      {/* Diálogo de confirmación de eliminación (mismo estilo que RequestsAdmin) */}
+      <Dialog open={deleteDialogOpen} onClose={handleCancelDelete} maxWidth="sm" fullWidth>
+        {requestToDelete && (
+          <>
+            <DialogTitle>Eliminar solicitud</DialogTitle>
+            <DialogContent dividers sx={{ pt: 2 }}>
+              <Stack spacing={1.5}>
+                <Box>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Detalle de la solicitud
+                  </Typography>
+                  <Typography variant="body2" sx={{ mt: 0.5 }}>
+                    Tipo:{' '}
+                    <strong>
+                      {REQUEST_TYPES_CONFIG[requestToDelete.tipo]?.label || requestToDelete.tipo}
+                    </strong>
+                  </Typography>
+                  <Typography variant="body2">
+                    Fecha solicitud:{' '}
+                    <strong>{dayjs(requestToDelete.createdAt).format('DD/MM/YYYY')}</strong>
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography variant="body2" color="text.secondary">
+                    ¿Estás seguro de que querés eliminar esta solicitud? Esta acción no se puede deshacer.
+                  </Typography>
+                </Box>
+              </Stack>
+            </DialogContent>
+            <DialogActions>
+              <Button 
+                sx={{ color: "#2A4DB8" }}
+                variant="outlined"
+                onClick={handleCancelDelete}
+                disabled={deleting}
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleConfirmDelete}
+                color="error"
+                variant="contained"
+                disabled={deleting}
+              >
+                {deleting ? <CircularProgress size={20} color="inherit" /> : 'Eliminar'}
+              </Button>
+            </DialogActions>
+          </>
+        )}
+      </Dialog>
 
       {/* Modal de Ver Detalles */}
       <Dialog open={viewDialog} onClose={handleCloseViewDialog} maxWidth="md" fullWidth>
@@ -1000,7 +1050,10 @@ export default function MyRequests() {
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseViewDialog}>Cerrar</Button>
+          <Button 
+          variant='outlined'
+          sx={{ color: "#2A4DB8"} }
+          onClick={handleCloseViewDialog}>Cerrar</Button>
         </DialogActions>
       </Dialog>
 

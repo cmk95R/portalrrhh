@@ -1065,7 +1065,10 @@ export default function AdminUsersGrid() {
               </Stack>
             </DialogContent>
             <DialogActions>
-              <Button onClick={handleCloseDetailsModal}>Cerrar</Button>
+              <Button 
+              variant="outlined"
+              sx={{color: "#2A4DB8"} }
+              onClick={handleCloseDetailsModal}>Cerrar</Button>
             </DialogActions>
           </>
         )}
@@ -1477,13 +1480,9 @@ export default function AdminUsersGrid() {
             </DialogContent>
             <DialogActions sx={{ justifyContent: "flex-end" }}>
               <Button
+              variant="outlined"
                 onClick={handleCloseEditModal}
-                sx={{
-                  mr: 2,
-                  color: '#ffffff',
-                  bgcolor: '#173487',
-                  '&:hover': { bgcolor: '#2A4DB8' },
-                }}
+                sx={{color: "#2A4DB8"} }
               >
                 Cancelar
               </Button>
@@ -1558,11 +1557,8 @@ export default function AdminUsersGrid() {
         </DialogContent>
         <DialogActions>
           <Button 
-          sx={{
-            color: '#ffffff',
-              bgcolor: '#173487',
-              '&:hover': { bgcolor: '#2A4DB8'  },
-          }}
+          sx={{color: "#2A4DB8"} }
+          variant="outlined"  
           onClick={handleCloseConfirmResetPin}>
             Cancelar
           </Button>
@@ -1703,7 +1699,7 @@ export default function AdminUsersGrid() {
               <Typography variant="subtitle2" color="text.secondary">
                 Gestión de clientes
               </Typography>
-              <Typography variant="h6">Clientes </Typography>
+              <Typography variant="h6">Panel de Clientes </Typography>
             </Box>
           </Stack>
         </DialogTitle>

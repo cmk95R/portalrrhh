@@ -336,20 +336,21 @@ export default function AdminDashboard() {
                                             <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
                                                 <Box
                                                     sx={{
+                                                        marginLeft: 7,
                                                         width: 14,
                                                         height: 14,
-                                                        bgcolor: alpha(theme.palette.primary.main, 0.8),
+                                                        bgcolor: alpha("#173487", 0.8),
                                                         borderRadius: 0,
                                                         mr: 1,
                                                     }}
                                                 />
-                                                <Typography variant="body2" sx={{ color: theme.palette.primary.main, fontWeight: 500 }}>
+                                                <Typography variant="body2" sx={{ color: "#2A4DB8", fontWeight: 500 }}>
                                                     Empleados
                                                 </Typography>
                                             </Box>
                                         )}
                                     />
-                                    <Bar dataKey="Asistencias" fill={theme.palette.primary.main} radius={[4, 4, 0, 0]} />
+                                    <Bar dataKey="Asistencias" fill={"#2A4DB8"} radius={[4, 4, 0, 0]} />
                                 </BarChart>
                             </ResponsiveContainer>
                         </CardContent>
@@ -369,13 +370,22 @@ export default function AdminDashboard() {
                                         cy="50%"
                                         labelLine={false}
                                         outerRadius={110}
-                                        fill="#8884d8"
                                         dataKey="value"
-                                        
                                     >
-                                        {pieChartData.map((entry, index) => (
-                                            <Cell key={`cell-${index}`} fill={PIE_COLORS[entry.name.toUpperCase()] || '#8884d8'} />
-                                        ))}
+                                        {pieChartData.map((entry, index) => {
+                                            // Usamos el mismo efecto que en "Distribución por Cliente":
+                                            // mismo color base (#2A4DB8) con opacidades diferentes según la posición
+                                            const total = pieChartData.length || 1;
+                                            const t = total > 1 ? (total - 1 - index) / (total - 1) : 1;
+                                            const opacity = 0.5 + t * 0.7; // 0.3 muy claro -> 1 más intenso
+
+                                            return (
+                                                <Cell
+                                                    key={`cell-${index}`}
+                                                    fill={alpha("#2A4DB8", opacity)}
+                                                />
+                                            );
+                                        })}
                                     </Pie>
                                     <Tooltip />
                                     <Legend
@@ -478,7 +488,7 @@ export default function AdminDashboard() {
                                             </span>
                                         )}
                                     />
-                                    <Bar dataKey="value" name="Empleados" radius={[0, 4, 4, 0]} barSize={20}>
+                                    <Bar dataKey="value" name="Empleados" fill={"#2A4DB8"} radius={[0, 4, 4, 0]} barSize={20} > 
                                         {clientDistribution.map((entry, index) => {
                                             const total = clientDistribution.length || 1;
                                             const t = total > 1 ? (total - 1 - index) / (total - 1) : 1; // 1 = primer cliente (arriba), 0 = último (abajo)
@@ -486,7 +496,7 @@ export default function AdminDashboard() {
                                             return (    
                                                 <Cell
                                                     key={`client-bar-${entry.name}-${index}`}
-                                                    fill={alpha(theme.palette.primary.main, opacity)}
+                                                    fill={alpha("#2A4DB8", opacity)}
                                                 />
                                             );
                                         })}

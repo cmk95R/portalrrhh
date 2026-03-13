@@ -502,7 +502,8 @@ export default function CreateRequestModal({ open, onClose, onSuccess, showNotif
           variant="outlined" 
           color="inherit" 
           disabled={submitting}
-          sx={{ borderColor: '#e0e0e0', textTransform: 'none', fontWeight: 600, color: '#333' }}
+          sx={{mr: 1, color: "#2A4DB8"} }
+             
         >
           Cancelar
         </Button>
@@ -510,13 +511,7 @@ export default function CreateRequestModal({ open, onClose, onSuccess, showNotif
           onClick={handleSubmit} 
           variant="contained" 
           disabled={submitting}
-          sx={{ 
-            bgcolor: '#2563eb', 
-            textTransform: 'none', 
-            fontWeight: 600,
-            boxShadow: 'none',
-            '&:hover': { bgcolor: '#1d4ed8' }
-          }}
+          sx={{color: "#ffffff",bgcolor: "#173487", '&:hover': { bgcolor: '#2A4DB8' } }}
         >
           {submitting ? <CircularProgress size={24} color="inherit" /> : (requestToEdit ? 'Guardar Cambios' : 'Enviar Solicitud')}
         </Button>

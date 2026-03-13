@@ -541,7 +541,7 @@ const AttendanceCalendar = () => {
         >
           <Alert
             onClose={() => setSnack(prev => ({ ...prev, open: false }))}
-            severity={snack.severity}
+            severity={snack.severity} variant="filled"
             sx={{ width: '100%', minWidth: 320, fontSize: '1rem', py: 1.25, '& .MuiAlert-message': { fontSize: '1rem' } }}
           >
             {snack.msg}
