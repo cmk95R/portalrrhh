@@ -16,10 +16,15 @@ import {
   Alert,
   Checkbox,
   FormControlLabel,
-  LinearProgress
+  LinearProgress,
+  Avatar,
+  Typography,
+  Stack,
 } from '@mui/material';
-import CloseIcon from '@mui/icons-material/Close';
+
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import CloseIcon from '@mui/icons-material/Close';
+import CreateNewFolderIcon from '@mui/icons-material/CreateNewFolder';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { Autocomplete } from '@mui/material';
 import dayjs from 'dayjs';
@@ -189,9 +194,9 @@ export default function AdminCreateRequestModal({ open, onClose, onSuccess, show
     <Dialog
       open={open}
       onClose={onClose}
-      maxWidth="sm"
+      maxWidth="md"
       fullWidth
-      PaperProps={{ sx: { borderRadius: 3, padding: 1 } }}
+      PaperProps={{ sx: { borderRadius: 3, padding: 1, maxHeight: '80vh' } }}
     >
       <DialogTitle
         sx={{
@@ -199,17 +204,41 @@ export default function AdminCreateRequestModal({ open, onClose, onSuccess, show
           justifyContent: 'space-between',
           alignItems: 'center',
           pb: 1,
-          fontWeight: 'bold',
-          fontSize: '1.25rem',
         }}
       >
-        Crear Nueva Solicitud 
+        <Stack direction="row" spacing={2} alignItems="center">
+          <Avatar
+            sx={{
+              width: 40,
+              height: 40,
+              bgcolor: '#173487',
+              color: '#fff',
+            }}
+          >
+            <CreateNewFolderIcon />
+          </Avatar>
+          <Box>
+            <Typography
+              variant="overline"
+              color="text.secondary"
+              sx={{ letterSpacing: 1 }}
+            >
+              Crear solicitud
+            </Typography>
+            <Typography variant="h6" fontWeight={600}>
+              Nueva solicitud para empleado
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              Seleccioná el empleado, el tipo de solicitud y, si aplica, adjuntá documentación.
+            </Typography>
+          </Box>
+        </Stack>
         <IconButton onClick={onClose} size="small">
           <CloseIcon />
         </IconButton>
       </DialogTitle>
 
-      <DialogContent sx={{ overflowY: 'visible' }}>
+      <DialogContent sx={{ overflowY: 'auto', pt: 1 }}>
         <Alert severity="info" sx={{ mb: 2 }}>
           Esta solicitud será creada en nombre del empleado seleccionado.
         </Alert>
@@ -369,10 +398,20 @@ export default function AdminCreateRequestModal({ open, onClose, onSuccess, show
       </DialogContent>
 
       <DialogActions>
-        <Button onClick={onClose} disabled={submitting}>
+        <Button
+          sx={{ color: "#2A4DB8" }}
+          variant="outlined"
+          onClick={onClose}
+          disabled={submitting}
+        >
           Cancelar
         </Button>
         <Button
+          sx={{
+            color: "#ffffff",
+            bgcolor: "#173487",
+            '&:hover': { bgcolor: '#2A4DB8' }
+          }}
           onClick={handleSubmit}
           variant="contained"
           disabled={submitting}

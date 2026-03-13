@@ -255,9 +255,16 @@ export default function AdminDashboard() {
                 <Button
                     variant="contained"
                     size="large"
-                    
-                    
-                    sx={{ alignItems: 'flex-end', py: 1.5, minWidth: 220 }}
+                    sx={{
+                        alignItems: 'flex-end',
+                        py: 1.5,
+                        minWidth: 220,
+                        
+                        
+                        color: '#ffffff',
+                        bgcolor: '#173487',
+                        '&:hover': { bgcolor: '#2A4DB8' },
+                    }}
                     startIcon={<ManageAccountsIcon />}
                     onClick={(e) => setActionsAnchorEl(e.currentTarget)}
                 >
@@ -364,15 +371,10 @@ export default function AdminDashboard() {
                                         outerRadius={110}
                                         fill="#8884d8"
                                         dataKey="value"
-                                        label={({ name, percent }) => {
-                                            const prettyName = name
-                                                ? name.charAt(0).toUpperCase() + name.slice(1).toLowerCase()
-                                                : '';
-                                            return `${prettyName} ${(percent * 100).toFixed(0)}%`;
-                                        }}
+                                        
                                     >
                                         {pieChartData.map((entry, index) => (
-                                            <Cell key={`cell-${index}`} fill={PIE_COLORS[entry.name] || '#8884d8'} />
+                                            <Cell key={`cell-${index}`} fill={PIE_COLORS[entry.name.toUpperCase()] || '#8884d8'} />
                                         ))}
                                     </Pie>
                                     <Tooltip />
@@ -517,7 +519,7 @@ export default function AdminDashboard() {
                                     <React.Fragment key={req._id}>
                                         <ListItem sx={{ py: 1.5, px: 3 }}>
                                             <ListItemAvatar>
-                                                <Avatar sx={{ bgcolor: 'primary.light', color: 'primary.dark' }}>
+                                                <Avatar sx={{ bgcolor: '#2A4DB8', color: '#fff' }}>
                                                     {req.usuario?.nombre ? req.usuario.nombre[0] : 'U'}
                                                 </Avatar>
                                             </ListItemAvatar>
@@ -566,7 +568,8 @@ export default function AdminDashboard() {
                                 <React.Fragment key={att._id}>
                                     <ListItem sx={{ py: 1.5, px: 3 }}>
                                         <ListItemAvatar>
-                                            <Avatar sx={{ bgcolor: att.estado === 'presente' ? 'success.light' : 'error.light', color: att.estado === 'presente' ? 'success.dark' : 'error.dark' }}>
+                                            <Avatar sx={{ bgcolor: '#2A4DB8', color: '#fff' }}
+                                            >
                                                 {att.nombre ? att.nombre[0] : 'U'}
                                             </Avatar>
                                         </ListItemAvatar>
@@ -605,7 +608,7 @@ export default function AdminDashboard() {
                                         sx={{ py: 1.5, px: 3 }}
                                     >
                                         <ListItemAvatar>
-                                            <Avatar sx={{ bgcolor: 'secondary.light' }}>
+                                            <Avatar sx={{ bgcolor: '#2A4DB8', color: '#fff' }}>
                                                 {user.nombre ? user.nombre[0] : 'U'}
                                             </Avatar>
                                         </ListItemAvatar>

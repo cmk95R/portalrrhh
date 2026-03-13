@@ -42,7 +42,6 @@ import { DataGrid, GridToolbar } from '@mui/x-data-grid';
 import { esES } from '@mui/x-data-grid/locales';
 import { getAllAttendanceApi, deleteAttendanceApi, sendAttendanceReminderApi } from '../api/adminAttendanceApi';
 import { listUsersApi } from '../api/users';
-import Swal from 'sweetalert2';
 
 // --- Componentes Reutilizables ---
 import ViewAttendanceModal from '../components/admin/ViewAttendanceModal';
@@ -68,7 +67,7 @@ export default function AdminAttendancePage() {
   const [loading, setLoading] = useState(false);
   const [rowCount, setRowCount] = useState(0);
   const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 10 });
-  const [queryOptions, setQueryOptions] = useState({});
+  const [queryOptions] = useState({});
   const [filters, setFilters] = useState({ q: '', dateFrom: '', dateTo: '' });
   
   const [selectedEmployee, setSelectedEmployee] = useState(null);
@@ -76,6 +75,9 @@ export default function AdminAttendancePage() {
   const [applyModalOpen, setApplyModalOpen] = useState(false);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [rowToDelete, setRowToDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   const DEFAULT_REMINDER_SUBJECT = 'Recordatorio: registrar asistencia del {{fecha_desde}} al {{fecha_hasta}}';
   const DEFAULT_REMINDER_BODY = 'Hola {{nombre}},\n\nTe recordamos que registres tu asistencia desde el día {{fecha_desde}} hasta el {{fecha_hasta}}.\n\nIngresá al portal de colaboradores y marcá presente o ausente según corresponda.';
@@ -127,37 +129,39 @@ export default function AdminAttendancePage() {
     }
   };
 
-  const handleDelete = (id) => {
-    Swal.fire({
-      title: '¿Eliminar registro?',
-      text: "¿Estás seguro de que deseas eliminar este registro? Esta acción no se puede deshacer.",
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#d32f2f',
-      cancelButtonColor: '#3085d6',
-      confirmButtonText: 'Sí, eliminar',
-      cancelButtonText: 'Cancelar',
-      showLoaderOnConfirm: true,
-      preConfirm: async () => {
-        try {
-          await deleteAttendanceApi(id);
-          return true;
-        } catch (error) {
-          Swal.showValidationMessage(`Error: ${error.message || 'No se pudo eliminar'}`);
-        }
-      }
-    }).then((result) => {
-      if (result.isConfirmed) {
-        fetchData();
-        Swal.fire({
-          title: '¡Eliminado!',
-          text: 'El registro ha sido eliminado.',
-          icon: 'success',
-          timer: 2000,
-          showConfirmButton: false
-        });
-      }
-    });
+  const handleDeleteClick = (row) => {
+    setRowToDelete(row);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!rowToDelete?._id) return;
+    setDeleting(true);
+    try {
+      await deleteAttendanceApi(rowToDelete._id);
+      await fetchData();
+      setSnackbar({
+        open: true,
+        message: 'Registro de asistencia eliminado correctamente.',
+        severity: 'success',
+      });
+    } catch (error) {
+      setSnackbar({
+        open: true,
+        message: error.response?.data?.message || 'No se pudo eliminar el registro.',
+        severity: 'error',
+      });
+    } finally {
+      setDeleting(false);
+      setDeleteDialogOpen(false);
+      setRowToDelete(null);
+    }
+  };
+
+  const handleCancelDelete = () => {
+    if (deleting) return;
+    setDeleteDialogOpen(false);
+    setRowToDelete(null);
   };
 
   const handleOpenModal = (row, type) => {
@@ -214,7 +218,7 @@ export default function AdminAttendancePage() {
       field: 'nombre', headerName: 'Empleado', flex: 1, minWidth: 180,
       renderCell: (params) => (
         <Stack direction="row" alignItems="center" spacing={1} sx={{ height: '100%' }}>
-            <Avatar sx={{ width: 24, height: 24, fontSize: '0.8rem', bgcolor: 'primary.light' }}>
+            <Avatar sx={{ width: 24, height: 24, fontSize: '0.8rem', bgcolor: '#2A4DB8' }}>
                 {params.row.nombre ? params.row.nombre[0] : ''}
             </Avatar>
             <Typography variant="body2">{`${params.row.nombre} ${params.row.apellido}`}</Typography>
@@ -248,9 +252,39 @@ export default function AdminAttendancePage() {
     { field: 'actions', headerName: 'Acciones', width: 180, sortable: false,
       renderCell: (params) => (
         <Stack direction="row" spacing={0.5}>
-          <Tooltip title="Ver"><IconButton size="small" color="primary" onClick={() => handleOpenModal(params.row, 'view')}><VisibilityIcon fontSize="small" /></IconButton></Tooltip>
-          <Tooltip title="Corregir"><IconButton size="small" color="warning" onClick={() => handleOpenModal(params.row, 'apply')}><EditIcon fontSize="small" /></IconButton></Tooltip>
-          <Tooltip title="Eliminar"><IconButton size="small" color="error" onClick={() => handleDelete(params.row._id)}><DeleteIcon fontSize="small" /></IconButton></Tooltip>
+          <Tooltip title="Ver">
+            <IconButton
+              size="small"
+              onClick={() => handleOpenModal(params.row, 'view')}
+              sx={{
+                color: '#173487',
+                '&:hover': { color: '#2A4DB8' },
+              }}
+            >
+              <VisibilityIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Editar">
+            <IconButton
+              size="small"
+              onClick={() => handleOpenModal(params.row, 'apply')}
+              sx={{
+                color: '#173487',
+                '&:hover': { color: '#2A4DB8' },
+              }}
+            >
+              <EditIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Eliminar">
+            <IconButton
+              size="small"
+              color="error"
+              onClick={() => handleDeleteClick(params.row)}
+            >
+              <DeleteIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
         </Stack>
       ),
     },
@@ -270,7 +304,7 @@ export default function AdminAttendancePage() {
               startIcon={<RefreshIcon />}
               onClick={fetchData}
               disabled={loading}
-              sx={{ bgcolor: "theme.pallete.primary.main", '&:hover': { bgcolor: 'theme.pallete.primary.dark' } }}
+              sx={{ bgcolor: "#173487", '&:hover': { bgcolor: '#2A4DB8 ' } }}
             >
               Actualizar
             </Button>
@@ -278,7 +312,7 @@ export default function AdminAttendancePage() {
               variant="contained"
               startIcon={<EmailIcon />}
               onClick={handleOpenReminderModal}
-              sx={{ bgcolor: "theme.pallete.primary.main", '&:hover': { bgcolor: 'theme.pallete.primary.dark' } }}
+              sx={{ bgcolor: "#173487", '&:hover': { bgcolor: '#2A4DB8 ' } }}
             >
               Enviar Recordatorio
             </Button>
@@ -288,7 +322,7 @@ export default function AdminAttendancePage() {
               startIcon={<AddIcon />}
               
               onClick={() => setCreateModalOpen(true)}
-              sx={{ bgcolor: "theme.pallete.primary.main", '&:hover': { bgcolor: 'theme.pallete.primary.dark' } }}
+              sx={{ bgcolor: "#173487", '&:hover': { bgcolor: '#2A4DB8 '} }}
             >
               Crear Asistencia
             </Button>
@@ -306,22 +340,86 @@ export default function AdminAttendancePage() {
               onChange={(e) => setFilters(p => ({ ...p, q: e.target.value }))} 
               onKeyDown={handleKeyDown}
               fullWidth 
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  '& fieldset': {
+                    borderColor: '#6B85D6',
+                  },
+                  '&:hover fieldset': {
+                    borderColor: '#6B85D6',
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: '#6B85D6',
+                  },
+                },
+                '& .MuiInputLabel-root.Mui-focused': {
+                  color: '#6B85D6',
+                },
+              }}
             />
             <TextField
-              label="Desde" type="date" size="small"
+              label="Desde"
+              type="date"
+              size="small"
               value={filters.dateFrom}
               onChange={(e) => setFilters(p => ({ ...p, dateFrom: e.target.value }))}
               onKeyDown={handleKeyDown}
               InputLabelProps={{ shrink: true }}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  '& fieldset': {
+                    borderColor: '#173487',
+                  },
+                  '&:hover fieldset': {
+                    borderColor: '#132966',
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: '#173487',
+                  },
+                },
+                '& .MuiInputLabel-root.Mui-focused': {
+                  color: '#173487',
+                },
+              }}
             />
             <TextField
-              label="Hasta" type="date" size="small"
+              label="Hasta"
+              type="date"
+              size="small"
               value={filters.dateTo}
               onChange={(e) => setFilters(p => ({ ...p, dateTo: e.target.value }))}
               onKeyDown={handleKeyDown}
               InputLabelProps={{ shrink: true }}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  '& fieldset': {
+                    borderColor: '#2A4DB8',
+                  },
+                  '&:hover fieldset': {
+                    borderColor: '#2A4DB8',
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: '#2A4DB8',
+                  },
+                },
+                '& .MuiInputLabel-root.Mui-focused': {
+                  color: '#2A4DB8',
+                },
+              }}
             />
-            <Button variant="contained" onClick={handleFilterSubmit}>BUSCAR</Button>
+            <Button
+              variant="contained"
+              onClick={handleFilterSubmit}
+              sx={{
+                bgcolor: '#173487',
+                color: '#ffffff',
+                '&:hover': {
+                  bgcolor: '#2A4DB8',
+                },
+              }}
+            >
+              BUSCAR
+            </Button>
           </Stack>
         </CardContent>
       </Card>
@@ -342,19 +440,55 @@ export default function AdminAttendancePage() {
         />
       </Card>
 
-      <ViewAttendanceModal open={viewModalOpen} onClose={() => setViewModalOpen(false)} employee={selectedEmployee} />
-      <EditAttendanceModal open={applyModalOpen} onClose={() => setApplyModalOpen(false)} employee={selectedEmployee} onApplied={fetchData} />
+      <ViewAttendanceModal
+        open={viewModalOpen}
+        onClose={() => setViewModalOpen(false)}
+        employee={selectedEmployee}
+        initialDate={selectedEmployee?.fecha}
+      />
+      <EditAttendanceModal
+        open={applyModalOpen}
+        onClose={() => setApplyModalOpen(false)}
+        employee={selectedEmployee}
+        onApplied={fetchData}
+        showNotification={(msg, severity = 'success') => setSnackbar({ open: true, message: msg, severity })}
+      />
       <CreateAttendanceModal
         open={createModalOpen}
         onClose={() => setCreateModalOpen(false)}
         onCreated={fetchData}
         showNotification={(msg, severity = 'success') => setSnackbar({ open: true, message: msg, severity })}
       />
-
-      <Dialog open={reminderModalOpen} onClose={() => !sendingReminder && setReminderModalOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Enviar recordatorio de asistencia</DialogTitle>
-        <DialogContent>
-          <Stack spacing={2} sx={{ mt: 1 }}>
+{/* Diálogo para enviar recordatorio de asistencia */}
+      <Dialog open={reminderModalOpen} onClose={() => !sendingReminder && setReminderModalOpen(false)} maxWidth="md" fullWidth
+        Paperprops={{ sx: { borderRadius: 3, padding: 1, maxHeight: '80vh' } }}>
+        <DialogTitle sx={{ pb: 1 }}>
+          <Stack direction="row" spacing={2} alignItems="center">
+            <Avatar
+              sx={{
+                width: 40,
+                height: 40,
+                bgcolor: '#173487',
+                color: '#fff',
+              }}
+            >
+              <EmailIcon />
+            </Avatar>
+            <Box>
+              <Typography variant="overline" color="text.secondary" sx={{ letterSpacing: 1 }}>
+                Recordatorio de asistencia
+              </Typography>
+              <Typography variant="h6" fontWeight={600}>
+                Enviar correo a empleados
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                Seleccioná empleados, fechas y mensaje antes de enviar.
+              </Typography>
+            </Box>
+          </Stack>
+        </DialogTitle>
+        <DialogContent dividers sx={{ pt: 2 }}>
+          <Stack spacing={2}>
             <Autocomplete
               multiple
               options={usersList}
@@ -441,8 +575,14 @@ export default function AdminAttendancePage() {
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setReminderModalOpen(false)} disabled={sendingReminder}>Cancelar</Button>
-          <Button variant="contained" startIcon={<EmailIcon />} onClick={handleSendAttendanceReminder} disabled={sendingReminder || selectedUsersReminder.length === 0}>
+          <Button 
+          sx={{color: "#2A4DB8"} } 
+          variant="outlined"
+          onClick={() => setReminderModalOpen(false)} disabled={sendingReminder}>Cancelar</Button>
+          <Button 
+          
+          sx={{color: "#ffffff",bgcolor: "#173487", '&:hover': { bgcolor: '#2A4DB8' } }}
+          variant="contained" startIcon={<EmailIcon />} onClick={handleSendAttendanceReminder} disabled={sendingReminder || selectedUsersReminder.length === 0}>
             {sendingReminder ? 'Enviando...' : 'Enviar recordatorio'}
           </Button>
         </DialogActions>
@@ -452,12 +592,94 @@ export default function AdminAttendancePage() {
         open={snackbar.open}
         autoHideDuration={4000}
         onClose={() => setSnackbar((s) => ({ ...s, open: false }))}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
       >
-        <Alert onClose={() => setSnackbar((s) => ({ ...s, open: false }))} severity={snackbar.severity} sx={{ width: '100%' }}>
+        <Alert
+          onClose={() => setSnackbar((s) => ({ ...s, open: false }))}
+          severity={snackbar.severity}
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
           {snackbar.message}
         </Alert>
       </Snackbar>
+
+
+{/* Diálogo para eliminar registro de asistencia */}
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={handleCancelDelete}
+        maxWidth="sm"
+        fullWidth
+      >
+        {rowToDelete && (
+          <>
+            <DialogTitle sx={{ pb: 1 }}>
+              <Stack direction="row" spacing={2} alignItems="center">
+                <Avatar
+                  sx={{
+                    width: 40,
+                    height: 40,
+                    bgcolor: '#173487',
+                    color: '#fff',
+                    fontWeight: 'bold',
+                    fontSize: 18,
+                  }}
+                >
+                  {rowToDelete.nombre?.[0]?.toUpperCase() || ''}
+                </Avatar>
+                <Box>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Eliminar registro de asistencia
+                  </Typography>
+                  <Typography variant="body1" fontWeight={600}>
+                    {rowToDelete.nombre} {rowToDelete.apellido}
+                  </Typography>
+                </Box>
+              </Stack>
+            </DialogTitle>
+            <DialogContent dividers sx={{ pt: 2 }}>
+              <Stack spacing={1.5}>
+                <Box>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Detalle del registro
+                  </Typography>
+                  <Typography variant="body2" sx={{ mt: 0.5 }}>
+                    Día:{' '}
+                    <strong>{formatDate(rowToDelete.fecha)}</strong>
+                  </Typography>
+                  <Typography variant="body2">
+                    Estado:{' '}
+                    <strong>{(rowToDelete.estado || 'N/A').toUpperCase()}</strong>
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography variant="body2" color="text.secondary">
+                    ¿Estás seguro de que querés eliminar este registro de
+                    asistencia? Esta acción no se puede deshacer.
+                  </Typography>
+                </Box>
+              </Stack>
+            </DialogContent>
+            <DialogActions>
+              <Button 
+              sx={{color: "#2A4DB8"} }
+              variant="outlined"
+              onClick={handleCancelDelete} disabled={deleting}>
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleConfirmDelete}
+                variant="contained"
+                color="error"
+                disabled={deleting}
+              >
+                {deleting ? 'Eliminando...' : 'Eliminar'}
+              </Button>
+            </DialogActions>
+          </>
+        )}
+      </Dialog>
     </Container>
   );
 }

@@ -48,7 +48,7 @@ const modalStyle = {
   
 };
 
-export default function ViewAttendanceModal({ open, onClose, employee }) {
+export default function ViewAttendanceModal({ open, onClose, employee, initialDate }) {
   const theme = useTheme();
   const [asistencias, setAsistencias] = useState({});
   const [loading, setLoading] = useState(false);
@@ -79,6 +79,17 @@ export default function ViewAttendanceModal({ open, onClose, employee }) {
       fetchUserAttendance(currentMonth);
     }
   }, [open, employee, currentMonth]);
+
+  useEffect(() => {
+    if (open && initialDate) {
+      const d = dayjs(initialDate);
+      setCurrentMonth(d);
+      setSelectedDate(d);
+    }
+    if (!open) {
+      setSelectedDate(null);
+    }
+  }, [open, initialDate]);
 
   if (!employee) return null;
 
@@ -126,15 +137,30 @@ export default function ViewAttendanceModal({ open, onClose, employee }) {
         {/* Header con cierre */}
         <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ px: 3, pt: 3, pb: 2 }}>
           <Stack direction="row" alignItems="center" spacing={2}>
-            <Avatar sx={{ bgcolor: 'primary.main', width: 52, height: 52, fontSize: '1.25rem' }}>
-              {employee.nombre ? employee.nombre[0] : 'U'}
+            <Avatar
+              sx={{
+                bgcolor: '#173487',
+                width: 52,
+                height: 52,
+                fontSize: '1.25rem',
+                fontWeight: 'bold',
+              }}
+            >
+              {employee.nombre ? employee.nombre[0].toUpperCase() : 'U'}
             </Avatar>
             <Box>
-              <Typography variant="h5" fontWeight="bold">
+              <Typography
+                variant="overline"
+                color="text.secondary"
+                sx={{ letterSpacing: 1 }}
+              >
+                Historial de asistencias
+              </Typography>
+              <Typography variant="h6" fontWeight="bold">
                 {employee.nombre} {employee.apellido}
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Historial de asistencias · {currentMonth.format('MMMM YYYY')}
+                {currentMonth.format('MMMM YYYY').toUpperCase()}
               </Typography>
             </Box>
           </Stack>
@@ -147,7 +173,7 @@ export default function ViewAttendanceModal({ open, onClose, employee }) {
         <Box sx={{ p: 3 }}>
           <Grid container spacing={3} justifyContent="center" alignItems="center">
             {/* Calendario */}
-            <Grid item xs={12} md={6} >
+            <Grid size={{ xs: 12, md: 6 }}>
               <Card variant="outlined" sx={{ overflow: 'visible' }}>
                 <CardContent sx={{ '&:last-child': { pb: 2 } }}>
                   <Stack direction="row" alignItems="center" spacing={1} mb={1}>
@@ -174,7 +200,7 @@ export default function ViewAttendanceModal({ open, onClose, employee }) {
             </Grid>
 
             {/* Lista de registros */}
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <Card variant="outlined" sx={{ height: '100%', minHeight: 340 }}>
                 <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
                   <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
@@ -251,7 +277,7 @@ export default function ViewAttendanceModal({ open, onClose, employee }) {
                   </Typography>
                   {selectedRecord ? (
                     <Grid container spacing={2}>
-                      <Grid item xs={6} sm={4}>
+                      <Grid size={{ xs: 6, sm: 4 }}>
                         <Typography variant="caption" color="text.secondary" display="block">Estado</Typography>
                         <Chip
                           icon={selectedRecord.estado === 'presente' ? <CheckCircleIcon /> : <CancelIcon />}
@@ -274,13 +300,13 @@ export default function ViewAttendanceModal({ open, onClose, employee }) {
                         </>
                       )}
                       {selectedRecord.motivo && (
-                        <Grid item xs={12} sm={6}>
+                        <Grid size={{ xs: 12, sm: 6 }}>
                           <Typography variant="caption" color="text.secondary" display="block">Motivo de ausencia</Typography>
                           <Typography variant="body2">{selectedRecord.motivo}</Typography>
                         </Grid>
                       )}
                       {selectedRecord.nota && (
-                        <Grid item xs={12}>
+                        <Grid size={{ xs: 12 }}>
                           <Typography variant="caption" color="text.secondary" display="block">Nota</Typography>
                           <Typography variant="body2" sx={{ fontStyle: 'italic', bgcolor: 'background.paper', p: 1.5, borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
                             {getDisplayNote(selectedRecord.nota)}

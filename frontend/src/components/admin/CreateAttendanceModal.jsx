@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Box, Modal, Typography, Stack, TextField, FormControl, InputLabel, Select, MenuItem, Button, Autocomplete, CircularProgress, Switch, FormControlLabel, Grid, Alert, IconButton, Divider
+  Box, Modal, Typography, Stack, TextField, FormControl, InputLabel, Select, MenuItem, Button, Autocomplete, CircularProgress, Switch, FormControlLabel, Grid, Alert, IconButton, Divider, Avatar
 } from '@mui/material';
 import { DateRange, Person, EventNote, Notes, Close } from '@mui/icons-material';
 import dayjs from 'dayjs';
@@ -149,9 +149,33 @@ export default function CreateAttendanceModal({ open, onClose, onCreated, showNo
     <Modal open={open} onClose={onClose}>
       <Box sx={modalStyle}>
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-          <Typography variant="h6" component="h2" sx={{ fontWeight: 600 }}>
-            Crear Asistencia Manual
-          </Typography>
+          <Stack direction="row" spacing={2} alignItems="center">
+            <Avatar
+              sx={{
+                width: 40,
+                height: 40,
+                bgcolor: '#173487',
+                color: '#fff',
+              }}
+            >
+              <EventNote />
+            </Avatar>
+            <Box>
+              <Typography
+                variant="overline"
+                color="text.secondary"
+                sx={{ letterSpacing: 1 }}
+              >
+                Crear asistencia
+              </Typography>
+              <Typography variant="h6" fontWeight={600}>
+                Registrar asistencia manual
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                Seleccioná el empleado, las fechas y el estado de asistencia.
+              </Typography>
+            </Box>
+          </Stack>
           <IconButton onClick={onClose} size="small">
             <Close />
           </IconButton>
@@ -281,10 +305,16 @@ export default function CreateAttendanceModal({ open, onClose, onCreated, showNo
 
           <Grid size={12}>
             <Box display="flex" justifyContent="flex-end" gap={2}>
-              <Button onClick={onClose} color="inherit" disabled={saving}>
+              <Button
+              
+              sx={{color: "#2A4DB8"} } 
+              variant="outlined"
+              onClick={onClose} color="inherit" disabled={saving}>
                 Cancelar
               </Button>
               <Button 
+
+              sx={{color: "#ffffff",bgcolor: "#173487", '&:hover': { bgcolor: '#2A4DB8' } }}
                 variant="contained" 
                 onClick={handleSave} 
                 disabled={!selectedUser || saving}

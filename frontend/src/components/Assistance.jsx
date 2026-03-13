@@ -122,9 +122,11 @@ const AttendanceCalendar = () => {
 
   const validateDate = (date) => {
     const today = dayjs();
-    // Rango permitido: 60 días atrás y 60 días adelante (ajustable según necesidad)
+    // Rango permitido: desde 60 días atrás hasta el viernes más próximo
     const minDate = today.subtract(60, 'day');
-    const maxDate = today.add(60, 'day');
+    const dayOfWeek = today.day(); // 0 = domingo ... 5 = viernes
+    const daysUntilFriday = (5 - dayOfWeek + 7) % 7; // siempre >= 0
+    const maxDate = today.add(daysUntilFriday, 'day');
 
     if (date.isBefore(minDate, 'day') || date.isAfter(maxDate, 'day')) {
       setOpenDateErrorDialog(true);
@@ -252,7 +254,7 @@ const AttendanceCalendar = () => {
 
         {/* Encabezado */}
         <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
-          <EventNote color="primary" fontSize="large" />
+          <EventNote  fontSize="large" sx={{ color: '#173487' }} />
           <Typography variant={isMobile ? "h5" : "h4"} fontWeight="bold">
             Control de Asistencias
           </Typography>
@@ -368,7 +370,7 @@ const AttendanceCalendar = () => {
 
               {/* Feriados */}
               <Paper elevation={2} sx={{ p: 2 }}>
-                <Typography variant="h6" gutterBottom sx={{ color: 'warning.dark' }}>
+                <Typography variant="h6" gutterBottom sx={{ color: '#173487' }}>
                   Feriados del Mes
                 </Typography>
                 <Divider sx={{ mb: 1 }} />
@@ -430,8 +432,13 @@ const AttendanceCalendar = () => {
             </Box>
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setOpenAbsenceDialog(false)} color="inherit">Cancelar</Button>
-            <Button onClick={submitAbsence} variant="contained" color="error">Confirmar Ausencia</Button>
+            <Button
+             sx={{color: "#2A4DB8"} }
+             variant="outlined"  
+             onClick={() => setOpenAbsenceDialog(false)} color="inherit">Cancelar</Button>
+            <Button
+            sx={{color: "#ffffff",bgcolor: "#173487", '&:hover': { bgcolor: '#2A4DB8' } }}
+            onClick={submitAbsence} variant="contained" color="error">Confirmar Ausencia</Button>
           </DialogActions>
         </Dialog>
 
@@ -454,8 +461,13 @@ const AttendanceCalendar = () => {
             </Box>
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setOpenPresentDialog(false)} color="inherit">Cancelar</Button>
-            <Button onClick={submitPresent} variant="contained" color="success">Confirmar Presente</Button>
+            <Button 
+            sx={{color: "#2A4DB8"} }
+            variant="outlined"  
+            onClick={() => setOpenPresentDialog(false)} color="inherit">Cancelar</Button>
+            <Button
+            sx={{color: "#ffffff",bgcolor: "#173487", '&:hover': { bgcolor: '#2A4DB8' } }}
+            onClick={submitPresent} variant="contained" color="success">Confirmar Presente</Button>
           </DialogActions>
         </Dialog>
 
@@ -496,7 +508,10 @@ const AttendanceCalendar = () => {
             </Box>
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setOpenExtraDialog(false)} color="inherit">Cancelar</Button>
+            <Button 
+            sx={{color: "#2A4DB8"} }
+            variant="outlined"  
+            onClick={() => setOpenExtraDialog(false)} color="inherit">Cancelar</Button>
             <Button onClick={submitExtraWork} variant="contained" color="success">Confirmar</Button>
           </DialogActions>
         </Dialog>
@@ -507,7 +522,9 @@ const AttendanceCalendar = () => {
             <Cancel /> Acción no permitida
           </DialogTitle>
           <DialogContent>
-            <Typography>No es posible registrar asistencias con fechas demasiado antiguas o con demasiada antelación.</Typography>
+            <Typography>
+            El registro de asistencias solo está habilitado para la semana en curso.
+            </Typography>
           </DialogContent>
           <DialogActions>
             <Button onClick={() => setOpenDateErrorDialog(false)} variant="contained" color="primary">Entendido</Button>

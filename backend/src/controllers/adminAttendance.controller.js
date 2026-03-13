@@ -130,6 +130,11 @@ export const updateAttendanceRecord = async (req, res, next) => {
         if (motivo !== undefined) record.motivo = motivo;
         if (nota !== undefined) record.nota = nota;
 
+        // Aseguramos que diaSemana siempre esté presente para pasar la validación del modelo
+        if (!record.diaSemana && record.fecha) {
+            record.diaSemana = diasSemana[dayjs(record.fecha).day()];
+        }
+
         await record.save();
         res.json({ message: "Registro actualizado.", record });
 

@@ -65,7 +65,7 @@ const AppBar = styled(MuiAppBar, { shouldForwardProp: (prop) => prop !== "open" 
     zIndex: theme.zIndex.drawer + 1,
     ...(theme.palette.mode === 'light'
       ? {
-        background: `#173487`,
+        background: `#0B3CAE`,
         color: theme.palette.common.white,
       }
       : {
@@ -347,7 +347,7 @@ export default function DashboardLayout() {
               </Typography>
               <Tooltip title="Cuenta">
                 <IconButton onClick={handleMenuOpen} sx={{ p: 0 }}>
-                  <Avatar alt={user.nombre} src={getPhotoUrl(user.foto)} sx={{ bgcolor: theme.palette.primary.light }} />
+                  <Avatar alt={user.nombre} src={getPhotoUrl(user.foto)} sx={{ bgcolor: "#173487" }} />
                 </IconButton>
               </Tooltip>
               <Menu

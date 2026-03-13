@@ -26,6 +26,7 @@ import {
   InputLabel
 } from '@mui/material';
 import {
+  EditNote as EditNoteIcon,
   Add as AddIcon,
   Refresh as RefreshIcon,
   School,
@@ -113,7 +114,6 @@ const StatCard = ({ title, value, icon, color }) => (
 // Tipos por sección (para filtros desde home)
 const FILTER_TIPOS = {
   licencias_medicas: ['enfermedad', 'paternidad', 'maternidad'],
-  estudios_vacaciones: ['vacaciones', 'dia_estudio'],
 };
 
 export default function MyRequests() {
@@ -658,6 +658,7 @@ export default function MyRequests() {
         >
         <Box>
           <Stack direction="row" alignItems="center" gap={1} flexWrap="wrap">
+            <EditNoteIcon fontSize="large" sx={{ color: '#173487' }} />
             <Typography variant="h4" component="h1" fontWeight={700} gutterBottom sx={{ mb: 0 }}>
               Mis Solicitudes
             </Typography>
@@ -669,20 +670,10 @@ export default function MyRequests() {
                 sx={{ fontWeight: 600 }}
               />
             )}
-            {filterParam === 'estudios_vacaciones' && (
-              <Chip
-                label="Días de estudio y vacaciones"
-                size="small"
-                onDelete={() => setSearchParams({})}
-                sx={{ fontWeight: 600 }}
-              />
-            )}
           </Stack>
           <Typography variant="body1" color="text.secondary">
             {filterParam === 'licencias_medicas'
               ? 'Enfermedad, maternidad y paternidad.'
-              : filterParam === 'estudios_vacaciones'
-              ? 'Vacaciones y días de estudio.'
               : 'Gestiona tus permisos y días de estudio.'}
           </Typography>
         </Box>
@@ -693,7 +684,7 @@ export default function MyRequests() {
             startIcon={<RefreshIcon />} 
             onClick={fetchRequests} 
             color="inherit"
-            sx={{ borderColor: 'divider', bgcolor: 'background.paper' }}
+            sx={{ borderColor: 'divider', bgcolor: '#173487', color: '#ffffff'   }}
           >
             Actualizar
           </Button>
@@ -702,7 +693,7 @@ export default function MyRequests() {
             color="primary" 
             startIcon={<AddIcon />} 
             onClick={handleOpenDialog}
-            sx={{ boxShadow: 2 }}
+            sx={{ boxShadow: 2, bgcolor: '#173487', color: '#ffffff' }}
           >
             Nueva Solicitud
           </Button>
@@ -741,10 +732,10 @@ export default function MyRequests() {
                   cursor: 'pointer',
                   transition: 'all 0.2s',
                   '&:hover': {
-                    borderColor: 'primary.main',
+                    borderColor: '#173487',
                     bgcolor: 'action.hover',
-                    '& .icon-circle': { bgcolor: 'primary.main', color: 'white' },
-                    '& .text-label': { color: 'primary.main' },
+                    '& .icon-circle': { bgcolor: '#173487', color: 'white' },
+                    '& .text-label': { color: '#173487' },
                   },
                 }}
               >

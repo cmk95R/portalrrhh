@@ -1,6 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Box, Modal, Typography, Stack, TextField, FormControl, InputLabel, Select, MenuItem, Button
+  Box,
+  Modal,
+  Typography,
+  Stack,
+  TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Button,
+  Avatar,
+  Divider,
 } from '@mui/material';
 import dayjs from 'dayjs';
 import { updateAttendanceApi } from '../../api/adminAttendanceApi';
@@ -21,17 +32,16 @@ const modalStyle = {
   top: '50%',
   left: '50%',
   transform: 'translate(-50%, -50%)',
-  width: 400,
+  width: 480,
   maxWidth: '95vw',
   bgcolor: 'background.paper',
   boxShadow: 24,
-  p: 4,
   borderRadius: 2,
   maxHeight: '90vh',
-  overflowY: 'auto'
+  overflowY: 'auto',
 };
 
-export default function EditAttendanceModal({ open, onClose, employee, onApplied }) {
+export default function EditAttendanceModal({ open, onClose, employee, onApplied, showNotification }) {
   const [fecha, setFecha] = useState(dayjs().format('YYYY-MM-DD'));
   const [estado, setEstado] = useState('presente');
   const [motivo, setMotivo] = useState('');
@@ -51,10 +61,15 @@ export default function EditAttendanceModal({ open, onClose, employee, onApplied
       await updateAttendanceApi(employee._id, {
         estado,
         motivo: estado === 'ausente' ? motivo : '',
-        nota
+        nota,
+        // Mantener el día de la semana requerido por el backend
+        diaSemana: employee.diaSemana
       });
       
       if (onApplied) onApplied();
+      if (showNotification) {
+        showNotification('Asistencia actualizada correctamente.', 'success');
+      }
       onClose();
     } catch (error) {
       console.error("Error al actualizar asistencia:", error);
@@ -67,23 +82,65 @@ export default function EditAttendanceModal({ open, onClose, employee, onApplied
   return (
     <Modal open={open} onClose={onClose}>
       <Box sx={modalStyle}>
-        <Typography variant="h6" gutterBottom>Editar Asistencia</Typography>
-        <Typography variant="body2" color="text.secondary" paragraph>
-            Empleado: {employee.nombre} {employee.apellido}
-        </Typography>
-        <Stack spacing={3} mt={2}>
+        {/* Header */}
+        <Stack
+          direction="row"
+          alignItems="center"
+          justifyContent="space-between"
+          sx={{ px: 3, pt: 3, pb: 2 }}
+        >
+          <Stack direction="row" alignItems="center" spacing={2}>
+            <Avatar
+              sx={{
+                bgcolor: '#173487',
+                width: 44,
+                height: 44,
+                fontSize: '1rem',
+                fontWeight: 'bold',
+              }}
+            >
+              {employee.nombre ? employee.nombre[0].toUpperCase() : 'U'}
+            </Avatar>
+            <Box>
+              <Typography
+                variant="overline"
+                color="text.secondary"
+                sx={{ letterSpacing: 1 }}
+              >
+                Editar asistencia
+              </Typography>
+              <Typography variant="body1" fontWeight={600}>
+                {employee.nombre} {employee.apellido}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                Fecha: {dayjs(employee.fecha).format('DD/MM/YYYY')}
+              </Typography>
+            </Box>
+          </Stack>
+        </Stack>
+        <Divider />
+
+        <Box sx={{ px: 3, py: 3 }}>
+          <Stack spacing={3}>
             <TextField
-                fullWidth type="date" label="Fecha"
-                value={fecha} 
-                disabled // Solo se edita el día seleccionado (no modificable)
-                InputLabelProps={{ shrink: true }}
+              fullWidth
+              type="date"
+              label="Fecha"
+              value={fecha}
+              disabled
+              InputLabelProps={{ shrink: true }}
             />
+
             <FormControl fullWidth>
-            <InputLabel>Estado</InputLabel>
-            <Select value={estado} label="Estado" onChange={(e) => setEstado(e.target.value)}>
+              <InputLabel>Estado</InputLabel>
+              <Select
+                value={estado}
+                label="Estado"
+                onChange={(e) => setEstado(e.target.value)}
+              >
                 <MenuItem value="presente">Presente</MenuItem>
                 <MenuItem value="ausente">Ausente</MenuItem>
-            </Select>
+              </Select>
             </FormControl>
 
             {estado === 'ausente' && (
@@ -104,16 +161,31 @@ export default function EditAttendanceModal({ open, onClose, employee, onApplied
             )}
 
             <TextField
-              fullWidth label="Nota / Observación"
-              multiline rows={2}
-              value={nota} onChange={(e) => setNota(e.target.value)}
+              fullWidth
+              label="Nota / Observación"
+              multiline
+              rows={3}
+              value={nota}
+              onChange={(e) => setNota(e.target.value)}
             />
 
             <Stack direction="row" spacing={2} justifyContent="flex-end">
-                <Button onClick={onClose} color="inherit">Cancelar</Button>
-                <Button variant="contained" color="warning" onClick={handleApply}>Guardar</Button>
+              <Button onClick={onClose} color="inherit">
+                Cancelar
+              </Button>
+              <Button
+                variant="contained"
+                sx={{
+                  bgcolor: '#173487',
+                  '&:hover': { bgcolor: '#2A4DB8' },
+                }}
+                onClick={handleApply}
+              >
+                Guardar cambios
+              </Button>
             </Stack>
-        </Stack>
+          </Stack>
+        </Box>
       </Box>
     </Modal>
   );

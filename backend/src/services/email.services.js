@@ -28,7 +28,7 @@ export async function sendEmail({ to, subject, html }) {
   try {
     const { error } = await getResendClient().emails.send({
       from: `${FROM_NAME} <${FROM_EMAIL}>`,
-      to: [to],
+      to: Array.isArray(to) ? to : [to],
       subject,
       html,
     });
@@ -41,6 +41,18 @@ export async function sendEmail({ to, subject, html }) {
     console.error("Error enviando email:", err);
     return { success: false, error: err?.message || "Error desconocido" };
   }
+}
+
+/**
+ * Devuelve la lista de correos de RRHH configurados para notificaciones
+ * de nuevas solicitudes creadas.
+ */
+export function getHrRequestNotifyEmails() {
+  const raw = process.env.REQUEST_CREATED_NOTIFY_EMAILS || "";
+  return raw
+    .split(",")
+    .map((e) => e.trim())
+    .filter(Boolean);
 }
 
 const ESTADO_LABELS = {
@@ -175,6 +187,55 @@ export async function sendRequestCreatedEmail(to, nombreEmpleado, tipo, fechaIni
   return sendEmail({ to, subject, html });
 }
 
+/**
+ * Notificación a RRHH cuando se crea una solicitud (por empleado o por admin).
+ * En lugar de un solo "to", admite una lista de correos.
+ */
+export async function sendRequestCreatedNotificationToHR(toList, { nombreEmpleado, tipo, fechaInicio, fechaFin, cantidadDias, motivo = "" }) {
+  const recipients = (toList || []).filter(Boolean);
+  if (!recipients.length) {
+    return { success: false, error: "Sin destinatarios de RRHH" };
+  }
+
+  const tipoLabel = getTipoLabel(tipo);
+  const subject = `Nueva solicitud creada - ${tipoLabel}`;
+  const bodyHtml = `
+    <p style="margin:0 0 16px 0; font-size:16px; color:#173487; font-weight:bold;">
+      Hola equipo de Recursos Humanos,
+    </p>
+    <p style="margin:0 0 16px 0; font-size:14px; color:#475569;">
+      Se ha creado una nueva solicitud por <strong>${tipoLabel}</strong> para el empleado
+      <strong>${nombreEmpleado}</strong>.
+    </p>
+    ${
+      motivo
+        ? `<p style="margin:0 0 16px 0; font-size:14px; color:#475569;">
+             <strong>Motivo informado:</strong> ${String(motivo).replace(/\n/g, "<br/>")}
+           </p>`
+        : ""
+    }
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:#f8fafc; border:1px solid #e2e8f0; border-radius:4px;">
+      <tr>
+        <td style="padding:16px 20px;">
+          <p style="margin:0; font-size:13px; color:#1e293b;">
+            <strong>Período:</strong> ${fechaInicio} al ${fechaFin}
+          </p>
+          <p style="margin:5px 0 0 0; font-size:13px; color:#173487;">
+            <strong>Total:</strong> ${cantidadDias} día${cantidadDias !== 1 ? "s" : ""}
+          </p>
+        </td>
+      </tr>
+    </table>
+    <p style="margin:16px 0 0 0; font-size:12px; color:#64748b;">
+      Podés revisar y gestionar esta solicitud desde el panel de administración del portal de colaboradores.
+    </p>
+  `;
+
+  const html = EMAIL_TEMPLATE_WRAPPER("Nueva solicitud creada", bodyHtml);
+  // Usamos un único envío con múltiples destinatarios
+  return sendEmail({ to: recipients, subject, html });
+}
+
 const EMAIL_TEMPLATE_WRAPPER = (titulo, bodyHtml) => `
 <!DOCTYPE html>
 <html>
@@ -191,7 +252,8 @@ const EMAIL_TEMPLATE_WRAPPER = (titulo, bodyHtml) => `
           <tr>
             <td style="background-color:#173487; padding:24px 20px; text-align:center;">
               <img src="https://colaboradores.asytec.ar/logo_blanco.png" alt="ASYTEC" width="140" height="40" style="display:block; margin:0 auto 10px auto; max-width:120px; height:auto;">
-              <p style="margin:0; color:#ffffff; font-size:16px; font-weight:bold; letter-spacing:0.5px; text-transform:uppercase;">
+              <br/>
+              <p style="margin:0; color:#ffffff; font-size:16px; font-weight:bold; letter-spacing:0.5px; text-transform:uppercase; margin-top:10px;">
                 ${titulo}
               </p>
             </td>

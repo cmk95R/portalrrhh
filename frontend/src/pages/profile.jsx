@@ -334,9 +334,10 @@ export default function ProfileDashboard() {
                         : getPhotoUrl(userData.foto)
                     }
                     sx={{
+                      
                       width: 120,
                       height: 120,
-                      bgcolor: "#1976d2",
+                      bgcolor: "#173487",
                       fontSize: "3rem",
                       mx: "auto",
                       border: "4px solid white",
@@ -359,7 +360,7 @@ export default function ProfileDashboard() {
                       transition: "all 0.2s ease",
                     }}
                   >
-                    <PhotoCameraIcon color="primary" />
+                    <PhotoCameraIcon sx={{ color: '#173487'}} />
                     <VisuallyHiddenInput
                       type="file"
                       accept="image/png, image/jpeg"
@@ -444,6 +445,7 @@ export default function ProfileDashboard() {
               >
                 <Box
                   sx={{
+                    
                     borderBottom: 1,
                     borderColor: "divider",
                     mb: 2,
@@ -459,20 +461,44 @@ export default function ProfileDashboard() {
                     allowScrollButtonsMobile
                     sx={{ px: 1 }}
                     TabIndicatorProps={{
-                      style: { backgroundColor: "#1976d2" },
+                      style: { backgroundColor: "#173487" },
                     }}
                   >
                     <Tab
                       label="Personal"
                       iconPosition="start"
                       icon={<PersonIcon />}
-                      sx={{ fontWeight: "bold", minHeight: 48 }}
+                      sx={{
+                        fontWeight: "bold",
+                        minHeight: 48,
+                        color: '#173487',
+                        opacity: 1,
+                        '&.Mui-selected': {
+                          color: '#173487',
+                          opacity: 1,
+                        },
+                        '& .MuiTab-iconWrapper': {
+                          color: '#173487',
+                        },
+                      }}
                     />
                     <Tab
                       label="Laboral"
                       iconPosition="start"
                       icon={<WorkIcon />}
-                      sx={{ fontWeight: "bold", minHeight: 48 }}
+                      sx={{
+                        fontWeight: "bold",
+                        minHeight: 48,
+                        color: '#173487',
+                        opacity: 1,
+                        '&.Mui-selected': {
+                          color: '#173487',
+                          opacity: 1,
+                        },
+                        '& .MuiTab-iconWrapper': {
+                          color: '#173487',
+                        },
+                      }}
                     />
                   </Tabs>
                 </Box>
@@ -603,7 +629,7 @@ export default function ProfileDashboard() {
                                 Seguridad de acceso
                               </Typography>
                             </Divider>
-                            <Alert severity="info" variant="outlined">
+                            <Alert severity="info" >
                               Tu acceso se realiza con DNI + PIN. Para cambiar o
                               resetear tu PIN, contactá a RRHH o a un
                               administrador.
@@ -698,12 +724,13 @@ export default function ProfileDashboard() {
                     }}
                   >
                     <AnimatedButton
-                      color="primary"
                       variant="contained"
                       onClick={handleFinalSave}
                       disabled={isSaving}
                       fullWidth // Full width en movil
                       sx={{
+                        backgroundColor: '#173487',
+                        '&:hover': { backgroundColor: '#2A4DB8' },
                         // En pantallas medianas hacia arriba, ancho fijo y centrado
                         maxWidth: { md: "300px" },
                         py: 1.4,
@@ -751,9 +778,11 @@ export default function ProfileDashboard() {
         open={snack.open}
         autoHideDuration={4000}
         onClose={() => setSnack((s) => ({ ...s, open: false }))}
-        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+        
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
       >
         <Alert
+        
           severity={snack.severity}
           variant="filled"
           onClose={() => setSnack((s) => ({ ...s, open: false }))}

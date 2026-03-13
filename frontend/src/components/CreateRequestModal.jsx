@@ -77,15 +77,21 @@ export default function CreateRequestModal({ open, onClose, onSuccess, showNotif
     if (open) {
       if (requestToEdit) {
         // MODO EDICIÓN: Cargar datos existentes
+        const isEnfermedad = requestToEdit.tipo === 'enfermedad';
+        const hasDocPosterior = !!requestToEdit.documentacionPosterior;
+
         setFormData({
           tipo: requestToEdit.tipo || 'vacaciones',
           fechaInicio: dayjs(requestToEdit.fechaInicio).format('YYYY-MM-DD'),
           fechaFin: dayjs(requestToEdit.fechaFin).format('YYYY-MM-DD'),
           motivo: requestToEdit.motivo || '',
-          certificadoPosterior: false, // Ajustar si guardas este dato en el backend
+          certificadoPosterior: false, // día de estudio: se controla solo por front
           adjuntarCliente: false,
-          certificadoMedicoPosterior: false,
-          documentacionPosterior: !!requestToEdit.documentacionPosterior,
+          // Si viene de admin como "documentacionPosterior" pero el tipo es enfermedad,
+          // lo interpretamos como "cargar certificado médico más tarde".
+          certificadoMedicoPosterior: isEnfermedad && hasDocPosterior,
+          // Para el resto de tipos, documentacionPosterior mantiene su semántica original.
+          documentacionPosterior: !isEnfermedad && hasDocPosterior,
         });
       } else {
         // MODO CREACIÓN: Resetear formulario
@@ -175,7 +181,14 @@ export default function CreateRequestModal({ open, onClose, onSuccess, showNotif
       formDataToSend.append('fechaInicio', formData.fechaInicio);
       formDataToSend.append('fechaFin', formData.fechaFin);
       formDataToSend.append('motivo', formData.motivo);
-      formDataToSend.append('documentacionPosterior', formData.documentacionPosterior ? 'true' : 'false');
+
+      // Para enfermedad, la bandera real de "cargar más tarde" es certificadoMedicoPosterior.
+      // Para el resto de tipos, usamos documentacionPosterior como hasta ahora.
+      const docPosteriorFlag =
+        formData.tipo === 'enfermedad'
+          ? !!formData.certificadoMedicoPosterior
+          : !!formData.documentacionPosterior;
+      formDataToSend.append('documentacionPosterior', docPosteriorFlag ? 'true' : 'false');
       if (formData.adjuntarCliente) {
         formDataToSend.append('adjuntarCliente', 'true');
       }

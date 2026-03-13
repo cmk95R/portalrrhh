@@ -124,80 +124,159 @@ export default function ViewRequestModal({ open, onClose, request, showNotificat
 
   return (
     <>
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>Detalles de la Solicitud</DialogTitle>
-      <DialogContent dividers>
-        <Stack spacing={2}>
-          {/* Información del Usuario (si existe) */}
-          {request.usuario && (request.usuario.nombre || request.nombre) && (
-             <Box>
-                <Typography variant="subtitle2" color="text.secondary">Empleado</Typography>
-                <Typography variant="body1" fontWeight={500}>
-                  {request.usuario.nombre || request.nombre} {request.usuario.apellido || request.apellido}
-                </Typography>
-                {(request.usuario.dni || request.dni) && (
-                   <Typography variant="caption" color="text.secondary">
-                     DNI: {request.usuario.dni || request.dni}
-                   </Typography>
-                )}
-             </Box>
-          )}
-
-          <Box display="flex" justifyContent="space-between">
-             <Box>
-                <Typography variant="subtitle2" color="text.secondary">ID</Typography>
-                <Typography variant="body2" fontFamily="monospace">#{request._id.slice(-6).toUpperCase()}</Typography>
-             </Box>
-             <Box textAlign="right">
-                <Typography variant="subtitle2" color="text.secondary">Fecha Solicitud</Typography>
-                <Typography variant="body2">{dayjs(request.createdAt).format('DD/MM/YYYY')}</Typography>
-             </Box>
-          </Box>
-
-          <Divider />
-
-          <Box>
-            <Typography variant="subtitle2" color="text.secondary">Tipo</Typography>
-            <Box display="flex" alignItems="center" gap={1}>
-               {typeConfig.icon && <typeConfig.icon color={typeConfig.color} fontSize="small" />}
-               <Typography variant="body1" fontWeight={500}>
-                 {typeConfig.label}
-               </Typography>
+      <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ pb: 1 }}>
+          <Stack direction="row" alignItems="center" spacing={2}>
+            <Box>
+              <Typography
+                variant="overline"
+                color="text.secondary"
+                sx={{ letterSpacing: 1 }}
+              >
+                Detalles de la solicitud
+              </Typography>
+              <Typography variant="h6">
+                {REQUEST_TYPES_CONFIG[request.tipo]?.label || 'Solicitud'}
+              </Typography>
             </Box>
-          </Box>
+            <Box sx={{ flexGrow: 1 }} />
+            <Stack spacing={1} alignItems="flex-end">
+              <Chip
+                label={statusConfig.label}
+                size="small"
+                sx={{
+                  fontWeight: 600,
+                  bgcolor: statusConfig.bg,
+                  color: `${statusConfig.color}.main`,
+                  border: '1px solid',
+                  borderColor: `${statusConfig.color}.main`,
+                }}
+              />
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                fontFamily="monospace"
+              >
+                #{request._id.slice(-6).toUpperCase()}
+              </Typography>
+            </Stack>
+          </Stack>
+        </DialogTitle>
+        <DialogContent dividers sx={{ pt: 2.5 }}>
+          <Stack spacing={2.5}>
+            {/* Información del Usuario (si existe) */}
+            {request.usuario && (request.usuario.nombre || request.nombre) && (
+              <Paper
+                variant="outlined"
+                sx={{
+                  p: 1.5,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1.5,
+                  bgcolor: 'grey.50',
+                  borderRadius: 2,
+                }}
+              >
+                <Box
+                  sx={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: '50%',
+                    bgcolor: '#173487',
+                    color: '#fff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontWeight: 'bold',
+                    fontSize: 18,
+                  }}
+                >
+                  {`${(request.usuario.nombre || request.nombre || '')[0] || ''}${
+                    (request.usuario.apellido || request.apellido || '')[0] || ''
+                  }`.toUpperCase()}
+                </Box>
+                <Box>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Empleado
+                  </Typography>
+                  <Typography variant="body1" fontWeight={600}>
+                    {request.usuario.nombre || request.nombre}{' '}
+                    {request.usuario.apellido || request.apellido}
+                  </Typography>
+                  {(request.usuario.dni || request.dni) && (
+                    <Typography variant="caption" color="text.secondary">
+                      DNI: {request.usuario.dni || request.dni}
+                    </Typography>
+                  )}
+                </Box>
+                <Box sx={{ flexGrow: 1 }} />
+                <Box textAlign="right">
+                  <Typography variant="caption" color="text.secondary">
+                    Fecha de solicitud
+                  </Typography>
+                  <Typography variant="body2">
+                    {dayjs(request.createdAt).format('DD/MM/YYYY')}
+                  </Typography>
+                </Box>
+              </Paper>
+            )}
 
-          <Box>
-            <Typography variant="subtitle2" color="text.secondary">Estado</Typography>
-            <Chip
-              label={statusConfig.label}
-              size="small"
-              sx={{
-                bgcolor: statusConfig.bg,
-                color: `${statusConfig.color}.main`,
-                fontWeight: 'bold',
-                mt: 0.5,
-                border: '1px solid',
-                borderColor: `${statusConfig.color}.main`
-              }}
-            />
-          </Box>
+            <Divider flexItem />
 
-          <Box>
-            <Typography variant="subtitle2" color="text.secondary">Periodo</Typography>
-            <Typography variant="body1">
-              Del <strong>{dayjs(request.fechaInicio).format('DD/MM/YYYY')}</strong> al <strong>{dayjs(request.fechaFin).format('DD/MM/YYYY')}</strong>
-            </Typography>
-            <Typography variant="caption" color="text.secondary">Duración: {request.cantidadDias} días</Typography>
-          </Box>
+            {/* Tipo y Periodo */}
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+              <Box sx={{ flex: 1 }}>
+                <Typography variant="subtitle2" color="text.secondary">
+                  Tipo
+                </Typography>
+                <Box display="flex" alignItems="center" gap={1} mt={0.5}>
+                  {typeConfig.icon && (
+                    <typeConfig.icon color={typeConfig.color} fontSize="small" />
+                  )}
+                  <Typography variant="body1" fontWeight={500}>
+                    {typeConfig.label}
+                  </Typography>
+                </Box>
+              </Box>
+              <Box sx={{ flex: 1 }}>
+                <Typography variant="subtitle2" color="text.secondary">
+                  Periodo
+                </Typography>
+                <Typography variant="body1" mt={0.5}>
+                  Del{' '}
+                  <strong>
+                    {dayjs(request.fechaInicio).format('DD/MM/YYYY')}
+                  </strong>{' '}
+                  al{' '}
+                  <strong>
+                    {dayjs(request.fechaFin).format('DD/MM/YYYY')}
+                  </strong>
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Duración: {request.cantidadDias} días
+                </Typography>
+              </Box>
+            </Stack>
 
-          <Box>
-            <Typography variant="subtitle2" color="text.secondary">Motivo</Typography>
-            <Paper variant="outlined" sx={{ p: 1.5, mt: 0.5, bgcolor: 'grey.50' }}>
-              <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>{request.motivo || 'Sin motivo especificado.'}</Typography>
-            </Paper>
-          </Box>
+            {/* Motivo */}
+            <Box>
+              <Typography variant="subtitle2" color="text.secondary">
+                Motivo
+              </Typography>
+              <Paper
+                variant="outlined"
+                sx={{ p: 1.5, mt: 0.5, bgcolor: 'grey.50', borderRadius: 2 }}
+              >
+                <Typography
+                  variant="body2"
+                  sx={{ whiteSpace: 'pre-wrap' }}
+                >
+                  {request.motivo || 'Sin motivo especificado.'}
+                </Typography>
+              </Paper>
+            </Box>
 
-          {request.documentoParaFirma ? (
+            {request.documentoParaFirma ? (
             <>
               <Box>
                 <Typography variant="subtitle2" color="text.secondary">Documento Enviado</Typography>
@@ -235,121 +314,222 @@ export default function ViewRequestModal({ open, onClose, request, showNotificat
                 )}
               </Box>
             </>
-          ) : (
-            request.archivosAdjuntos && request.archivosAdjuntos.length > 0 && (
-            <Box>
-              <Typography variant="subtitle2" color="text.secondary">
-                {request.tipo === 'vacaciones' ? 'Documentación Previa' : 'Documentación Adjunta'}
-              </Typography>
-              <Stack spacing={1} mt={1}>
-                {request.archivosAdjuntos.map((file, index) => (
-                  <Paper key={index} variant="outlined" sx={{ p: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', bgcolor: 'background.paper' }}>
-                    <Box display="flex" alignItems="center" gap={1} overflow="hidden">
-                      <AttachFile fontSize="small" color="action" />
-                      <Typography variant="body2" noWrap title={file.nombre}>
-                        {file.nombre || `Archivo ${index + 1}`}
-                      </Typography>
-                    </Box>
-                    <Button size="small" onClick={() => handleViewFile(file)}>Ver</Button>
-                  </Paper>
-                ))}
-              </Stack>
-            </Box>
-            )
-          )}
-
-          {request.respuestaAdmin && (
-            <Box>
-                  <Typography variant="subtitle2" color="text.secondary">Respuesta Recursos Humanos</Typography>
-              <Paper variant="outlined" sx={{ p: 1.5, mt: 0.5, bgcolor: 'info.lighter', borderColor: 'info.light' }}>
-                <Typography variant="body2" color="info.dark">{request.respuestaAdmin}</Typography>
-              </Paper>
-            </Box>
-          )}
-
-          <Divider sx={{ my: 2 }} />
-          <Box>
-            <Typography variant="subtitle2" color="text.primary" fontWeight={600} sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1.5 }}>
-              <ChatIcon fontSize="small" /> Comentarios
-            </Typography>
-            <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1.5 }}>
-              Intercambio de mensajes con el empleado sobre esta solicitud.
-            </Typography>
-            {commentsLoading ? (
-              <Box sx={{ py: 2, display: 'flex', justifyContent: 'center' }}>
-                <CircularProgress size={28} />
-              </Box>
             ) : (
-              <Stack spacing={1.5} sx={{ mb: 2, maxHeight: 220, overflowY: 'auto' }}>
-                {comments.length === 0 ? (
-                  <Typography variant="body2" color="text.secondary" fontStyle="italic">
-                    Aún no hay comentarios. Escribe uno abajo.
+              request.archivosAdjuntos &&
+              request.archivosAdjuntos.length > 0 && (
+                <Box>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    {request.tipo === 'vacaciones'
+                      ? 'Documentación Previa'
+                      : 'Documentación Adjunta'}
                   </Typography>
-                ) : (
-                  comments.map((c) => (
-                    <Paper
-                      key={c._id || c.createdAt}
-                      variant="outlined"
-                      sx={{
-                        p: 1.5,
-                        alignSelf: c.esAdmin ? 'flex-end' : 'flex-start',
-                        maxWidth: '90%',
-                        bgcolor: c.esAdmin ? 'info.lighter' : 'grey.50',
-                        borderColor: c.esAdmin ? 'info.light' : 'divider'
-                      }}
-                    >
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
-                        {c.esAdmin ? (
-                          <BusinessIcon sx={{ fontSize: 16, color: 'info.main' }} />
-                        ) : (
-                          <PersonIcon sx={{ fontSize: 16, color: 'primary.main' }} />
-                        )}
-                        <Typography variant="caption" fontWeight="bold" color={c.esAdmin ? 'info.main' : 'primary.main'}>
-                          {c.nombreAutor}{c.esAdmin ? ' (RRHH)' : ' (Empleado)'}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          • {dayjs(c.createdAt).format('DD/MM/YYYY HH:mm')}
-                        </Typography>
-                      </Box>
-                      <Typography variant="body2" color="text.primary">
-                        {c.texto}
-                      </Typography>
-                    </Paper>
-                  ))
-                )}
-              </Stack>
+                  <Stack spacing={1} mt={1}>
+                    {request.archivosAdjuntos.map((file, index) => (
+                      <Paper
+                        key={index}
+                        variant="outlined"
+                        sx={{
+                          p: 1,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          bgcolor: 'background.paper',
+                        }}
+                      >
+                        <Box
+                          display="flex"
+                          alignItems="center"
+                          gap={1}
+                          overflow="hidden"
+                        >
+                          <AttachFile fontSize="small" color="action" />
+                          <Typography
+                            variant="body2"
+                            noWrap
+                            title={file.nombre}
+                          >
+                            {file.nombre || `Archivo ${index + 1}`}
+                          </Typography>
+                        </Box>
+                        <Button
+                          size="small"
+                          onClick={() => handleViewFile(file)}
+                        >
+                          Ver
+                        </Button>
+                      </Paper>
+                    ))}
+                  </Stack>
+                </Box>
+              )
             )}
-            <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-end' }}>
-              <TextField
-                fullWidth
-                size="small"
-                placeholder="Escribe un comentario..."
-                multiline
-                maxRows={3}
-                variant="outlined"
-                value={commentText}
-                onChange={(e) => setCommentText(e.target.value)}
-                disabled={commentSending}
-                sx={{ '& .MuiOutlinedInput-root': { bgcolor: 'background.paper' } }}
-              />
-              <Button
-                variant="contained"
-                size="small"
-                onClick={handleSendComment}
-                disabled={!commentText.trim() || commentSending}
-              >
-                {commentSending ? 'Enviando...' : 'Enviar'}
-              </Button>
-            </Box>
-          </Box>
-        </Stack>
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose}>Cerrar</Button>
-      </DialogActions>
-    </Dialog>
 
-    <FilePreviewModal
+            {request.respuestaAdmin && (
+              <Box>
+                <Typography variant="subtitle2" color="text.secondary">
+                  Respuesta Recursos Humanos
+                </Typography>
+                <Paper
+                  variant="outlined"
+                  sx={{
+                    p: 1.5,
+                    mt: 0.5,
+                    bgcolor: 'info.lighter',
+                    borderColor: 'info.light',
+                    borderRadius: 2,
+                  }}
+                >
+                  <Typography variant="body2" color="info.dark">
+                    {request.respuestaAdmin}
+                  </Typography>
+                </Paper>
+              </Box>
+            )}
+
+            <Divider sx={{ my: 1 }} />
+
+            {/* Comentarios */}
+            <Box>
+              <Typography
+                variant="subtitle2"
+                color="text.primary"
+                fontWeight={600}
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 0.5,
+                  mb: 1,
+                }}
+              >
+                <ChatIcon fontSize="small" /> Comentarios
+              </Typography>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                display="block"
+                sx={{ mb: 1.5 }}
+              >
+                Intercambio de mensajes con el empleado sobre esta solicitud.
+              </Typography>
+              {commentsLoading ? (
+                <Box
+                  sx={{
+                    py: 2,
+                    display: 'flex',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <CircularProgress size={28} />
+                </Box>
+              ) : (
+                <Stack
+                  spacing={1.5}
+                  sx={{ mb: 2, maxHeight: 220, overflowY: 'auto' }}
+                >
+                  {comments.length === 0 ? (
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      fontStyle="italic"
+                    >
+                      Aún no hay comentarios. Escribe uno abajo.
+                    </Typography>
+                  ) : (
+                    comments.map((c) => (
+                      <Paper
+                        key={c._id || c.createdAt}
+                        variant="outlined"
+                        sx={{
+                          p: 1.5,
+                          alignSelf: c.esAdmin ? 'flex-end' : 'flex-start',
+                          maxWidth: '90%',
+                          bgcolor: c.esAdmin ? 'info.lighter' : 'grey.50',
+                          borderColor: c.esAdmin ? 'info.light' : 'divider',
+                        }}
+                      >
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 0.5,
+                            mb: 0.5,
+                          }}
+                        >
+                          {c.esAdmin ? (
+                            <BusinessIcon
+                              sx={{ fontSize: 16, color: 'info.main' }}
+                            />
+                          ) : (
+                            <PersonIcon
+                              sx={{ fontSize: 16, color: 'primary.main' }}
+                            />
+                          )}
+                          <Typography
+                            variant="caption"
+                            fontWeight="bold"
+                            color={
+                              c.esAdmin ? 'info.main' : 'primary.main'
+                            }
+                          >
+                            {c.nombreAutor}
+                            {c.esAdmin ? ' (RRHH)' : ' (Empleado)'}
+                          </Typography>
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                          >
+                            •{' '}
+                            {dayjs(c.createdAt).format(
+                              'DD/MM/YYYY HH:mm'
+                            )}
+                          </Typography>
+                        </Box>
+                        <Typography variant="body2" color="text.primary">
+                          {c.texto}
+                        </Typography>
+                      </Paper>
+                    ))
+                  )}
+                </Stack>
+              )}
+              <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-end' }}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  placeholder="Escribe un comentario..."
+                  multiline
+                  maxRows={3}
+                  variant="outlined"
+                  value={commentText}
+                  onChange={(e) => setCommentText(e.target.value)}
+                  disabled={commentSending}
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      bgcolor: 'background.paper',
+                    },
+                  }}
+                />
+                <Button
+                  variant="contained"
+                  size="small"
+                  onClick={handleSendComment}
+                  disabled={!commentText.trim() || commentSending}
+                >
+                  {commentSending ? 'Enviando...' : 'Enviar'}
+                </Button>
+              </Box>
+            </Box>
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button
+          sx={{color: "#2A4DB8"} }
+          variant="outlined"  
+          onClick={onClose}>Cerrar</Button>
+        </DialogActions>
+      </Dialog>
+
+      <FilePreviewModal
         open={previewOpen}
         onClose={() => setPreviewOpen(false)}
         fileUrl={previewUrl}

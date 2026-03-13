@@ -16,7 +16,8 @@ const router = Router();
 router.get('/', getAllRequests);
 router.post('/', upload.single('archivo'), adminCreateRequest);
 router.patch('/:id/status', upload.single('archivo'), updateRequestStatus);
-router.put('/:id', adminUpdateRequest);
+// Permite que RRHH adjunte/reemplace documentos al editar una solicitud
+router.put('/:id', upload.single('archivo'), adminUpdateRequest);
 router.delete('/:id', adminDeleteRequest);
 router.post('/:id/send-reminder', sendRequestReminder);
 router.get('/:id/comments', getAdminRequestComments);

@@ -1,8 +1,11 @@
 // frontend/src/pages/AdminUsersGrid.jsx
 import * as React from "react";
 import {
-  Box,
+  Avatar,
   Stack,
+  Grid,
+  Box,
+  
   Button,
   Chip,
   TextField,
@@ -22,7 +25,7 @@ import {
   IconButton,
   Tooltip,
 } from "@mui/material";
-
+import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import ManageAccountsIcon from "@mui/icons-material/ManageAccounts";
 import ToggleOnIcon from "@mui/icons-material/ToggleOn";
 import ToggleOffIcon from "@mui/icons-material/ToggleOff";
@@ -31,6 +34,7 @@ import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import VpnKeyIcon from "@mui/icons-material/VpnKey";
 import DeleteIcon from "@mui/icons-material/Delete";
+import PersonIcon from "@mui/icons-material/Person";
 import BusinessIcon from "@mui/icons-material/Business";
 
 import { DataGrid } from "@mui/x-data-grid";
@@ -87,6 +91,11 @@ export default function AdminUsersGrid() {
     pin: "",
     userName: "",
   });
+  const [confirmResetPinOpen, setConfirmResetPinOpen] = React.useState(false);
+  const [userToResetPin, setUserToResetPin] = React.useState(null);
+  const [confirmDeleteUserOpen, setConfirmDeleteUserOpen] = React.useState(false);
+  const [userToDelete, setUserToDelete] = React.useState(null);
+  const [deletingUser, setDeletingUser] = React.useState(false);
 
   const [newRole, setNewRole] = React.useState("");
 
@@ -208,13 +217,6 @@ export default function AdminUsersGrid() {
       console.error(e);
       setSnack({ open: true, severity: "error", msg: e.response?.data?.message || "Error al eliminar cliente" });
     }
-  };
-
-  // -------------------- Modales: Rol --------------------
-  const handleOpenRoleModal = (user) => {
-    setSelectedUser(user);
-    setNewRole(user.rol);
-    setRoleModalOpen(true);
   };
 
   const handleCloseRoleModal = () => {
@@ -439,12 +441,6 @@ export default function AdminUsersGrid() {
     setEditErrors((prev) => ({ ...prev, [name]: "" }));
   };
 
-  const handleEditClientChange = (index, field, value) => {
-    const newClientes = [...editForm.clientes];
-    newClientes[index] = { ...newClientes[index], [field]: value };
-    setEditForm((prev) => ({ ...prev, clientes: newClientes }));
-  };
-
   const handleSelectEditClient = (index, clientName) => {
     const clientData = availableClients.find((c) => c.nombre === clientName);
     const newClientes = [...editForm.clientes];
@@ -499,6 +495,7 @@ export default function AdminUsersGrid() {
 
       setSnack({
         open: true,
+        
         severity: "success",
         msg: `Datos de ${editForm.nombre} actualizados`,
       });
@@ -517,6 +514,16 @@ export default function AdminUsersGrid() {
   };
 
   // -------------------- Reset PIN --------------------
+  const handleOpenConfirmResetPin = (user) => {
+    setUserToResetPin(user);
+    setConfirmResetPinOpen(true);
+  };
+
+  const handleCloseConfirmResetPin = () => {
+    setConfirmResetPinOpen(false);
+    setUserToResetPin(null);
+  };
+
   const handleResetPin = async (user) => {
     if (!user) return;
     try {
@@ -542,10 +549,6 @@ export default function AdminUsersGrid() {
   // -------------------- Eliminar usuario --------------------
   const handleDeleteUser = async (user) => {
     if (!user) return false;
-    if (!window.confirm(`¿Estás seguro de que querés eliminar a ${user.nombre} ${user.apellido}? Esta acción no se puede deshacer.`)) {
-      return false;
-    }
-
     try {
       await adminDeleteUserApi(user.id);
       setRows((prev) => prev.filter((r) => r.id !== user.id));
@@ -686,6 +689,10 @@ export default function AdminUsersGrid() {
             <IconButton
               onClick={() => handleOpenDetailsModal(params.row)}
               size="small"
+              sx={{
+                color: '#173487',
+                '&:hover': { color: '#2A4DB8' },
+              }}
             >
               <VisibilityIcon fontSize="small" />
             </IconButton>
@@ -694,24 +701,39 @@ export default function AdminUsersGrid() {
             <IconButton
               onClick={() => handleOpenEditModal(params.row)}
               size="small"
+              sx={{
+                color: '#173487',
+                '&:hover': { color: '#2A4DB8' },
+              }}
             >
               <EditIcon fontSize="small" />
             </IconButton>
           </Tooltip>
-          <Tooltip title="Cambiar rol">
-            <IconButton
-              onClick={() => handleOpenRoleModal(params.row)}
-              size="small"
-            >
-              <ManageAccountsIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
           <Tooltip title="Resetear PIN">
             <IconButton
-              onClick={() => handleResetPin(params.row)}
+              onClick={() => handleOpenConfirmResetPin(params.row)}
               size="small"
+              sx={{
+                color: '#173487',
+                '&:hover': { color: '#2A4DB8' },
+              }}
             >
               <VpnKeyIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Eliminar usuario">
+            <IconButton
+              onClick={() => {
+                setUserToDelete(params.row);
+                setConfirmDeleteUserOpen(true);
+              }}
+              size="small"
+              sx={{
+                color: 'error.main',
+                '&:hover': { color: 'error.dark' },
+              }}
+            >
+              <DeleteIcon fontSize="small" />
             </IconButton>
           </Tooltip>
         </Stack>
@@ -738,13 +760,20 @@ export default function AdminUsersGrid() {
             variant="outlined"
             startIcon={<BusinessIcon />}
             onClick={() => setClientManagerOpen(true)}
+            sx={{
+              color: '#ffffff',bgcolor: "#173487", '&:hover': { bgcolor: '#2A4DB8 ' ,},
+            }}  
           >
             Gestionar Clientes
           </Button>
           <Button
-            variant="contained"
+            variant="outlined"
             startIcon={<AddIcon />}
             onClick={handleOpenCreateModal}
+            sx={{
+              color: '#ffffff',bgcolor: "#173487", '&:hover': { bgcolor: '#2A4DB8 ' ,
+              },
+            }}
           >
             Nuevo empleado
           </Button>
@@ -764,8 +793,42 @@ export default function AdminUsersGrid() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             fullWidth
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                '& fieldset': {
+                  borderColor: '#2A4DB8',
+                },
+                '&:hover fieldset': {
+                  borderColor: '#2A4DB8',
+                },
+                '&.Mui-focused fieldset': {
+                  borderColor: '#2A4DB8',
+                },
+              },
+              '& .MuiInputLabel-root.Mui-focused': {
+                color: '#2A4DB8',
+              },
+            }}
           />
-          <FormControl sx={{ width: 200 }}>
+          <FormControl
+            sx={{
+              width: 200,
+              '& .MuiOutlinedInput-root': {
+                '& fieldset': {
+                  borderColor: '#173487',
+                },
+                '&:hover fieldset': {
+                  borderColor: '#132966',
+                },
+                '&.Mui-focused fieldset': {
+                  borderColor: '#173487',
+                },
+              },
+              '& .MuiInputLabel-root.Mui-focused': {
+                color: '#173487',
+              },
+            }}
+          >
             <InputLabel id="role-filter-label">Rol</InputLabel>
             <Select
               labelId="role-filter-label"
@@ -812,7 +875,7 @@ export default function AdminUsersGrid() {
         open={snack.open}
         autoHideDuration={2500}
         onClose={() => setSnack((s) => ({ ...s, open: false }))}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
       >
         <Alert
           severity={snack.severity}
@@ -866,84 +929,146 @@ export default function AdminUsersGrid() {
         open={detailsModalOpen}
         onClose={handleCloseDetailsModal}
         fullWidth
-        maxWidth="xs"
+        maxWidth="sm"
       >
-        <DialogTitle>
-          Detalles de{" "}
-          {selectedUser ? `${selectedUser.nombre} ${selectedUser.apellido}` : ""}
-        </DialogTitle>
-        <DialogContent>
-          {selectedUser && (
-            <Stack spacing={1.5} sx={{ mt: 2 }}>
-              <Typography>
-                <strong>ID:</strong> {selectedUser.id}
-              </Typography>
-              <Typography>
-                <strong>DNI:</strong> {selectedUser.dni}
-              </Typography>
-              <Typography>
-                <strong>Nombre:</strong> {selectedUser.nombre}{" "}
-                {selectedUser.apellido}
-              </Typography>
-              <Typography>
-                <strong>Email:</strong> {selectedUser.email}
-              </Typography>
+        {selectedUser && (
+          <>
+            <DialogTitle sx={{ pb: 1 }}>
+              <Stack direction="row" spacing={2} alignItems="center">
+                <Box
+                  sx={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: "50%",
+                    bgcolor: "#173487",
+                    color: "#fff",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <PersonIcon />
+                </Box>
+                <Box>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Detalles del empleado
+                  </Typography>
+                  <Typography variant="h6">
+                    {selectedUser.nombre} {selectedUser.apellido}
+                  </Typography>
+                </Box>
+                <Box sx={{ flexGrow: 1 }} />
+                <Stack direction="row" spacing={1}>
+                  <Chip
+                    label={selectedUser.rol.toUpperCase()}
+                    size="small"
+                    sx={{
+                      fontWeight: 600,
+                      bgcolor:
+                        selectedUser.rol === "admin"
+                          ? "#2A4DB8"
+                          : selectedUser.rol === "rrhh"
+                          ? "info.main"
+                          : "grey.200",
+                      color:
+                        selectedUser.rol === "admin" || selectedUser.rol === "rrhh"
+                          ? "#fff"
+                          : "text.primary",
+                    }}
+                  />
+                  <Chip
+                    label={selectedUser.estado === "activo" ? "ACTIVO" : "INACTIVO"}
+                    size="small"
+                    sx={{
+                      fontWeight: 600,
+                      bgcolor:
+                        selectedUser.estado === "activo" ? "#2A4DB8" : "error.main",
+                      color: "#fff",
+                    }}
+                  />
+                </Stack>
+              </Stack>
+            </DialogTitle>
+            <DialogContent dividers sx={{ pt: 2 }}>
+              <Stack spacing={2}>
+                <Box>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Información general
+                  </Typography>
+                  <Stack spacing={0.5} sx={{ mt: 1 }}>
+                    <Typography variant="body2">
+                      <strong>ID interno:</strong> {selectedUser.id}
+                    </Typography>
+                    <Typography variant="body2">
+                      <strong>DNI:</strong> {selectedUser.dni}
+                    </Typography>
+                    <Typography variant="body2">
+                      <strong>Email:</strong> {selectedUser.email}
+                    </Typography>
+                    {selectedUser.createdAt && (
+                      <Typography variant="body2">
+                        <strong>Alta en el sistema:</strong>{" "}
+                        {new Date(selectedUser.createdAt).toLocaleDateString("es-AR")}
+                      </Typography>
+                    )}
+                  </Stack>
+                </Box>
 
-              <Typography variant="subtitle2" sx={{ mt: 1, fontWeight: 'bold' }}>
-                Clientes Asignados:
-              </Typography>
-              {selectedUser.clientes && selectedUser.clientes.length > 0 ? (
-                selectedUser.clientes.map((cli, idx) => (
-                  <Box key={idx} sx={{ ml: 1, mb: 1, p: 1, bgcolor: 'grey.50', borderRadius: 1, border: '1px solid #eee' }}>
-                    <Typography variant="body2"><strong>Empresa:</strong> {cli.nombre}</Typography>
-                    <Typography variant="body2"><strong>Dirección:</strong> {cli.direccion || "-"}</Typography>
-                    <Typography variant="body2"><strong>Horario:</strong> {cli.horario || "-"}</Typography>
-                  </Box>
-                ))
-              ) : (
-                <Typography variant="body2" sx={{ ml: 1, fontStyle: 'italic', color: 'text.secondary' }}>Sin clientes asignados</Typography>
-              )}
-
-              <Typography>
-                <strong>Rol:</strong>{" "}
-                <Chip
-                  label={selectedUser.rol}
-                  size="small"
-                  color={
-                    selectedUser.rol === "admin"
-                      ? "secondary"
-                      : selectedUser.rol === "rrhh"
-                      ? "info"
-                      : "default"
-                  }
-                />
-              </Typography>
-              <Typography>
-                <strong>Estado:</strong>{" "}
-                <Chip
-                  label={selectedUser.estado}
-                  size="small"
-                  color={
-                    selectedUser.estado === "activo"
-                      ? "success"
-                      : "error"
-                  }
-                />
-              </Typography>
-              {selectedUser.createdAt && (
-                <Typography>
-                  <strong>Fecha de creación:</strong>{" "}
-                  {new Date(
-                    selectedUser.createdAt
-                  ).toLocaleDateString("es-AR")}
-                </Typography>
-              )}
-            </Stack>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDetailsModal}>Cerrar</Button>
-        </DialogActions>
+                <Box>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Clientes asignados
+                  </Typography>
+                  {selectedUser.clientes && selectedUser.clientes.length > 0 ? (
+                    <Box
+                      sx={{
+                        mt: 1,
+                        maxHeight: 180,
+                        overflowY:
+                          selectedUser.clientes.length > 2 ? "auto" : "visible",
+                        pr: selectedUser.clientes.length > 2 ? 1 : 0,
+                      }}
+                    >
+                      <Stack spacing={1}>
+                        {selectedUser.clientes.map((cli, idx) => (
+                          <Box
+                            key={idx}
+                            sx={{
+                              p: 1.5,
+                              borderRadius: 1.5,
+                              bgcolor: "grey.50",
+                              border: "1px solid",
+                              borderColor: "divider",
+                            }}
+                          >
+                            <Typography variant="body2">
+                              <strong>Empresa:</strong> {cli.nombre}
+                            </Typography>
+                            <Typography variant="body2">
+                              <strong>Dirección:</strong> {cli.direccion || "-"}
+                            </Typography>
+                            <Typography variant="body2">
+                              <strong>Horario:</strong> {cli.horario || "-"}
+                            </Typography>
+                          </Box>
+                        ))}
+                      </Stack>
+                    </Box>
+                  ) : (
+                    <Typography
+                      variant="body2"
+                      sx={{ mt: 1, fontStyle: "italic", color: "text.secondary" }}
+                    >
+                      Sin clientes asignados.
+                    </Typography>
+                  )}
+                </Box>
+              </Stack>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={handleCloseDetailsModal}>Cerrar</Button>
+            </DialogActions>
+          </>
+        )}
       </Dialog>
 
       {/* Modal crear empleado */}
@@ -953,9 +1078,36 @@ export default function AdminUsersGrid() {
         fullWidth
         maxWidth="sm"
       >
-        <DialogTitle>Nuevo empleado</DialogTitle>
-        <DialogContent>
-          <Stack spacing={2} sx={{ mt: 2 }}>
+        <DialogTitle sx={{ pb: 1 }}>
+          <Stack direction="row" spacing={2} alignItems="center">
+            <Box
+              sx={{
+                width: 48,
+                height: 48,
+                borderRadius: "50%",
+                bgcolor: "#173487",
+                color: "#fff",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <PersonAddIcon  size="large  "/>
+            </Box>
+            <Box>
+              <Typography variant="subtitle2" color="text.secondary">
+                Nuevo Empleado
+              </Typography>
+              <Typography variant="h6">
+                {createForm.nombre || createForm.apellido
+                  ? `${createForm.nombre} ${createForm.apellido}`.trim()
+                  : "Completa los datos del empleado"}
+              </Typography>
+            </Box>
+          </Stack>
+        </DialogTitle>
+        <DialogContent dividers sx={{ pt: 2 }}>
+          <Stack spacing={2}>
             <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
               <TextField
                 id="create-nombre"
@@ -1001,53 +1153,89 @@ export default function AdminUsersGrid() {
               />
             </Stack>
             
-            <Typography variant="subtitle2" sx={{ mt: 1 }}>Clientes Asignados</Typography>
-            {createForm.clientes.map((client, index) => (
-              <Box key={index} sx={{ p: 1.5, border: '1px solid #e0e0e0', borderRadius: 2, position: 'relative', mb: 1 }}>
-                <IconButton 
-                  size="small" 
-                  onClick={() => handleRemoveCreateClient(index)}
-                  sx={{ position: 'absolute', top: 5, right: 5 }}
-                  disabled={createForm.clientes.length === 1 && index === 0}
+            <Typography variant="subtitle2" sx={{ mt: 1 }}>
+              Clientes Asignados
+            </Typography>
+            <Box
+              sx={{
+                maxHeight: 180,
+                mt: 1,
+                overflowY: createForm.clientes.length > 2 ? 'auto' : 'visible',
+                pr: createForm.clientes.length > 2 ? 1 : 0,
+              }}
+            >
+              {createForm.clientes.map((client, index) => (
+                <Box
+                  key={index}
+                  sx={{
+                    p: 1.5,
+                    border: '1px solid #e0e0e0',
+                    borderRadius: 2,
+                    position: 'relative',
+                    mb: 1,
+                  }}
                 >
-                  <DeleteIcon fontSize="small" />
-                </IconButton>
-                <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ mt: 1, pr: 4 }}>
-                  <TextField
-                    select
-                    id={`create-client-nombre-${index}`}
-                    name={`create-client-nombre-${index}`}
-                    label="Nombre Cliente"
-                    value={client.nombre}
-                    onChange={(e) => handleSelectCreateClient(index, e.target.value)}
-                    fullWidth
+                  <IconButton
                     size="small"
+                    onClick={() => handleRemoveCreateClient(index)}
+                    sx={{ position: 'absolute', top: 5, right: 5 }}
+                    disabled={createForm.clientes.length === 1 && index === 0}
                   >
-                    {availableClients.map((c) => (
-                      <MenuItem key={c._id} value={c.nombre}>{c.nombre}</MenuItem>
-                    ))}
-                  </TextField>
-                  <TextField
-                    id={`create-client-direccion-${index}`}
-                    name={`create-client-direccion-${index}`}
-                    label="Dirección"
-                    value={client.direccion}
-                    onChange={(e) => handleCreateClientChange(index, "direccion", e.target.value)}
-                    fullWidth
-                    size="small"
-                  />
-                  <TextField
-                    id={`create-client-horario-${index}`}
-                    name={`create-client-horario-${index}`}
-                    label="Horario"
-                    value={client.horario}
-                    onChange={(e) => handleCreateClientChange(index, "horario", e.target.value)}
-                    fullWidth
-                    size="small"
-                  />
-                </Stack>
-              </Box>
-            ))}
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                  <Stack
+                    direction={{ xs: "column", sm: "row" }}
+                    spacing={1}
+                    sx={{ mt: 1, pr: 4 }}
+                  >
+                    <TextField
+                      select
+                      id={`create-client-nombre-${index}`}
+                      name={`create-client-nombre-${index}`}
+                      label="Nombre Cliente"
+                      value={client.nombre}
+                      onChange={(e) =>
+                        handleSelectCreateClient(index, e.target.value)
+                      }
+                      fullWidth
+                      size="small"
+                    >
+                      {availableClients.map((c) => (
+                        <MenuItem key={c._id} value={c.nombre}>
+                          {c.nombre}
+                        </MenuItem>
+                      ))}
+                    </TextField>
+                    <TextField
+                      id={`create-client-direccion-${index}`}
+                      name={`create-client-direccion-${index}`}
+                      label="Dirección"
+                      value={client.direccion}
+                      onChange={(e) =>
+                        handleCreateClientChange(
+                          index,
+                          "direccion",
+                          e.target.value
+                        )
+                      }
+                      fullWidth
+                      size="small"
+                    />
+                    <TextField
+                      id={`create-client-horario-${index}`}
+                      name={`create-client-horario-${index}`}
+                      label="Horario"
+                      value={client.horario}
+                      onChange={(e) =>
+                        handleCreateClientChange(index, "horario", e.target.value)
+                      }
+                      fullWidth
+                      size="small"
+                    />
+                  </Stack>
+                </Box>
+              ))}
+            </Box>
             <Button startIcon={<AddIcon />} onClick={handleAddCreateClient} variant="outlined" size="small">
               Agregar Cliente
             </Button>
@@ -1074,14 +1262,18 @@ export default function AdminUsersGrid() {
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseCreateModal}>Cancelar</Button>
           <Button
-            onClick={handleCreateSubmit}
-            variant="contained"
-            disabled={createLoading}
-          >
-            {createLoading ? "Creando..." : "Crear empleado"}
-          </Button>
+          sx={{color: "#2A4DB8"} }
+          variant="outlined"  
+          onClick={handleCloseCreateModal}>Cancelar</Button>
+          <Button
+          sx={{color: "#ffffff",bgcolor: "#173487", '&:hover': { bgcolor: '#2A4DB8' } }}
+          variant="contained"  
+          onClick={handleCreateSubmit}
+          disabled={createLoading}
+        >
+          {createLoading ? "Creando..." : "Crear empleado"}
+        </Button>
         </DialogActions>
       </Dialog>
 
@@ -1092,15 +1284,76 @@ export default function AdminUsersGrid() {
         fullWidth
         maxWidth="sm"
       >
-        <DialogTitle>
-          Editar empleado{" "}
-          {selectedUser
-            ? `${selectedUser.nombre} ${selectedUser.apellido}`
-            : ""}
-        </DialogTitle>
-        <DialogContent>
-          <Stack spacing={2} sx={{ mt: 2 }}>
-            <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+        {selectedUser && (
+          <>
+            <DialogTitle sx={{ pb: 1 }}>
+              <Stack direction="row" spacing={2} alignItems="center">
+                <Box
+                  sx={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: "50%",
+                    bgcolor: "#173487",
+                    color: "#fff",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontWeight: "bold",
+                    fontSize: 20,
+                  }}
+                >
+                  {`${selectedUser.nombre?.[0] || ""}${
+                    selectedUser.apellido?.[0] || ""
+                  }`.toUpperCase()}
+                </Box>
+                <Box>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Editar Datos del Empleado
+                  </Typography>
+                  <Typography variant="h6">
+                    {selectedUser.nombre} {selectedUser.apellido}
+                  </Typography>
+                </Box>
+                <Box sx={{ flexGrow: 1 }} />
+                <Stack direction="row" spacing={1}>
+                  <Chip
+                    label={selectedUser.rol.toUpperCase()}
+                    size="small"
+                    sx={{
+                      fontWeight: 600,
+                      bgcolor:
+                        selectedUser.rol === "admin"
+                          ? "#2A4DB8"
+                          : selectedUser.rol === "rrhh"
+                          ? "info.main"
+                          : "grey.200",
+                      color:
+                        selectedUser.rol === "admin" || selectedUser.rol === "rrhh"
+                          ? "#fff"
+                          : "text.primary",
+                    }}
+                  />
+                  <Chip
+                    label={selectedUser.estado === "activo" ? "ACTIVO" : "INACTIVO"}
+                    size="small"
+                    sx={{
+                      fontWeight: 600,
+                      bgcolor:
+                        selectedUser.estado === "activo" ? "#2A4DB8" : "error.main",
+                      color: "#fff",
+                    }}
+                  />
+                </Stack>
+              </Stack>
+            </DialogTitle>
+            <DialogContent dividers sx={{ pt: 2 }}>
+              <Stack spacing={2}>
+                <Box>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Datos personales
+                  </Typography>
+                </Box>
+                <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
               <TextField
                 id="edit-nombre"
                 label="Nombre"
@@ -1145,36 +1398,62 @@ export default function AdminUsersGrid() {
               />
             </Stack>
 
-            <Typography variant="subtitle2" sx={{ mt: 1 }}>Clientes Asignados</Typography>
-            {editForm.clientes.map((client, index) => (
-              <Box key={index} sx={{ p: 1.5, border: '1px solid #e0e0e0', borderRadius: 2, position: 'relative', mb: 1 }}>
-                <IconButton 
-                  size="small" 
-                  onClick={() => handleRemoveEditClient(index)}
-                  sx={{ position: 'absolute', top: 5, right: 5 }}
+            <Typography variant="subtitle2" sx={{ mt: 1 }}>
+              Clientes asignados
+            </Typography>
+            <Box
+              sx={{
+                maxHeight: 160,
+                mt: 1,
+                overflowY: editForm.clientes.length > 2 ? 'auto' : 'visible',
+                pr: editForm.clientes.length > 2 ? 1 : 0,
+              }}
+            >
+              {editForm.clientes.map((client, index) => (
+                <Box
+                  key={index}
+                  sx={{
+                    p: 1.5,
+                    border: '1px solid #e0e0e0',
+                    borderRadius: 2,
+                    position: 'relative',
+                    mb: 1,
+                  }}
                 >
-                  <DeleteIcon fontSize="small" />
-                </IconButton>
-                <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ mt: 1, pr: 4 }}>
-                  <TextField
-                    select
-                    id={`edit-client-nombre-${index}`}
-                    name={`edit-client-nombre-${index}`}
-                    label="Nombre Cliente"
-                    value={client.nombre}
-                    onChange={(e) => handleSelectEditClient(index, e.target.value)}
-                    fullWidth
+                  <IconButton
                     size="small"
+                    onClick={() => handleRemoveEditClient(index)}
+                    sx={{ position: 'absolute', top: 5, right: 5 }}
                   >
-                    {availableClients.map((c) => (
-                      <MenuItem key={c._id} value={c.nombre}>{c.nombre}</MenuItem>
-                    ))}
-                  </TextField>
-                  
-                    
-                </Stack>
-              </Box>
-            ))}
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                  <Stack
+                    direction={{ xs: 'column', sm: 'row' }}
+                    spacing={1}
+                    sx={{ mt: 1, pr: 4 }}
+                  >
+                    <TextField
+                      select
+                      id={`edit-client-nombre-${index}`}
+                      name={`edit-client-nombre-${index}`}
+                      label="Nombre Cliente"
+                      value={client.nombre}
+                      onChange={(e) =>
+                        handleSelectEditClient(index, e.target.value)
+                      }
+                      fullWidth
+                      size="small"
+                    >
+                      {availableClients.map((c) => (
+                        <MenuItem key={c._id} value={c.nombre}>
+                          {c.nombre}
+                        </MenuItem>
+                      ))}
+                    </TextField>
+                  </Stack>
+                </Box>
+              ))}
+            </Box>
             <Button startIcon={<AddIcon />} onClick={handleAddEditClient} variant="outlined" size="small">
               Agregar Cliente
             </Button>
@@ -1195,28 +1474,34 @@ export default function AdminUsersGrid() {
               </Select>
             </FormControl>
           </Stack>
-        </DialogContent>
-        <DialogActions sx={{ justifyContent: "space-between" }}>
-          <Button
-            color="error"
-            onClick={async () => {
-              const success = await handleDeleteUser(selectedUser);
-              if (success) handleCloseEditModal();
-            }}
-          >
-            Eliminar Usuario
-          </Button>
-          <Box>
-            <Button onClick={handleCloseEditModal} sx={{ mr: 1 }}>Cancelar</Button>
-            <Button
-              onClick={handleEditSubmit}
-              variant="contained"
-              disabled={editLoading}
-            >
-              {editLoading ? "Guardando..." : "Guardar cambios"}
-            </Button>
-          </Box>
-        </DialogActions>
+            </DialogContent>
+            <DialogActions sx={{ justifyContent: "flex-end" }}>
+              <Button
+                onClick={handleCloseEditModal}
+                sx={{
+                  mr: 2,
+                  color: '#ffffff',
+                  bgcolor: '#173487',
+                  '&:hover': { bgcolor: '#2A4DB8' },
+                }}
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleEditSubmit}
+                variant="contained"
+                disabled={editLoading}
+                sx={{
+                  color: '#ffffff',
+                  bgcolor: '#173487',
+                  '&:hover': { bgcolor: '#2A4DB8' },
+                }}
+              >
+                {editLoading ? "Guardando..." : "Guardar cambios"}
+              </Button>
+            </DialogActions>
+          </>
+        )}
       </Dialog>
 
       {/* Diálogo para mostrar PIN nuevo / creado */}
@@ -1256,6 +1541,141 @@ export default function AdminUsersGrid() {
         </DialogActions>
       </Dialog>
 
+      {/* Confirmación reset PIN */}
+      <Dialog
+        open={confirmResetPinOpen}
+        onClose={handleCloseConfirmResetPin}
+        fullWidth
+        maxWidth="xs"
+      >
+        <DialogTitle>Resetear PIN</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2">
+            {userToResetPin
+              ? `¿Estás seguro de que querés generar un nuevo PIN para ${userToResetPin.nombre} ${userToResetPin.apellido}? El empleado ya no podrá usar el PIN anterior.`
+              : "¿Estás seguro de que querés resetear el PIN de este usuario?"}
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button 
+          sx={{
+            color: '#ffffff',
+              bgcolor: '#173487',
+              '&:hover': { bgcolor: '#2A4DB8'  },
+          }}
+          onClick={handleCloseConfirmResetPin}>
+            Cancelar
+          </Button>
+          <Button
+            sx={{
+              color: '#ffffff',
+              bgcolor: '#173487',
+              '&:hover': { bgcolor: '#2A4DB8' },
+            }}
+            variant="contained"
+            
+            onClick={async () => {
+              if (!userToResetPin) return;
+              await handleResetPin(userToResetPin);
+              handleCloseConfirmResetPin();
+            }}
+          >
+            Confirmar
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Confirmación eliminar usuario */}
+      <Dialog
+        open={confirmDeleteUserOpen}
+        onClose={() => {
+          if (deletingUser) return;
+          setConfirmDeleteUserOpen(false);
+          setUserToDelete(null);
+        }}
+        fullWidth
+        maxWidth="sm"
+      >
+        {userToDelete && (
+          <>
+            <DialogTitle sx={{ pb: 1 }}>
+              <Stack direction="row" spacing={2} alignItems="center">
+                <Avatar
+                  sx={{
+                    width: 40,
+                    height: 40,
+                    bgcolor: '#173487',
+                    color: '#fff',
+                    fontWeight: 'bold',
+                    fontSize: 18,
+                  }}
+                >
+                  {userToDelete.nombre?.[0]?.toUpperCase() || ''}
+                </Avatar>
+                <Box>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Eliminar usuario
+                  </Typography>
+                  <Typography variant="body1" fontWeight={600}>
+                    {userToDelete.nombre} {userToDelete.apellido}
+                  </Typography>
+                </Box>
+              </Stack>
+            </DialogTitle>
+            <DialogContent dividers sx={{ pt: 2 }}>
+              <Stack spacing={1.5}>
+                <Box>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Detalle
+                  </Typography>
+                  <Typography variant="body2" sx={{ mt: 0.5 }}>
+                    Email: <strong>{userToDelete.email}</strong>
+                  </Typography>
+                  <Typography variant="body2">
+                    DNI: <strong>{userToDelete.dni}</strong>
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography variant="body2" color="text.secondary">
+                    ¿Estás seguro de que querés eliminar este usuario? Esta
+                    acción no se puede deshacer.
+                  </Typography>
+                </Box>
+              </Stack>
+            </DialogContent>
+            <DialogActions>
+              <Button
+              sx={{color: "#2A4DB8"} }
+              variant="outlined"  
+                onClick={() => {
+                  if (deletingUser) return;
+                  setConfirmDeleteUserOpen(false);
+                  setUserToDelete(null);
+                }}
+                disabled={deletingUser}
+              >
+                Cancelar
+              </Button>
+              <Button
+                variant="contained"
+                color="error"
+                disabled={deletingUser || !userToDelete}
+                onClick={async () => {
+                  if (!userToDelete) return;
+                  setDeletingUser(true);
+                  await handleDeleteUser(userToDelete);
+                  setDeletingUser(false);
+                  setConfirmDeleteUserOpen(false);
+                  setUserToDelete(null);
+                }}
+              >
+                {deletingUser ? "Eliminando..." : "Eliminar"}
+              </Button>
+            </DialogActions>
+          </>
+        )}
+      </Dialog>
+
       {/* Modal Gestión de Clientes */}
       <Dialog
         open={clientManagerOpen}
@@ -1263,8 +1683,31 @@ export default function AdminUsersGrid() {
         fullWidth
         maxWidth="md"
       >
-        <DialogTitle>Gestión de Clientes</DialogTitle>
-        <DialogContent>
+        <DialogTitle sx={{ pb: 1 }}>
+          <Stack direction="row" spacing={2} alignItems="center">
+            <Box
+              sx={{
+                width: 48,
+                height: 48,
+                borderRadius: "50%",
+                bgcolor: "#173487",
+                color: "#fff",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <BusinessIcon />
+            </Box>
+            <Box>
+              <Typography variant="subtitle2" color="text.secondary">
+                Gestión de clientes
+              </Typography>
+              <Typography variant="h6">Clientes </Typography>
+            </Box>
+          </Stack>
+        </DialogTitle>
+        <DialogContent dividers sx={{ pt: 2 }}>
           <Paper variant="outlined" sx={{ p: 2, mb: 3, bgcolor: "grey.50" }}>
             <Typography variant="subtitle2" gutterBottom fontWeight="bold">
               Agregar Nuevo Cliente
@@ -1321,44 +1764,57 @@ export default function AdminUsersGrid() {
           <Typography variant="h6" gutterBottom>
             Listado de Clientes
           </Typography>
-          <Stack spacing={1}>
-            {availableClients.map((client) => (
-              <Paper
-                key={client._id}
-                variant="outlined"
-                sx={{
-                  p: 1.5,
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                }}
-              >
-                <Box>
-                  <Typography variant="subtitle1" fontWeight="bold">
-                    {client.nombre}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {client.direccion}
-                    {client.horario ? ` • ${client.horario}` : ""}
-                  </Typography>
-                </Box>
-                <IconButton
-                  color="error"
-                  onClick={() => handleClientDelete(client._id)}
+          <Box
+            sx={{
+              maxHeight: 180,
+              overflowY: availableClients.length > 3 ? 'auto' : 'visible',
+              pr: availableClients.length > 3 ? 1 : 0,
+            }}
+          >
+            <Stack spacing={1}>
+              {availableClients.map((client) => (
+                <Paper
+                  key={client._id}
+                  variant="outlined"
+                  sx={{
+                    p: 1.5,
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
                 >
-                  <DeleteIcon />
-                </IconButton>
-              </Paper>
-            ))}
-            {availableClients.length === 0 && (
-              <Typography color="text.secondary" align="center" sx={{ py: 2 }}>
-                No hay clientes registrados.
-              </Typography>
-            )}
-          </Stack>
+                  <Box>
+                    <Typography variant="subtitle1" fontWeight="bold">
+                      {client.nombre}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {client.direccion}
+                      {client.horario ? ` • ${client.horario}` : ""}
+                    </Typography>
+                  </Box>
+                  <IconButton
+                    color="error"
+                    onClick={() => handleClientDelete(client._id)}
+                  >
+                    <DeleteIcon />
+                  </IconButton>
+                </Paper>
+              ))}
+              {availableClients.length === 0 && (
+                <Typography color="text.secondary" align="center" sx={{ py: 2 }}>
+                  No hay clientes registrados.
+                </Typography>
+              )}
+            </Stack>
+          </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setClientManagerOpen(false)}>Cerrar</Button>
+
+          <Button
+          
+          sx={{color: "#2A4DB8"} }
+          variant="outlined"  
+          onClick={() => setClientManagerOpen(false)}>Cerrar</Button>
         </DialogActions>
       </Dialog>
     </Container>

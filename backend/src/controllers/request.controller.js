@@ -6,7 +6,7 @@ import dayjs from 'dayjs';
 import isSameOrBefore from 'dayjs/plugin/isSameOrBefore.js';
 import createError from 'http-errors';
 import { uploadFileToOneDrive, moveFileInOneDrive, deleteFileFromOneDrive, getDownloadUrlForFile } from '../services/oneDrive.service.js';
-import { sendRequestStatusUpdateEmail, sendRequestCreatedEmail, sendCertificateReminderEmail, sendUploadNotificationEmail } from '../services/email.services.js';
+import { sendRequestStatusUpdateEmail, sendRequestCreatedEmail, sendCertificateReminderEmail, sendUploadNotificationEmail, getHrRequestNotifyEmails, sendRequestCreatedNotificationToHR } from '../services/email.services.js';
 
 dayjs.extend(isSameOrBefore);
 
@@ -130,10 +130,11 @@ export const createRequest = async (req, res, next) => {
     }
 
     // Paso 2: enviar correo de confirmación al empleado (en segundo plano)
+    const nombreEmpleado = [req.user.nombre, req.user.apellido].filter(Boolean).join(' ') || 'Empleado/a';
+    const fechaInicioStr = dayjs(nuevaSolicitud.fechaInicio).format('DD/MM/YYYY');
+    const fechaFinStr = dayjs(nuevaSolicitud.fechaFin).format('DD/MM/YYYY');
+
     if (req.user?.email) {
-      const nombreEmpleado = [req.user.nombre, req.user.apellido].filter(Boolean).join(' ') || 'Empleado/a';
-      const fechaInicioStr = dayjs(nuevaSolicitud.fechaInicio).format('DD/MM/YYYY');
-      const fechaFinStr = dayjs(nuevaSolicitud.fechaFin).format('DD/MM/YYYY');
       sendRequestCreatedEmail(
         req.user.email,
         nombreEmpleado,
@@ -143,6 +144,21 @@ export const createRequest = async (req, res, next) => {
         nuevaSolicitud.cantidadDias,
         motivo
       ).catch((err) => console.error('Error enviando email de confirmación:', err));
+    }
+
+    // Paso 3: notificación a RRHH si hay correos configurados
+    const hrEmails = getHrRequestNotifyEmails();
+    if (hrEmails.length > 0) {
+      sendRequestCreatedNotificationToHR(hrEmails, {
+        nombreEmpleado,
+        tipo,
+        fechaInicio: fechaInicioStr,
+        fechaFin: fechaFinStr,
+        cantidadDias: nuevaSolicitud.cantidadDias,
+        motivo,
+      }).catch((err) =>
+        console.error('Error enviando email de nueva solicitud a RRHH:', err)
+      );
     }
 
     res.status(201).json({
@@ -270,10 +286,11 @@ export const adminCreateRequest = async (req, res, next) => {
     }
 
     // Paso 2: enviar correo de confirmación al empleado (en segundo plano)
+    const nombreEmpleado = [empleado.nombre, empleado.apellido].filter(Boolean).join(' ') || 'Empleado/a';
+    const fechaInicioStr = dayjs(nuevaSolicitud.fechaInicio).format('DD/MM/YYYY');
+    const fechaFinStr = dayjs(nuevaSolicitud.fechaFin).format('DD/MM/YYYY');
+
     if (empleado.email) {
-      const nombreEmpleado = [empleado.nombre, empleado.apellido].filter(Boolean).join(' ') || 'Empleado/a';
-      const fechaInicioStr = dayjs(nuevaSolicitud.fechaInicio).format('DD/MM/YYYY');
-      const fechaFinStr = dayjs(nuevaSolicitud.fechaFin).format('DD/MM/YYYY');
       sendRequestCreatedEmail(
         empleado.email,
         nombreEmpleado,
@@ -283,6 +300,21 @@ export const adminCreateRequest = async (req, res, next) => {
         nuevaSolicitud.cantidadDias,
         motivo
       ).catch((err) => console.error('Error enviando email de confirmación (admin):', err));
+    }
+
+    // Paso 3: notificación a RRHH si hay correos configurados
+    const hrEmails = getHrRequestNotifyEmails();
+    if (hrEmails.length > 0) {
+      sendRequestCreatedNotificationToHR(hrEmails, {
+        nombreEmpleado,
+        tipo,
+        fechaInicio: fechaInicioStr,
+        fechaFin: fechaFinStr,
+        cantidadDias: nuevaSolicitud.cantidadDias,
+        motivo,
+      }).catch((err) =>
+        console.error('Error enviando email de nueva solicitud a RRHH (admin):', err)
+      );
     }
 
     res.status(201).json({
@@ -776,6 +808,43 @@ export const adminUpdateRequest = async (req, res, next) => {
       solicitud.fechaInicio = inicio.toDate();
       solicitud.fechaFin = fin.toDate();
       solicitud.cantidadDias = nuevaCantidadDias;
+    }
+
+    // Si el admin adjunta un nuevo documento, reemplazamos los adjuntos actuales
+    if (req.file) {
+      const ext = req.file.originalname.split('.').pop();
+      let fileName = `${solicitud.nombre} ${solicitud.apellido} - ${FOLDER_NAMES[solicitud.tipo] || solicitud.tipo} - ${dayjs().format('YYYY-MM-DD')}.${ext}`;
+
+      if (solicitud.tipo === 'enfermedad') {
+        fileName = `Certificado Médico - ${solicitud.nombre} ${solicitud.apellido} - ${dayjs().format('YYYY-MM-DD')}.${ext}`;
+      }
+
+      if (solicitud.estado === 'pendiente_firma') {
+        fileName = `Documento Firmado - ${solicitud.nombre} ${solicitud.apellido} - ${dayjs().format('YYYY-MM-DD')}.${ext}`;
+      }
+
+      const folderPath = `Comprobantes ASYTEC/${FOLDER_NAMES[solicitud.tipo] || solicitud.tipo}/${getEmployeeFolderName(solicitud.nombre, solicitud.apellido)}`;
+
+      // Eliminar archivos anteriores si existen
+      if (solicitud.archivosAdjuntos && solicitud.archivosAdjuntos.length > 0) {
+        for (const adjunto of solicitud.archivosAdjuntos) {
+          if (adjunto.oneDriveId) {
+            try {
+              await deleteFileFromOneDrive(adjunto.oneDriveId);
+            } catch (err) {
+              console.error('Error eliminando archivo anterior (adminUpdateRequest):', err);
+            }
+          }
+        }
+      }
+
+      const uploadResult = await uploadFileToOneDrive(req.file.buffer, fileName, folderPath);
+
+      solicitud.archivosAdjuntos = [{
+        nombre: fileName,
+        url: uploadResult.webUrl,
+        oneDriveId: uploadResult.id
+      }];
     }
 
     await solicitud.save();

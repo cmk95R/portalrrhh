@@ -19,6 +19,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 // Icons
+import FactCheckIcon from '@mui/icons-material/FactCheck';
 import LightbulbIcon from '@mui/icons-material/Lightbulb';
 import AccessTimeFilledIcon from '@mui/icons-material/AccessTimeFilled';
 import FavoriteIcon from '@mui/icons-material/Favorite';
@@ -77,7 +78,7 @@ const cardVariants = {
 // ===== Datos =====
 const valores = [
   { icon: AccessTimeFilledIcon, title: 'Registración de Asistencia', text: 'Facilita el registro y seguimiento de las asistencias diarias, garantizando , eficiencia y calidad en el trabajo.', path: '/my-attendance' },
-  { icon: SchoolIcon, title: 'Solicitud Días de Estudios y Vacaciones', text: 'Gestioná los días de estudio y vacaciones fácilmente desde un mismo lugar.', path: '/my-requests?filter=estudios_vacaciones' },
+  { icon: FactCheckIcon, title: 'Mis Solicitudes', text: 'Gestioná fácilmente tus solicitudes de vacaciones, días de estudio, enfermedad, mudanza, maternidad, y otras.', path: '/my-requests?filter=estudios_vacaciones' },
   { icon: Diversity3Icon, title: 'Licencias Médicas', text: 'Cargá las licencias médicas y hacé el seguimiento de tus ausencias de manera sencilla.', path: '/my-requests?filter=licencias_medicas' },
 ];
 const testimonios = [
@@ -202,7 +203,7 @@ const Home = () => {
                       </CardContent>
                     </CardActionArea>
                     <CardActions sx={{ justifyContent: 'center', p: 2 }}>
-                      <Button size="small" color="primary" onClick={() => v.path && navigate(v.path)}>
+                      <Button size="small" color="primary" onClick={() => v.path && navigate(v.path)} sx={{  color: '#173487' }}>
                         Ver Mas
                       </Button>
                     </CardActions>

@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
+  Avatar,
+  Stack,
   Box,
   Container,
   Typography,
@@ -44,7 +46,6 @@ import {
   Email as EmailIcon
 } from '@mui/icons-material';
 import dayjs from 'dayjs';
-import Swal from 'sweetalert2';
 import { getAllRequestsApi, updateRequestStatusApi, getRequestFileApi, adminDeleteRequestApi, sendRequestReminderApi } from '../api/request';
 import ViewRequestModal from '../components/ViewRequestModal';
 import AdminEditRequestModal from '../components/AdminEditRequestModal';
@@ -89,6 +90,9 @@ export default function RequestsAdmin() {
   const [reminderInfo, setReminderInfo] = useState(null);
   const [sendingReminder, setSendingReminder] = useState(false);
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [requestToDelete, setRequestToDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   const handleMenuOpen = (event, req) => {
     setAnchorEl(event.currentTarget);
@@ -299,36 +303,31 @@ export default function RequestsAdmin() {
   };
 
   const handleDeleteRequest = (req) => {
-    Swal.fire({
-      title: '¿Eliminar solicitud?',
-      text: `¿Estás seguro de que deseas eliminar la solicitud de ${req.usuario?.nombre || 'este usuario'}? Esta acción no se puede deshacer.`,
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#d32f2f',
-      cancelButtonColor: '#3085d6',
-      confirmButtonText: 'Sí, eliminar',
-      cancelButtonText: 'Cancelar',
-      showLoaderOnConfirm: true,
-      preConfirm: async () => {
-        try {
-          await adminDeleteRequestApi(req._id);
-          return true;
-        } catch (error) {
-          Swal.showValidationMessage(`Error: ${error.response?.data?.message || 'No se pudo eliminar'}`);
-        }
-      }
-    }).then((result) => {
-      if (result.isConfirmed) {
-        Swal.fire({
-          title: '¡Eliminado!',
-          text: 'La solicitud ha sido eliminada correctamente.',
-          icon: 'success',
-          timer: 2000,
-          showConfirmButton: false
-        });
-        fetchRequests();
-      }
-    });
+    setRequestToDelete(req);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!requestToDelete) return;
+    setDeleting(true);
+    try {
+      await adminDeleteRequestApi(requestToDelete._id);
+      showNotification('La solicitud ha sido eliminada correctamente.');
+      fetchRequests();
+      setDeleteDialogOpen(false);
+      setRequestToDelete(null);
+    } catch (error) {
+      console.error("Error eliminando solicitud:", error);
+      showNotification(error.response?.data?.message || 'No se pudo eliminar la solicitud.', 'error');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleCancelDelete = () => {
+    if (deleting) return;
+    setDeleteDialogOpen(false);
+    setRequestToDelete(null);
   };
 
   const handleViewFile = async (file) => {
@@ -384,14 +383,51 @@ export default function RequestsAdmin() {
             onChange={(e) => setSearchTerm(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && fetchRequests()}
             InputProps={{ endAdornment: <SearchIcon color="action" /> }}
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                '& fieldset': {
+                  borderColor: '#173487',
+                },
+                '&:hover fieldset': {
+                  borderColor: '#132966',
+                },
+                '&.Mui-focused fieldset': {
+                  borderColor: '#173487',
+                },
+              },
+              '& .MuiInputLabel-root.Mui-focused': {
+                color: '#173487',
+              },
+            }}
           />
           <TextField
             select
+            id="filter-status"
             label="Filtrar por Estado"
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
             size="small"
-            sx={{ minWidth: 200 }}
+            slotProps={{
+              input: { id: 'filter-status-input' },
+              inputLabel: { htmlFor: 'filter-status-input' },
+            }}
+            sx={{
+              minWidth: 200,
+              '& .MuiOutlinedInput-root': {
+                '& fieldset': {
+                  borderColor: '#173487',
+                },
+                '&:hover fieldset': {
+                  borderColor: '#132966',
+                },
+                '&.Mui-focused fieldset': {
+                  borderColor: '#173487',
+                },
+              },
+              '& .MuiInputLabel-root.Mui-focused': {
+                color: '#173487',
+              },
+            }}
           >
             <MenuItem value="">Todos</MenuItem>
             <MenuItem value="pendiente">Recibida</MenuItem>
@@ -401,19 +437,23 @@ export default function RequestsAdmin() {
             <MenuItem value="rechazada">No procede</MenuItem>
           </TextField>
           <Button
-              variant="contained"
-              startIcon={<RefreshIcon />}
-              onClick={fetchRequests}
-              disabled={loading}
-              sx={{ bgcolor: "theme.pallete.primary.main", '&:hover': { bgcolor: 'theme.pallete.primary.dark' } }}
-            >
-              Actualizar
-            </Button>
+            variant="contained"
+            startIcon={<RefreshIcon />}
+            onClick={fetchRequests}
+            disabled={loading}
+            sx={{
+              bgcolor: "#173487", '&:hover': { bgcolor: '#2A4DB8 '},
+            }}
+          >
+            Actualizar
+          </Button>
           <Button
             variant="contained"
-            color="primary"
             startIcon={<AddIcon />}
             onClick={() => setCreateModalOpen(true)}
+            sx={{
+              bgcolor: "#173487", '&:hover': { bgcolor: '#2A4DB8 '},
+            }}
           >
             Crear solicitud
           </Button>
@@ -493,12 +533,24 @@ export default function RequestsAdmin() {
                     </TableCell>
                     <TableCell align="right">
                       <Tooltip title="Ver Detalles">
-                        <IconButton color="primary" onClick={() => handleOpenViewDialog(req)}>
+                        <IconButton
+                          onClick={() => handleOpenViewDialog(req)}
+                          sx={{
+                            color: '#173487',
+                            '&:hover': { color: '#2A4DB8' },
+                          }}
+                        >
                           <VisibilityIcon />
                         </IconButton>
                       </Tooltip>
                       <Tooltip title="Editar">
-                        <IconButton color="default" onClick={() => handleOpenEditDialog(req)}>
+                        <IconButton
+                          onClick={() => handleOpenEditDialog(req)}
+                          sx={{
+                            color: '#173487',
+                            '&:hover': { color: '#2A4DB8' },
+                          }}
+                        >
                           <EditIcon />
                         </IconButton>
                       </Tooltip>
@@ -518,6 +570,82 @@ export default function RequestsAdmin() {
           </Table>
         </TableContainer>
       </Paper>
+
+      {/* Diálogo de confirmación de eliminación */}
+      <Dialog open={deleteDialogOpen} onClose={handleCancelDelete} maxWidth="sm" fullWidth>
+        {requestToDelete && (
+          <>
+            <DialogTitle sx={{ pb: 1 }}>
+              <Stack direction="row" spacing={2} alignItems="center">
+                <Avatar
+                  sx={{
+                    width: 40,
+                    height: 40,
+                    bgcolor: '#173487',
+                    color: '#fff',
+                    fontWeight: 'bold',
+                    fontSize: 18,
+                  }}
+                >
+                  {requestToDelete.usuario?.nombre?.[0]?.toUpperCase() || 'U'}
+                </Avatar>
+                <Box>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Eliminar solicitud
+                  </Typography>
+                  <Typography variant="body1" fontWeight={600}>
+                    {requestToDelete.usuario
+                      ? `${requestToDelete.usuario.nombre} ${requestToDelete.usuario.apellido || ''}`
+                      : 'Empleado'}
+                  </Typography>
+                </Box>
+              </Stack>
+            </DialogTitle>
+            <DialogContent dividers sx={{ pt: 2 }}>
+              <Stack spacing={1.5}>
+                <Box>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Detalle de la solicitud
+                  </Typography>
+                  <Typography variant="body2" sx={{ mt: 0.5 }}>
+                    Tipo:{' '}
+                    <strong>
+                      {REQUEST_TYPES.find((t) => t.value === requestToDelete.tipo)?.label ||
+                        requestToDelete.tipo}
+                    </strong>
+                  </Typography>
+                  <Typography variant="body2">
+                    Fecha solicitud:{' '}
+                    <strong>{dayjs(requestToDelete.createdAt).format('DD/MM/YYYY')}</strong>
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography variant="body2" color="text.secondary">
+                    ¿Estás seguro de que querés eliminar esta solicitud? Esta acción no se
+                    puede deshacer.
+                  </Typography>
+                </Box>
+              </Stack>
+            </DialogContent>
+            <DialogActions>
+              <Button 
+              sx={{color: "#2A4DB8"} }
+              variant="outlined"
+              onClick={handleCancelDelete} disabled={deleting}   >
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleConfirmDelete}
+                color="error"
+                variant="contained"
+                disabled={deleting}
+              >
+                {deleting ? <CircularProgress size={20} color="inherit" /> : 'Eliminar'}
+              </Button>
+            </DialogActions>
+          </>
+        )}
+      </Dialog>
 
       {/* Diálogo de Acción */}
       <Dialog open={actionDialog.open} onClose={handleCloseActionDialog} maxWidth="sm" fullWidth>
@@ -735,9 +863,14 @@ export default function RequestsAdmin() {
         open={notification.open} 
         autoHideDuration={6000} 
         onClose={handleCloseNotification}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
       >
-        <Alert onClose={handleCloseNotification} severity={notification.severity} sx={{ width: '100%' }}>
+        <Alert
+          onClose={handleCloseNotification}
+          severity={notification.severity}
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
           {notification.message}
         </Alert>
       </Snackbar>
