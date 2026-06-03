@@ -915,19 +915,11 @@ export default function RequestsAdmin() {
         onClose={handleMenuClose}
       >
         {menuRequest && [
-            <MenuItem key="approve" onClick={() => handleMenuAction('approve')}>
-              <CheckIcon fontSize="small" sx={{ mr: 1, color: 'success.main' }} /> 
-              Registrar
-            </MenuItem>,
-            <MenuItem key="review" onClick={() => handleMenuAction('review')}>
-              <RateReviewIcon fontSize="small" sx={{ mr: 1, color: 'secondary.main' }} /> 
-              En trámite
-            </MenuItem>,
-            <MenuItem key="reject" onClick={() => handleMenuAction('reject')}>
-              <CancelIcon fontSize="small" sx={{ mr: 1, color: 'error.main' }} /> 
-              No procede
-            </MenuItem>,
-          (menuRequest.estado === 'en_revision') && (
+          <MenuItem key="review" onClick={() => handleMenuAction('review')}>
+          <RateReviewIcon fontSize="small" sx={{ mr: 1, color: 'secondary.main' }} />
+          En trámite
+          </MenuItem>,
+          (menuRequest.estado === 'en_revision' && menuRequest.tipo === 'vacaciones') && (
             <MenuItem key="sign" onClick={() => handleMenuAction('sign')}>
               <SignIcon fontSize="small" sx={{ mr: 1, color: 'info.main' }} /> 
               Solicitar Firma
@@ -938,7 +930,16 @@ export default function RequestsAdmin() {
               <EmailIcon fontSize="small" sx={{ mr: 1, color: 'warning.main' }} /> 
               Enviar recordatorio
             </MenuItem>
-          )
+          ),
+          <MenuItem key="approve" onClick={() => handleMenuAction('approve')}>
+            <CheckIcon fontSize="small" sx={{ mr: 1, color: 'success.main' }} />
+            Registrar
+          </MenuItem>,
+          
+          <MenuItem key="reject" onClick={() => handleMenuAction('reject')}>
+            <CancelIcon fontSize="small" sx={{ mr: 1, color: 'error.main' }} />
+            No procede
+          </MenuItem>,
         ]}
       </Menu>
     </Container>

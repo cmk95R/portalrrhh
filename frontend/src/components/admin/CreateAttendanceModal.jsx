@@ -23,6 +23,11 @@ const modalStyle = {
   outline: 'none', // Remove default outline for better look
 };
 
+const isWeekday = (date) => {
+  const d = dayjs(date).day();
+  return d >= 1 && d <= 5;
+};
+
 const absenceTypes = [
   { value: 'Sin justificación', label: 'Sin justificación' },
   { value: 'Día de estudio', label: 'Día de estudio' },
@@ -80,6 +85,16 @@ export default function CreateAttendanceModal({ open, onClose, onCreated, showNo
     }
   };
 
+  const countWeekdaysInRange = (start, end) => {
+    let count = 0;
+    let current = start;
+    while (current.isBefore(end) || current.isSame(end, 'day')) {
+      if (isWeekday(current)) count += 1;
+      current = current.add(1, 'day');
+    }
+    return count;
+  };
+
   const validateDates = () => {
     if (isRangeMode) {
       const start = dayjs(fecha);
@@ -88,6 +103,13 @@ export default function CreateAttendanceModal({ open, onClose, onCreated, showNo
         setDateError("La fecha 'Hasta' debe ser posterior a la fecha 'Desde'.");
         return false;
       }
+      if (countWeekdaysInRange(start, end) === 0) {
+        setDateError('El rango seleccionado no incluye días hábiles (lunes a viernes).');
+        return false;
+      }
+    } else if (!isWeekday(fecha)) {
+      setDateError('Solo se pueden registrar asistencias de lunes a viernes.');
+      return false;
     }
     setDateError('');
     return true;
@@ -110,14 +132,21 @@ export default function CreateAttendanceModal({ open, onClose, onCreated, showNo
         const promises = [];
         let current = start;
         while (current.isBefore(end) || current.isSame(end, 'day')) {
-          promises.push(createAttendanceApi({
-            usuario: selectedUser.id || selectedUser._id,
-            fecha: current.format('YYYY-MM-DD'),
-            estado,
-            nota,
-            motivo: estado === 'ausente' ? motivo : undefined
-          }));
+          if (isWeekday(current)) {
+            promises.push(createAttendanceApi({
+              usuario: selectedUser.id || selectedUser._id,
+              fecha: current.format('YYYY-MM-DD'),
+              estado,
+              nota,
+              motivo: estado === 'ausente' ? motivo : undefined
+            }));
+          }
           current = current.add(1, 'day');
+        }
+        if (promises.length === 0) {
+          setDateError('El rango seleccionado no incluye días hábiles (lunes a viernes).');
+          setSaving(false);
+          return;
         }
         await Promise.all(promises);
       } else {
@@ -130,9 +159,11 @@ export default function CreateAttendanceModal({ open, onClose, onCreated, showNo
         });
       }
 
-      const count = isRangeMode ? dayjs(fechaHasta).diff(dayjs(fecha), 'day') + 1 : 1;
+      const count = isRangeMode
+        ? countWeekdaysInRange(dayjs(fecha), dayjs(fechaHasta))
+        : 1;
       const msg = count > 1
-        ? `Se registraron ${count} asistencias correctamente.`
+        ? `Se registraron ${count} asistencias (solo días hábiles).`
         : 'La asistencia se registró correctamente.';
       if (showNotification) showNotification(msg, 'success');
       if (onCreated) onCreated();
@@ -236,6 +267,8 @@ export default function CreateAttendanceModal({ open, onClose, onCreated, showNo
               InputProps={{
                 startAdornment: <EventNote sx={{ mr: 1, color: 'action.active' }} />,
               }}
+              error={!isRangeMode && !!dateError}
+              helperText={!isRangeMode ? dateError : undefined}
               required
             />
           </Grid>
@@ -252,7 +285,7 @@ export default function CreateAttendanceModal({ open, onClose, onCreated, showNo
                   startAdornment: <EventNote sx={{ mr: 1, color: 'action.active' }} />,
                 }}
                 error={!!dateError}
-                helperText={dateError}
+                helperText={dateError || 'Los sábados y domingos no se incluyen en el rango.'}
                 required
               />
             </Grid>

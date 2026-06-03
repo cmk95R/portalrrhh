@@ -9,6 +9,37 @@ dayjs.extend(utc);
 // --- Helper para obtener el día de la semana en español ---
 const diasSemana = ["domingo", "lunes", "martes", "miercoles", "jueves", "viernes", "sabado"];
 
+/** Lunes y domingo de la semana calendario en curso (semana empieza lunes). */
+function getCurrentWeekBounds(today = dayjs()) {
+  const monday = today.subtract((today.day() + 6) % 7, 'day').startOf('day');
+  const sunday = monday.add(6, 'day');
+  return { monday, sunday };
+}
+
+/** Fecha mínima editable por el empleado (cierre miércoles de la semana siguiente). */
+function getEmployeeAttendanceLockDate(today = dayjs()) {
+  const { monday } = getCurrentWeekBounds(today);
+  if (today.day() >= 1 && today.day() <= 3) {
+    return monday.subtract(1, 'week');
+  }
+  return monday;
+}
+
+/** null si la fecha es válida; mensaje de error si no. */
+function validateEmployeeAttendanceDate(fecha, today = dayjs()) {
+  const d = dayjs(fecha).startOf('day');
+  const lockDate = getEmployeeAttendanceLockDate(today);
+  const { sunday } = getCurrentWeekBounds(today);
+
+  if (d.isBefore(lockDate, 'day')) {
+    return 'El tiempo para cargar esta asistencia ha expirado (Cierre: Miércoles).';
+  }
+  if (d.isAfter(sunday, 'day')) {
+    return 'Solo podés marcar asistencia hasta la semana en curso.';
+  }
+  return null;
+}
+
 
 // @desc    Enviar la asistencia diaria de un solo clic.
 // @route   POST /api/attendance/submit-daily
@@ -232,20 +263,9 @@ export const setDailyAttendance = async (req, res, next) => {
         const { fecha, estado, motivo, nota, horasExtras, guardia, horasFinDeSemana } = req.body; // <-- CORRECCIÓN
         const { _id: userId, nombre, apellido } = req.user;
 
-        // --- VALIDACIÓN DE REGLA DE NEGOCIO ---
-        // Calcular el lunes de la semana actual
-        // (day() devuelve 0 para domingo, 1 lunes... ajustamos para que lunes sea el inicio)
-        const today = dayjs();
-        const currentMonday = today.subtract((today.day() + 6) % 7, 'day').startOf('day');
-        
-        // Permitir carga hasta el miércoles de la semana siguiente
-        let lockDate = currentMonday;
-        if (today.day() >= 1 && today.day() <= 3) { // Lunes(1), Martes(2), Miércoles(3)
-            lockDate = currentMonday.subtract(1, 'week');
-        }
-
-        if (dayjs(fecha).isBefore(lockDate)) {
-            return res.status(403).json({ message: 'El tiempo para cargar esta asistencia ha expirado (Cierre: Miércoles).' });
+        const dateError = validateEmployeeAttendanceDate(fecha);
+        if (dateError) {
+            return res.status(403).json({ message: dateError });
         }
 
         if (!fecha || !['presente', 'ausente'].includes(estado)) { // <-- CORRECCIÓN
@@ -400,17 +420,13 @@ export const updateMyAttendance = async (req, res, next) => {
             return res.status(404).json({ message: "Registro de asistencia no encontrado o no te pertenece." });
         }
 
-        // --- VALIDACIÓN DE FECHA ---
-        // Aplicar la misma regla: se puede editar hasta el miércoles de la semana siguiente
-        const today = dayjs();
-        const currentMonday = today.subtract((today.day() + 6) % 7, 'day').startOf('day');
-        let lockDate = currentMonday;
-        if (today.day() >= 1 && today.day() <= 3) {
-            lockDate = currentMonday.subtract(1, 'week');
-        }
-
-        if (dayjs(record.fecha).isBefore(lockDate)) {
-            return res.status(403).json({ message: "No se puede modificar una asistencia de una semana cerrada." });
+        const dateError = validateEmployeeAttendanceDate(record.fecha);
+        if (dateError) {
+            return res.status(403).json({
+                message: dateError.includes('semana en curso')
+                    ? dateError
+                    : 'No se puede modificar una asistencia de una semana cerrada.',
+            });
         }
 
         // Aplicar actualizaciones de forma segura

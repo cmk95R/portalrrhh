@@ -15,6 +15,7 @@ import ProtectedRoute from './components/ProtectedRoute'; // ¡Importa el nuevo 
 import GoogleAuthCallback from './pages/GoogleAuthCallback';
 import AdminAttendancePage from './pages/AdminAttendancePage';
 import RequestsAdmin from './pages/RequestsAdmin';
+import ReportsAdmin from './pages/ReportsAdmin';
 import ColorModeProvider from './context/ColorModeProvider'; 
 
 function App() {
@@ -35,6 +36,7 @@ function App() {
           <Route path="/admin/users" element={<AdminUsersGrid />} />
           <Route path="/admin/attendance" element={<AdminAttendancePage />} />
           <Route path="/admin/requests" element={<RequestsAdmin />} />
+          <Route path="/admin/reports" element={<ReportsAdmin />} />
         </Route>
 
         {/* --- RUTAS PROTEGIDAS GENERALES (Cualquier usuario logueado) --- */}

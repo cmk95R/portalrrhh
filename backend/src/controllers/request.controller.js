@@ -597,23 +597,29 @@ export const editRequest = async (req, res, next) => {
 
     // Si se sube un nuevo archivo
     if (req.file) {
-      // Validación de plazo para cargar documentación (48hs desde la fecha de la solicitud)
+      // Plazo para cargar documentación posterior (desde fechaInicio de la solicitud)
       const tipoActual = solicitud.tipo;
       const tiposDocsPosterior = ['otro', 'paternidad', 'maternidad', 'mudanza'];
-      const aplicaPlazo48hs =
+      let plazoDias = null;
+      if (tipoActual === 'dia_estudio') {
+        plazoDias = 7; // certificado de examen: 7 días calendario desde el día solicitado
+      } else if (
         tipoActual === 'enfermedad' ||
-        tipoActual === 'dia_estudio' ||
-        (tiposDocsPosterior.includes(tipoActual) && solicitud.documentacionPosterior === true);
+        (tiposDocsPosterior.includes(tipoActual) && solicitud.documentacionPosterior === true)
+      ) {
+        plazoDias = 2;
+      }
 
-      if (aplicaPlazo48hs) {
+      if (plazoDias !== null) {
         const baseDate = solicitud.fechaInicio ? dayjs(solicitud.fechaInicio) : dayjs(solicitud.createdAt);
-        const limite = baseDate.add(2, 'day').endOf('day'); // 48hs a partir de la fecha solicitada
+        const limite = baseDate.add(plazoDias, 'day').endOf('day');
 
         if (dayjs().isAfter(limite)) {
-          throw createError(
-            400,
-            'El plazo de 48 horas para cargar la documentación venció. Por favor, contactate con RRHH para regularizar tu solicitud.'
-          );
+          const mensaje =
+            tipoActual === 'dia_estudio'
+              ? 'El plazo de 7 días para cargar el certificado de examen venció. Por favor, contactate con RRHH para regularizar tu solicitud.'
+              : 'El plazo de 48 horas para cargar la documentación venció. Por favor, contactate con RRHH para regularizar tu solicitud.';
+          throw createError(400, mensaje);
         }
       }
 

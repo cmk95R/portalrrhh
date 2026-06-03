@@ -20,6 +20,20 @@ dayjs.locale('es');
 
 const capitalizeFirst = (str) => str ? str.charAt(0).toUpperCase() + str.slice(1) : str;
 
+/** Rango permitido para empleados: 60 días atrás hasta el domingo de la semana en curso. */
+const getEmployeeAttendanceBounds = () => {
+  const today = dayjs();
+  const minDate = today.subtract(60, 'day').startOf('day');
+  const monday = today.subtract((today.day() + 6) % 7, 'day').startOf('day');
+  const maxDate = monday.add(6, 'day');
+  return { minDate, maxDate };
+};
+
+const isOutsideEmployeeAttendanceRange = (date) => {
+  const { minDate, maxDate } = getEmployeeAttendanceBounds();
+  return date.isBefore(minDate, 'day') || date.isAfter(maxDate, 'day');
+};
+
 const absenceTypes = [
   { value: 'Sin justificación', label: 'Sin justificación' },
   { value: 'Día de estudio', label: 'Día de estudio' },
@@ -121,14 +135,7 @@ const AttendanceCalendar = () => {
   };
 
   const validateDate = (date) => {
-    const today = dayjs();
-    // Rango permitido: desde 60 días atrás hasta el viernes más próximo
-    const minDate = today.subtract(60, 'day');
-    const dayOfWeek = today.day(); // 0 = domingo ... 5 = viernes
-    const daysUntilFriday = (5 - dayOfWeek + 7) % 7; // siempre >= 0
-    const maxDate = today.add(daysUntilFriday, 'day');
-
-    if (date.isBefore(minDate, 'day') || date.isAfter(maxDate, 'day')) {
+    if (isOutsideEmployeeAttendanceRange(date)) {
       setOpenDateErrorDialog(true);
       return false;
     }
@@ -202,7 +209,7 @@ const AttendanceCalendar = () => {
   const isDayDisabled = (date) => {
     const isWeekend = date.day() === 0 || date.day() === 6;
     const isHol = !!isHoliday(date);
-    return isWeekend || isHol;
+    return isWeekend || isHol || isOutsideEmployeeAttendanceRange(date);
   };
 
   const CustomDay = (props) => {
@@ -523,7 +530,8 @@ const AttendanceCalendar = () => {
           </DialogTitle>
           <DialogContent>
             <Typography>
-            El registro de asistencias solo está habilitado para la semana en curso.
+              Solo podés registrar asistencia dentro de la semana en curso (de lunes a domingo).
+              No se permiten fechas de semanas futuras ni de meses posteriores.
             </Typography>
           </DialogContent>
           <DialogActions>

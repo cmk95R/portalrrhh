@@ -23,6 +23,9 @@ import adminAttendanceRoutes from "./adminAttendance.routes.js";
 // --- Importa las rutas de admin para solicitudes ---
 import adminRequestRoutes from "./adminRequest.routes.js";
 
+// --- Importa las rutas de admin para reportes ---
+import adminReportsRoutes from "./adminReports.routes.js";
+
 const router = Router();
 
 // --- Middleware Global para Rutas de Admin ---
@@ -50,5 +53,8 @@ router.use("/attendance", adminAttendanceRoutes);
 
 // --- Gestión de Solicitudes --- (/api/admin/requests)
 router.use("/requests", adminRequestRoutes);
+
+// --- Reportes --- (/api/admin/reports)
+router.use("/reports", adminReportsRoutes);
 
 export default router;

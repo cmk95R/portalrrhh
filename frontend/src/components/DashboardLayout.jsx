@@ -13,6 +13,7 @@ import { ColorModeContext } from "../context/ColorModeContext";
 // Iconos
 import HowToRegIcon from '@mui/icons-material/HowToReg';
 import FactCheckIcon from '@mui/icons-material/FactCheck';
+import AssessmentIcon from '@mui/icons-material/Assessment';
 import MenuIcon from "@mui/icons-material/Menu";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
@@ -25,8 +26,11 @@ import LogoutIcon from "@mui/icons-material/Logout";
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
+import PushPinIcon from '@mui/icons-material/PushPin';
+import PushPinOutlinedIcon from '@mui/icons-material/PushPinOutlined';
 
 const drawerWidth = 280;
+const DRAWER_PINNED_KEY = 'dashboard-drawer-pinned';
 const API_URL = import.meta.env.VITE_API_URL || "";
 
 // === MIXINS PARA ESCRITORIO ===
@@ -119,9 +123,25 @@ export default function DashboardLayout() {
   const { user, logout } = React.useContext(AuthContext);
   const { mode, toggleColorMode } = React.useContext(ColorModeContext);
 
-  const [open, setOpen] = React.useState(false);
+  const [mobileOpen, setMobileOpen] = React.useState(false);
+  const [hoverOpen, setHoverOpen] = React.useState(false);
+  const [drawerPinned, setDrawerPinned] = React.useState(() => {
+    try {
+      return localStorage.getItem(DRAWER_PINNED_KEY) === 'true';
+    } catch {
+      return false;
+    }
+  });
   const [anchorEl, setAnchorEl] = React.useState(null);
   const menuOpen = Boolean(anchorEl);
+
+  const drawerPinnedRef = React.useRef(drawerPinned);
+  React.useEffect(() => {
+    drawerPinnedRef.current = drawerPinned;
+  }, [drawerPinned]);
+
+  const desktopDrawerExpanded = drawerPinned || hoverOpen;
+  const drawerOpen = isMobile ? mobileOpen : desktopDrawerExpanded;
 
   const trigger = useScrollTrigger({
     disableHysteresis: true,
@@ -130,7 +150,38 @@ export default function DashboardLayout() {
 
   // Manejo inteligente del drawer según dispositivo
   const handleDrawerToggle = () => {
-    setOpen(!open);
+    if (isMobile) {
+      setMobileOpen((prev) => !prev);
+    } else {
+      setHoverOpen((prev) => !prev);
+    }
+  };
+
+  const handleDrawerPinToggle = (e) => {
+    e.stopPropagation();
+    const next = !drawerPinned;
+    setDrawerPinned(next);
+    drawerPinnedRef.current = next;
+    try {
+      localStorage.setItem(DRAWER_PINNED_KEY, String(next));
+    } catch {
+      /* ignore */
+    }
+    if (!isMobile) {
+      setHoverOpen(next);
+    }
+  };
+
+  const handleDesktopDrawerMouseEnter = () => {
+    if (!drawerPinnedRef.current) {
+      setHoverOpen(true);
+    }
+  };
+
+  const handleDesktopDrawerMouseLeave = () => {
+    if (!drawerPinnedRef.current) {
+      setHoverOpen(false);
+    }
   };
 
   const handleMenuOpen = (e) => setAnchorEl(e.currentTarget);
@@ -169,6 +220,7 @@ export default function DashboardLayout() {
     { text: "Gestión de Usuarios", icon: <AdminPanelSettingsIcon />, path: "/admin/users" },
     { text: "Gestión de Asistencias", icon: <HowToRegIcon />, path: "/admin/attendance" },
     { text: "Gestión de Solicitudes", icon: <FactCheckIcon />, path: "/admin/requests" },
+    { text: "Reportes", icon: <AssessmentIcon />, path: "/admin/reports" },
     { text: "Cerrar Sesión", icon: <LogoutIcon />, action: "logout" },
   ];
 
@@ -180,6 +232,7 @@ export default function DashboardLayout() {
     { text: "Gestión de Usuarios", icon: <AdminPanelSettingsIcon />, path: "/admin/users" },
     { text: "Gestión de Asistencias", icon: <HowToRegIcon />, path: "/admin/attendance" },
     { text: "Gestión de Solicitudes", icon: <FactCheckIcon />, path: "/admin/requests" },
+    { text: "Reportes", icon: <AssessmentIcon />, path: "/admin/reports" },
     { text: "Cerrar Sesión", icon: <LogoutIcon />, action: "logout" },
   ];
 
@@ -199,18 +252,35 @@ export default function DashboardLayout() {
       navigate(item.path);
     }
     // En móvil, cerramos el drawer al hacer click
-    if (isMobile) setOpen(false);
+    if (isMobile) setMobileOpen(false);
   };
 
   // === CONTENIDO DEL DRAWER (Reutilizable) ===
   // Esto evita duplicar el código de la lista para la versión móvil y escritorio
   const drawerContent = (
     <>
-      <DrawerHeader>
-        {/* Solo mostramos botón de cerrar si es el drawer Permanente (Desktop) o si está abierto en móvil */}
-        <IconButton onClick={() => setOpen(false)} sx={{ color: theme.palette.text.primary }}>
-          {theme.direction === "rtl" ? <ChevronRightIcon /> : <ChevronLeftIcon />}
-        </IconButton>
+      <DrawerHeader sx={{ justifyContent: 'space-between', px: 1 }}>
+        {!isMobile && (
+          <Tooltip title={drawerPinned ? 'Desfijar menú lateral' : 'Fijar menú lateral'}>
+            <IconButton
+              onClick={handleDrawerPinToggle}
+              onMouseDown={(e) => e.stopPropagation()}
+              size="small"
+              aria-label={drawerPinned ? 'Desfijar menú lateral' : 'Fijar menú lateral'}
+              aria-pressed={drawerPinned}
+              sx={{
+                color: drawerPinned ? '#173487' : theme.palette.text.secondary,
+              }}
+            >
+              {drawerPinned ? <PushPinIcon fontSize="small" /> : <PushPinOutlinedIcon fontSize="small" />}
+            </IconButton>
+          </Tooltip>
+        )}
+        {(isMobile || !drawerPinned) && (
+          <IconButton onClick={() => setMobileOpen(false)} sx={{ color: theme.palette.text.primary, ml: 'auto' }}>
+            {theme.direction === "rtl" ? <ChevronRightIcon /> : <ChevronLeftIcon />}
+          </IconButton>
+        )}
       </DrawerHeader>
       <Divider />
       <List>
@@ -228,7 +298,7 @@ export default function DashboardLayout() {
                 sx={{
                   minHeight: 48,
                   // En móvil siempre justificamos a la izquierda ("initial"), en desktop depende de si está abierto
-                  justifyContent: (open || isMobile) ? "initial" : "center",
+                  justifyContent: (drawerOpen || isMobile) ? "initial" : "center",
                   px: 2.5,
                   borderRadius: '8px',
                   mx: 1.5,
@@ -247,7 +317,7 @@ export default function DashboardLayout() {
               >
                 <ListItemIcon sx={{
                   minWidth: 0,
-                  mr: (open || isMobile) ? 3 : "auto",
+                  mr: (drawerOpen || isMobile) ? 3 : "auto",
                   justifyContent: "center",
                   color: '#173487',
                   transition: 'color 0.2s'
@@ -259,9 +329,9 @@ export default function DashboardLayout() {
                 <ListItemText
                   primary={item.text}
                   sx={{ 
-                    opacity: (open || isMobile) ? 1 : 0,
+                    opacity: (drawerOpen || isMobile) ? 1 : 0,
                     color: location.pathname === item.path ? 'inherit' : "#173487",
-                    display: (open || isMobile) ? 'block' : 'none' // Hack para que no ocupe espacio visual cuando está cerrado en desktop
+                    display: (drawerOpen || isMobile) ? 'block' : 'none' // Hack para que no ocupe espacio visual cuando está cerrado en desktop
                     
                   }}
                 />
@@ -280,7 +350,7 @@ export default function DashboardLayout() {
       {/* === APP BAR === */}
       <AppBar
         position="fixed"
-        open={open}
+        open={drawerOpen}
         elevation={trigger ? 4 : 0}
         sx={{
           ...(theme.palette.mode === 'light' && {
@@ -299,7 +369,7 @@ export default function DashboardLayout() {
               mr: 2,
               // Ocultamos el botón de menú si el drawer ya está abierto EN ESCRITORIO
               // En móvil siempre queremos ver el botón (o la X dentro del drawer)
-              ...(open && !isMobile && { display: 'none' }),
+              ...(drawerOpen && !isMobile && { display: 'none' }),
             }}
           >
             <MenuIcon />
@@ -370,8 +440,8 @@ export default function DashboardLayout() {
       {/* === DRAWER MÓVIL (Temporary) === */}
       <MuiDrawer
         variant="temporary"
-        open={isMobile ? open : false} // Solo se abre si es móvil y open=true
-        onClose={() => setOpen(false)}
+        open={mobileOpen}
+        onClose={() => setMobileOpen(false)}
         ModalProps={{ keepMounted: true }} // Mejor rendimiento en móviles
         sx={{
           display: { xs: 'block', md: 'none' }, // Visible solo en xs y sm
@@ -388,15 +458,15 @@ export default function DashboardLayout() {
       {/* === DRAWER ESCRITORIO (Permanent / Mini) === */}
       <DesktopDrawer
         variant="permanent"
-        open={open}
-        // Eventos Hover solo en Desktop
-        onMouseEnter={() => !isMobile && setOpen(true)}
-        onMouseLeave={() => !isMobile && setOpen(false)}
+        open={desktopDrawerExpanded}
+        onMouseEnter={handleDesktopDrawerMouseEnter}
+        onMouseLeave={handleDesktopDrawerMouseLeave}
         sx={{
           display: { xs: 'none', md: 'block' }, // Oculto en móviles
           '& .MuiDrawer-paper': {
-            background: 'linear-gradient(180deg, #e3e8f7 0%, #d2d8e8 100%)'
-          }
+            background: 'linear-gradient(180deg, #e3e8f7 0%, #d2d8e8 100%)',
+            overflowX: 'hidden',
+          },
         }}
       >
         {drawerContent}
