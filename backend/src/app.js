@@ -21,6 +21,8 @@ import geoRoutes from "./routes/geoRoutes.js"; // Rutas públicas
 import attendanceRoutes from "./routes/attendance.routes.js"; // <-- NUEVO: Rutas de asistencia para usuarios
 import holidaysRoutes from "./routes/holidays.routes.js"; // <-- AÑADIDO
 import requestRoutes from "./routes/request.routes.js"; // <-- NUEVO: Rutas de solicitudes
+import beneficiosRoutes from "./routes/beneficios.routes.js"; // <-- NUEVO: Rutas de beneficios
+import configRoutes from "./routes/config.routes.js"; // <-- NUEVO: Rutas de configuracion
 import { initGooglePassport } from "./auth/google.strategy.js"; 
 
 dotenv.config();
@@ -105,6 +107,8 @@ apiRouter.use("/geo", geoRoutes);              // /api/geo/... (Provincias, Loca
 apiRouter.use("/attendance", attendanceRoutes); // <-- NUEVO: /api/attendance/... (Clock-in, Clock-out, etc.)
 apiRouter.use("/holidays", holidaysRoutes);     // <-- AÑADIDO: /api/holidays/...
 apiRouter.use("/requests", requestRoutes);      // <-- NUEVO: /api/requests/...
+apiRouter.use("/beneficios", requireAuth, beneficiosRoutes); // <-- NUEVO: /api/beneficios/... (logueados)
+apiRouter.use("/config", configRoutes); // <-- NUEVO: /api/config/...
 
 // Montamos TODAS las rutas de admin bajo /api/admin
 apiRouter.use("/admin", requireAuth, requireRole("admin", "rrhh"), adminRoutes);

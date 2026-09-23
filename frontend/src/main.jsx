@@ -16,10 +16,12 @@ ReactDOM.createRoot(document.getElementById("root")).render(
     <BrowserRouter>
       <AuthProvider>
         <ThemeProvider theme={theme}> {/* Aplica el tema */}
-          
+
           <App />
         </ThemeProvider>
       </AuthProvider>
     </BrowserRouter>
   </React.StrictMode>
 );
+
+requestAnimationFrame(() => document.body.classList.add("app-ready"));

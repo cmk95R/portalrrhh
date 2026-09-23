@@ -21,7 +21,9 @@ import {
   Menu,
   MenuItem,
   alpha, // Importante para colores semitransparentes
-  useTheme
+  useTheme,
+  Switch,
+  FormControlLabel,
 } from "@mui/material";
 import { Link as RouterLink } from 'react-router-dom';
 import CoPresentIcon from '@mui/icons-material/CoPresent';
@@ -34,6 +36,7 @@ import AssignmentTurnedInIcon from '@mui/icons-material/AssignmentTurnedIn';
 import HourglassTopIcon from '@mui/icons-material/HourglassTop';
 import { getDashboardDataApi } from '../api/admin'; // Asegúrate que la ruta a tu API sea correcta
 import { getAllRequestsApi } from '../api/request';
+import { getConfigApi, updateConfigApi } from '../api/config';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import dayjs from 'dayjs';
 import 'dayjs/locale/es';
@@ -114,6 +117,8 @@ export default function AdminDashboard() {
     const [requestTypeChartData, setRequestTypeChartData] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [beneficiosPublicos, setBeneficiosPublicos] = useState(false);
+    const [toggleLoading, setToggleLoading] = useState(false);
     const currentDate = new Date().toLocaleDateString('es-AR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
     const theme = useTheme();
     const [actionsAnchorEl, setActionsAnchorEl] = useState(null);
@@ -185,6 +190,25 @@ export default function AdminDashboard() {
         };
         fetchDashboardData();
     }, []);
+
+    useEffect(() => {
+        getConfigApi('beneficios_publicos')
+            .then(({ data }) => setBeneficiosPublicos(data?.value === true))
+            .catch(() => setBeneficiosPublicos(false));
+    }, []);
+
+    const handleToggleBeneficios = async () => {
+        setToggleLoading(true);
+        try {
+            const next = !beneficiosPublicos;
+            await updateConfigApi('beneficios_publicos', next);
+            setBeneficiosPublicos(next);
+        } catch (err) {
+            setError(err.response?.data?.message || 'No se pudo actualizar la configuración');
+        } finally {
+            setToggleLoading(false);
+        }
+    };
 
     if (loading) return <DashboardSkeleton />;
 
@@ -286,6 +310,25 @@ export default function AdminDashboard() {
                     </MenuItem>
                 </Menu>
                 </Box>
+                {(user?.rol === 'admin' || user?.rol === 'rrhh') && (
+                    <Box sx={{ mt: 2, p: 2, backgroundColor: 'white', borderRadius: 2, border: '1px solid #e5e7eb', display: 'inline-flex', alignItems: 'center' }}>
+                        <FormControlLabel
+                            control={
+                                <Switch
+                                    checked={beneficiosPublicos}
+                                    onChange={handleToggleBeneficios}
+                                    disabled={toggleLoading}
+                                    color="primary"
+                                />
+                            }
+                            label={
+                                <Typography variant="body2" fontWeight={600}>
+                                    {beneficiosPublicos ? 'Beneficios visibles para todos' : 'Beneficios ocultos (Próximamente)'}
+                                </Typography>
+                            }
+                        />
+                    </Box>
+                )}
                 
             </Box>
             

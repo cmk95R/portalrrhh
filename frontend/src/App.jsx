@@ -1,8 +1,7 @@
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import Dashboard from './pages/Dashboard';
 import Home from './pages/home';
 import Login from './pages/login';
-import Register from './pages/register';
 import DashboardLayout from './components/DashboardLayout';
 import AdminUsersGrid from './pages/AdminUserGrid';
 
@@ -16,6 +15,10 @@ import GoogleAuthCallback from './pages/GoogleAuthCallback';
 import AdminAttendancePage from './pages/AdminAttendancePage';
 import RequestsAdmin from './pages/RequestsAdmin';
 import ReportsAdmin from './pages/ReportsAdmin';
+import CollaboratorsInfo from './pages/CollaboratorsInfo';
+import Beneficios from './pages/Beneficios';
+import BeneficiosGuard from './components/BeneficiosGuard';
+import BeneficioDetalle from './pages/BeneficioDetalle';
 import ColorModeProvider from './context/ColorModeProvider'; 
 
 function App() {
@@ -26,7 +29,6 @@ function App() {
       {/* Layout con sidebar para páginas internas */}
       <Route element={<DashboardLayout />}>
         <Route path="/" element={<Home />} />
-        <Route path="/register" element={<Register />} />
         <Route path="/login/sso" element={<GoogleAuthCallback />} />
 
         {/* --- RUTAS PROTEGIDAS PARA ADMIN Y RRHH --- */}
@@ -37,6 +39,7 @@ function App() {
           <Route path="/admin/attendance" element={<AdminAttendancePage />} />
           <Route path="/admin/requests" element={<RequestsAdmin />} />
           <Route path="/admin/reports" element={<ReportsAdmin />} />
+          <Route path="/admin/collaborators-info" element={<CollaboratorsInfo />} />
         </Route>
 
         {/* --- RUTAS PROTEGIDAS GENERALES (Cualquier usuario logueado) --- */}
@@ -44,13 +47,18 @@ function App() {
           <Route path="/profile" element={<Profile />} />
           <Route path="/my-attendance" element={<AttendancePage />} />
           <Route path="/my-requests" element={<MyRequests />} />
+          <Route path="/beneficios" element={<BeneficiosGuard><Beneficios /></BeneficiosGuard>} />
+          <Route path="/beneficios/:id" element={<BeneficiosGuard><BeneficioDetalle /></BeneficiosGuard>} />
         </Route>
         
       </Route>
 
       {/* Sin layout (login aparte) */}
                 <Route path="/login" element={<Login />} />
-    </Routes>
+
+        {/* Catchall: cualquier ruta desconocida redirige al home */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
      </ColorModeProvider>
   );
 }

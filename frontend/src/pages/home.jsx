@@ -1,4 +1,4 @@
-import React, { useContext } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -14,7 +14,9 @@ import {
   Avatar,
   Stack,
   Chip,
-  IconButton
+  IconButton,
+  Dialog,
+  DialogContent,
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -29,6 +31,7 @@ import HomeWorkIcon from '@mui/icons-material/HomeWork';
 import ScheduleIcon from '@mui/icons-material/Schedule';
 import LocalHospitalIcon from '@mui/icons-material/LocalHospital';
 import LocalOfferIcon from '@mui/icons-material/LocalOffer';
+import CardGiftcardIcon from '@mui/icons-material/CardGiftcard';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
 import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
@@ -38,6 +41,7 @@ import CardActions from '@mui/material/CardActions';
 import CardHeader from '@mui/material/CardHeader';
 import Footer from '../components/footer';
 import { AuthContext } from '../context/AuthContext';
+import { getConfigApi } from '../api/config';
 // ===== Variants =====
 // Hero: fondo con ken-burns + contenido fade-up
 const heroBgVariants = {
@@ -80,6 +84,7 @@ const valores = [
   { icon: AccessTimeFilledIcon, title: 'Registración de Asistencia', text: 'Facilita el registro y seguimiento de las asistencias diarias, garantizando , eficiencia y calidad en el trabajo.', path: '/my-attendance' },
   { icon: FactCheckIcon, title: 'Mis Solicitudes', text: 'Gestioná fácilmente tus solicitudes de vacaciones, días de estudio, enfermedad, mudanza, maternidad, y otras.', path: '/my-requests?filter=estudios_vacaciones' },
   { icon: Diversity3Icon, title: 'Licencias Médicas', text: 'Cargá las licencias médicas y hacé el seguimiento de tus ausencias de manera sencilla.', path: '/my-requests?filter=licencias_medicas' },
+  { icon: CardGiftcardIcon, title: 'Beneficios', text: 'Accedé a descuentos y convenios exclusivos por ser parte de ASYTEC: educación, idiomas, actividad física y más.', path: '/beneficios' },
 ];
 const testimonios = [
   {
@@ -114,6 +119,14 @@ const Home = () => {
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
   const [idxTestimonio, setIdxTestimonio] = React.useState(0);
+  const [beneficiosPublicos, setBeneficiosPublicos] = useState(true);
+  const [proximamenteOpen, setProximamenteOpen] = useState(false);
+
+  useEffect(() => {
+    getConfigApi('beneficios_publicos')
+      .then(({ data }) => setBeneficiosPublicos(data?.value === true))
+      .catch(() => setBeneficiosPublicos(true));
+  }, []);
 
   const nextTestimonio = () => setIdxTestimonio((p) => (p + 1) % testimonios.length);
   const prevTestimonio = () => setIdxTestimonio((p) => (p - 1 + testimonios.length) % testimonios.length);
@@ -123,7 +136,7 @@ const Home = () => {
     if (user) {
       navigate('/profile');
     } else {
-      navigate('/register');
+      navigate('/login');
     }
   };
   React.useEffect(() => {
@@ -169,7 +182,7 @@ const Home = () => {
               BIENVENIDO
             </Typography>
             <Typography variant="h5">
-              Te acompañamos en las gestiones de tu dia a dia.
+              Te acompañamos en las gestiones de tu día a día.
             </Typography>
             {/* <motion.div whileHover={{ y: -2 }} whileTap={{ scale: 0.98 }} style={{ marginTop: 24 }}>
               <Button variant="contained" color="primary" onClick={handleApplyClick} sx={{ px: 4, py: 1.5, fontWeight: 'bold' }}>
@@ -185,182 +198,80 @@ const Home = () => {
         <Container maxWidth="lg" sx={{ mb: 8, justifyItems: "center" }} >
           <Typography variant="h4" gutterBottom textAlign="center"></Typography>
           <Grid container spacing={3} sx={{ display: { xs: "grid", width: "max-content", justifyContent: "space-around", lg: "flex" } }}>
-            {valores.map((v, i) => (
-              <Grid size={{ xs: 12, sm: 6, md: 3 }} key={i}>
-                <motion.div variants={cardVariants} whileHover={{ y: -6 }}>
-                  <Card sx={{ borderRadius: 3, boxShadow: 3, width: "360px", height: "300px", display: 'flex', flexDirection: 'column' }}>
-                    <CardActionArea>
-                      <CardContent sx={{ p: 3, textAlign: 'center', flexGrow: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                        <Avatar sx={{ bgcolor: '#173487', width: 72, height: 72, mx: 'auto', mb: 2 }}>
-                          <v.icon sx={{ fontSize: 40, color: 'white' }} />
-                        </Avatar>
-                        <Typography gutterBottom variant="h6" component="div" >
-                          {v.title}
-                        </Typography>
-                        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                          {v.text}
-                        </Typography>
-                      </CardContent>
-                    </CardActionArea>
-                    <CardActions sx={{ justifyContent: 'center', p: 2 }}>
-                      <Button size="small" color="primary" onClick={() => v.path && navigate(v.path)} sx={{  color: '#173487' }}>
-                        Ver Mas
-                      </Button>
-                    </CardActions>
-                  </Card>
-                </motion.div>
-              </Grid>
-            ))}
+            {valores.map((v, i) => {
+              const esBeneficio = v.title === 'Beneficios';
+              const bloqueado = esBeneficio && !beneficiosPublicos && user?.rol === 'empleado';
+              return (
+                <Grid size={{ xs: 12, sm: 6, md: 3 }} key={i}>
+                  <motion.div variants={cardVariants} whileHover={{ y: -6 }}>
+                    <Card sx={{
+                      borderRadius: 3,
+                      boxShadow: 3,
+                      width: "360px",
+                      height: "300px",
+                      display: 'flex',
+                      flexDirection: 'column',
+                      opacity: bloqueado ? 0.85 : 1,
+                    }}>
+                      <CardActionArea onClick={() => bloqueado ? setProximamenteOpen(true) : v.path && navigate(v.path)}>
+                        <CardContent sx={{ p: 3, textAlign: 'center', flexGrow: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                          <Avatar sx={{ bgcolor: '#163282', width: 72, height: 72, mx: 'auto', mb: 2 }}>
+                            <v.icon sx={{ fontSize: 40, color: 'white' }} />
+                          </Avatar>
+                          <Typography gutterBottom variant="h6" component="div" >
+                            {v.title}
+                          </Typography>
+                          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                            {v.text}
+                          </Typography>
+                        </CardContent>
+                      </CardActionArea>
+                      <CardActions sx={{ justifyContent: 'center', p: 2 }}>
+                        {bloqueado ? (
+                          <Box sx={{
+                            bgcolor: '#173487',
+                            color: 'white',
+                            px: 2.5,
+                            py: 0.6,
+                            borderRadius: 10,
+                            fontSize: 13,
+                            fontWeight: 700,
+                            letterSpacing: 1,
+                            textTransform: 'uppercase',
+                            boxShadow: '0 2px 8px rgba(23,52,135,0.35)',
+                            cursor: 'pointer',
+                          }} onClick={() => setProximamenteOpen(true)}>
+                            Próximamente
+                          </Box>
+                        ) : (
+                          <Button size="small" color="primary" onClick={() => v.path && navigate(v.path)} sx={{ color: '#173487' }}>
+                            Ver Mas
+                          </Button>
+                        )}
+                      </CardActions>
+                    </Card>
+                  </motion.div>
+                </Grid>
+              );
+            })}
           </Grid>
         </Container>
       </motion.section>
-
-
-      {/* ===== CARROUSEL DE PUBLICACIONES ===== */}
-
-      {/* <Box sx={{ display: { xs: 'none', md: 'flex', justifyContent: 'center'} }}>
-        <motion.section variants={sectionVariants} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }}>
-          <Container maxWidth="lg" sx={{ mb: 2 }}>
-            <PublicSearchesCarousel />
-          </Container>
-        </motion.section>
-      </Box> */}
-
-
-      {/* 
-      ===== OPORTUNIDADES POR ÁREA =====
-      <motion.section
-        variants={sectionVariants}
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true, amount: 0.2 }}
-      >
-        <Container maxWidth="lg" sx={{ mb: 8 }}>
-          <Typography variant="h4" gutterBottom textAlign="center">
-            Áreas de Oportunidad
+      <Dialog open={proximamenteOpen} onClose={() => setProximamenteOpen(false)} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 3, textAlign: 'center', p: 2 } }}>
+        <DialogContent sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+          <Box component="img" src="/logo3.png" alt="Asytec Sistemas" sx={{ width: 72, height: 72, objectFit: 'contain' }} />
+          <Typography variant="h5" fontWeight={700} sx={{ color: '#173487' }}>
+            Próximamente
           </Typography>
-          <Grid container spacing={3} sx={{ display: { xs: "grid" , lg: "flex"}, justifyContent: "center"}}>
-            {areas.map((a, i) => (
-              <Grid size={{ xs: 12, sm: 6, md: 3 }} key={i}>
-                <motion.div variants={cardVariants} whileHover={{ y: -6, scale: 1.01 }}>
-                  <Card
-                    sx={{
-                      width: "250px",
-                      borderRadius: 3,
-                      overflow: "hidden",
-                      boxShadow: 4,
-                      display: "flex",
-                      flexDirection: "column",
-                      height: "360px",
-                    }}
-                  >
-                    <CardMedia
-                      component="img"
-                      image={a.img}
-                      alt={a.title}
-                      sx={{
-                        height: 160,
-                        width: "100%",
-                        objectFit: "cover"
-                      }}
-                    />
-                    <CardContent sx={{ flexGrow: 1 }}>
-                      <Typography variant="h6" gutterBottom noWrap>
-                        {a.title}
-                      </Typography>
-                      <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ maxHeight: 60, overflow: "hidden" }}>
-                        {a.tags.map((t) => (
-                          <Chip key={t} label={t} size="small" />
-                        ))}
-                      </Stack>
-                    </CardContent>
-                    <Box sx={{ p: 2, pt: 0 }}>
-                      <Button
-                        fullWidth
-                        variant="outlined"
-                        onClick={() => navigate(a.path)}
-                      >
-                        Ver vacantes
-                      </Button>
-                    </Box>
-                  </Card>
-                </motion.div>
-              </Grid>
-            ))}
-          </Grid>
-        </Container>
-      </motion.section> */}
-
-
-
-      {/* 
-      ===== TESTIMONIOS (carrusel simple) =====
-      <Container maxWidth="md" sx={{ mb: 8 }}>
-        <Typography variant="h4" gutterBottom textAlign="center">Historias reales</Typography>
-        <Box sx={{ position: 'relative', backgroundColor: 'white', borderRadius: 3, boxShadow: 3, p: 4 }}>
-          
-          <Box sx={{ minHeight: 170, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={idxTestimonio}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.35 }}
-                style={{ width: '100%' }}
-              >
-                <Stack spacing={2} alignItems="center" textAlign="center">
-                  <Avatar src={testimonios[idxTestimonio].foto} sx={{ width: 96, height: 96 }} />
-                  <Typography variant="h6" sx={{ maxWidth: 680 }}>
-                    “{testimonios[idxTestimonio].frase}”
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {testimonios[idxTestimonio].nombre} — {testimonios[idxTestimonio].rol}
-                  </Typography>
-                </Stack>
-              </motion.div>
-            </AnimatePresence>
-          </Box>
-          
-        </Box>
-      </Container> */}
-
-
-
-
-      {/* ===== FAQ ===== */}
-      {/* <Container maxWidth="md" sx={{ mb: 10 }}>
-        <Typography variant="h4" gutterBottom textAlign="center">Preguntas frecuentes</Typography>
-        <Accordion>
-          <AccordionSummary expandIcon={<ExpandMoreIcon />}>¿Cómo es el proceso de selección?</AccordionSummary>
-          <AccordionDetails>
-            Realizamos un primer screening de CV, entrevista con RRHH y entrevista técnica/cultural con el equipo. Te mantenemos informado en cada etapa.
-          </AccordionDetails>
-        </Accordion>
-        <Accordion>
-          <AccordionSummary expandIcon={<ExpandMoreIcon />}>¿En qué áreas puedo postularme?</AccordionSummary>
-          <AccordionDetails>
-            Tecnología, Comercial, Administración y People. También recibimos postulaciones espontáneas.
-          </AccordionDetails>
-        </Accordion>
-        <Accordion>
-          <AccordionSummary expandIcon={<ExpandMoreIcon />}>¿Qué pasa después de cargar mi CV?</AccordionSummary>
-          <AccordionDetails>
-            Nuestro equipo evalúa tu perfil y, si hay match, te contactamos para los siguientes pasos. Guardamos tu CV para futuras búsquedas.
-          </AccordionDetails>
-        </Accordion>
-      </Container> */}
-
-      {/* ===== CTA final ===== */}
-      {/* <Container maxWidth="lg">
-        <Box sx={{ textAlign: 'center', py: 6, backgroundColor: 'white', borderRadius: 2, boxShadow: 3 }}>
-          <Typography variant="h4" gutterBottom>¿Te gustaría trabajar con nosotros?</Typography>
-          <Typography variant="h6" sx={{ mb: 3 }}>Subí tu CV y sumate a nuestra base de talentos.</Typography>
-          <Button variant="contained" color="primary" onClick={handleApplyClick} sx={{ px: 4, py: 1.5, fontWeight: 'bold' }}>
-            Cargar mi CV
+          <Typography variant="body2" color="text.secondary">
+            Estamos preparando grandes beneficios para vos. Muy pronto vas a poder acceder a descuentos exclusivos como colaborador de ASYTEC.
+          </Typography>
+          <Button variant="contained" onClick={() => setProximamenteOpen(false)} sx={{ bgcolor: '#173487', '&:hover': { bgcolor: '#2A4DB8' }, mt: 1 }}>
+            Entendido
           </Button>
-        </Box>a
-      </Container> */}
+        </DialogContent>
+      </Dialog>
+
       <Footer />
     </Box>
 

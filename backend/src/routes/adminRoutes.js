@@ -26,6 +26,9 @@ import adminRequestRoutes from "./adminRequest.routes.js";
 // --- Importa las rutas de admin para reportes ---
 import adminReportsRoutes from "./adminReports.routes.js";
 
+// --- Info colaboradores ---
+import adminCollaboratorsInfoRoutes from "./adminCollaboratorsInfo.routes.js";
+
 const router = Router();
 
 // --- Middleware Global para Rutas de Admin ---
@@ -56,5 +59,8 @@ router.use("/requests", adminRequestRoutes);
 
 // --- Reportes --- (/api/admin/reports)
 router.use("/reports", adminReportsRoutes);
+
+// --- Info Colaboradores --- (/api/admin/collaborators-info)
+router.use("/collaborators-info", adminCollaboratorsInfoRoutes);
 
 export default router;

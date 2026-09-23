@@ -14,6 +14,8 @@ import { ColorModeContext } from "../context/ColorModeContext";
 import HowToRegIcon from '@mui/icons-material/HowToReg';
 import FactCheckIcon from '@mui/icons-material/FactCheck';
 import AssessmentIcon from '@mui/icons-material/Assessment';
+import GroupsIcon from '@mui/icons-material/Groups';
+import CardGiftcardIcon from '@mui/icons-material/CardGiftcard';
 import MenuIcon from "@mui/icons-material/Menu";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
@@ -210,6 +212,7 @@ export default function DashboardLayout() {
     { text: "Mi Perfil", icon: <PersonIcon />, path: "/profile" },
     { text: "Mi Asistencia", icon: <CoPresentIcon />, path: "/my-attendance" },
     { text: "Mis Solicitudes", icon: <FactCheckIcon />, path: "/my-requests" },
+    { text: "Beneficios", icon: <CardGiftcardIcon />, path: "/beneficios" },
     { text: "Cerrar Sesión", icon: <LogoutIcon />, action: "logout" },
   ];
 
@@ -217,22 +220,28 @@ export default function DashboardLayout() {
     { text: "Dashboard", icon: <HomeIcon />, path: "/admin/dashboard" },
     { text: "Mi Perfil", icon: <PersonIcon />, path: "/profile" },
     { text: "Mi Asistencia", icon: <CoPresentIcon />, path: "/my-attendance" },
+    { text: "Mis Solicitudes", icon: <FactCheckIcon />, path: "/my-requests" },
+    { text: "Beneficios", icon: <CardGiftcardIcon />, path: "/beneficios" },
     { text: "Gestión de Usuarios", icon: <AdminPanelSettingsIcon />, path: "/admin/users" },
     { text: "Gestión de Asistencias", icon: <HowToRegIcon />, path: "/admin/attendance" },
     { text: "Gestión de Solicitudes", icon: <FactCheckIcon />, path: "/admin/requests" },
     { text: "Reportes", icon: <AssessmentIcon />, path: "/admin/reports" },
+    { text: "Info Colaboradores", icon: <GroupsIcon />, path: "/admin/collaborators-info" },
     { text: "Cerrar Sesión", icon: <LogoutIcon />, action: "logout" },
   ];
 
   const rrhhMenu = [
-    
+
     { text: "Dashboard", icon: <HomeIcon />, path: "/admin/dashboard" },
     { text: "Mi Perfil", icon: <PersonIcon />, path: "/profile" },
     { text: "Mi Asistencia", icon: <CoPresentIcon />, path: "/my-attendance" },
+    { text: "Mis Solicitudes", icon: <FactCheckIcon />, path: "/my-requests" },
+    { text: "Beneficios", icon: <CardGiftcardIcon />, path: "/beneficios" },
     { text: "Gestión de Usuarios", icon: <AdminPanelSettingsIcon />, path: "/admin/users" },
     { text: "Gestión de Asistencias", icon: <HowToRegIcon />, path: "/admin/attendance" },
     { text: "Gestión de Solicitudes", icon: <FactCheckIcon />, path: "/admin/requests" },
     { text: "Reportes", icon: <AssessmentIcon />, path: "/admin/reports" },
+    { text: "Info Colaboradores", icon: <GroupsIcon />, path: "/admin/collaborators-info" },
     { text: "Cerrar Sesión", icon: <LogoutIcon />, action: "logout" },
   ];
 
@@ -294,7 +303,7 @@ export default function DashboardLayout() {
             >
               <ListItemButton
                 onClick={() => handleItemClick(item)}
-                selected={location.pathname === item.path}
+                selected={location.pathname === (item.path ? item.path.split('?')[0] : item.path)}
                 sx={{
                   minHeight: 48,
                   // En móvil siempre justificamos a la izquierda ("initial"), en desktop depende de si está abierto
@@ -330,7 +339,7 @@ export default function DashboardLayout() {
                   primary={item.text}
                   sx={{ 
                     opacity: (drawerOpen || isMobile) ? 1 : 0,
-                    color: location.pathname === item.path ? 'inherit' : "#173487",
+                    color: location.pathname === (item.path ? item.path.split('?')[0] : item.path) ? 'inherit' : "#173487",
                     display: (drawerOpen || isMobile) ? 'block' : 'none' // Hack para que no ocupe espacio visual cuando está cerrado en desktop
                     
                   }}

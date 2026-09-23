@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { register, login, me, logout } from "../controllers/auth.controller.js";
 import { requireAuth } from "../middleware/auth.middleware.js"; // 👈 ojo con la 's'
+import { requireRole } from "../middleware/role.middleware.js";
 import passport from "passport";
 import { body } from "express-validator";
 
@@ -53,8 +54,8 @@ const router = Router();
 
 // --- Rutas Estándar (montadas bajo /api/auth) ---
 
-// POST /api/auth/register - (usada por ahora si aún tenés alta pública o por admin)
-router.post("/register", registerValidations, register);
+// POST /api/auth/register - Solo admin/rrhh pueden crear usuarios. Cierre de registro público.
+router.post("/register", requireAuth, requireRole("admin", "rrhh"), registerValidations, register);
 
 // POST /api/auth/login - Inicio de sesión con DNI + PIN
 router.post("/login", loginValidations, login);

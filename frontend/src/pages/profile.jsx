@@ -37,6 +37,7 @@ import {
 import { profileApi } from "../api/auth";
 import { editUserApi } from "../api/users";
 import { AuthContext } from "../context/AuthContext";
+import Footer from "../components/footer";
 
 const API_URL = import.meta.env.VITE_API_URL || "";
 
@@ -297,9 +298,12 @@ export default function ProfileDashboard() {
   }
 
   return (
+    <>
     <Box
       component="main"
       sx={{
+        display: 'flex',
+        flexDirection: 'column',
         flexGrow: 1,
         py: { xs: 2, md: 4 }, // Padding vertical responsivo
         minHeight: "100vh",
@@ -307,7 +311,7 @@ export default function ProfileDashboard() {
       }}
     >
       {/* Container fluido pero con limite maximo 'lg' (aprox 1200px) */}
-      <Container maxWidth="lg">
+      <Container maxWidth="lg" sx={{ flexGrow: 1 }}>
        
 
         <Grid
@@ -791,5 +795,7 @@ export default function ProfileDashboard() {
         </Alert>
       </Snackbar>
     </Box>
+    <Footer />
+    </>
   );
 }

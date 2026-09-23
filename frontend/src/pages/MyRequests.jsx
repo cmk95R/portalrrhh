@@ -57,6 +57,7 @@ import { useSearchParams } from 'react-router-dom';
 import { getMyRequestsApi, deleteRequestApi, getRequestFileApi, editRequestApi, getRequestCommentsApi, postRequestCommentApi } from '../api/request'; 
 import CreateRequestModal from '../components/CreateRequestModal';
 import FilePreviewModal from '../components/FilePreviewModal';
+import Footer from '../components/footer';
 
 // --- CONFIGURACIÓN Y UTILIDADES ---
 
@@ -646,7 +647,8 @@ export default function MyRequests() {
   };
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 8 }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+      <Container maxWidth="lg" sx={{ mt: 4, mb: 4, flexGrow: 1 }}>
       {/* 1. Encabezado */}
       <Stack
           direction={{ xs: 'column', md: 'row' }}
@@ -1236,5 +1238,7 @@ export default function MyRequests() {
         loading={previewLoading}
       />
     </Container>
+    <Footer />
+    </Box>
   );
 }
